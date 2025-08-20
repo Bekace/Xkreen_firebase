@@ -1,0 +1,115 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+        /* Themeable Colors - Restored to Original Vibe */
+    --background: 210 11% 7%; /* #0f1211 */
+    --foreground: 160 14% 93%; /* #e7eceb */
+
+    --muted: 240 2% 16%; /* #27272a */
+    --muted-foreground: 160 14% 93% / 0.7; /* rgba(231, 236, 235, 0.7) */
+    --muted-foreground-light: 160 14% 93% / 0.5; /* rgba(231, 236, 235, 0.5) */
+    --muted-foreground-dark: 160 14% 93% / 0.6; /* rgba(231, 236, 235, 0.6) */
+    
+    
+    
+    /* Updated design tokens to match XKREEN dashboard design brief */
+    /*--background: 249 250 251;*/ /*249 250 251;  #f9fafb - Light Gray for overall background */
+    /*--foreground: 75 85 99; *//* #4b5563 - Dark Gray for primary text */
+
+    --card: 220 17% 98% / 0.01; /* #ffffff - White for card backgrounds */
+    --card-foreground: 160 14% 93%; /* #4b5563 - Dark Gray for card text */
+
+    --popover: 255 255 255; /* #ffffff - White for popovers */
+    --popover-foreground: 75 85 99; /* #4b5563 - Dark Gray for popover text */
+
+    --primary: 8 145 178; /* #0891b2 - Cyan for primary actions and buttons */
+    --primary-foreground: 255 255 255; /* #ffffff - White for text on primary buttons */
+
+    --secondary: 245 158 11; /* #f59e0b - Amber for secondary actions */
+    --secondary-foreground: 75 85 99; /* #4b5563 - Dark Gray for text on secondary actions */
+
+    /*--muted: 249 250 251; *//* #f9fafb - Light Gray for muted backgrounds */
+    /*--muted-foreground: 107 114 128; *//* #6b7280 - Medium Gray for muted text */
+
+    --accent: 245 158 11; /* #f59e0b - Amber for highlights or indicators */
+    --accent-foreground: 75 85 99; /* #4b5563 - Dark Gray for accent text */
+
+    --destructive: 220 38 38; /* #dc2626 - Red for destructive actions */
+    --destructive-foreground: 255 255 255; /* #ffffff - White for text on destructive buttons */
+
+    --border: 240 100% 100% / 0.08; /* rgba(255, 255, 255, 0.08) */
+    --input: 255 255 255; /* #ffffff - White for input backgrounds */
+    --ring: 8 145 178; /* #0891b2 - Cyan for focus rings */
+
+    /* Chart colors for data visualization */
+    --chart-1: 8 145 178; /* #0891b2 - Primary chart color */
+    --chart-2: 245 158 11; /* #f59e0b - Secondary chart color */
+    --chart-3: 75 85 99; /* #4b5563 - Tertiary chart color */
+    --chart-4: 220 38 38; /* #dc2626 - Fourth chart color */
+    --chart-5: 156 163 175; /* #9ca3af - Fifth chart color */
+
+    /* Sidebar specific tokens */
+    --sidebar: 255 255 255; /* #ffffff - White for sidebar background */
+    --sidebar-foreground: 75 85 99; /* #4b5563 - Dark Gray for sidebar text */
+    --sidebar-primary: 8 145 178; /* #0891b2 - Cyan for sidebar highlights */
+    --sidebar-primary-foreground: 255 255 255; /* #ffffff - White for sidebar primary text */
+    --sidebar-accent: 245 158 11; /* #f59e0b - Amber for sidebar accent elements */
+    --sidebar-accent-foreground: 75 85 99; /* #4b5563 - Dark Gray for sidebar accent text */
+    --sidebar-border: 229 231 235; /* #e5e7eb - Light Gray for sidebar borders */
+    --sidebar-ring: 8 145 178; /* #0891b2 - Cyan for sidebar focus rings */
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Dark mode variants - keeping original dark theme for contrast */
+    --background: 210 11% 7%; /* #0f1211 */
+    --foreground: 160 14% 93%; /* #e7eceb */
+
+    --card: 220 17% 98% / 0.01;
+    --card-foreground: 160 14% 93%;
+
+    --popover: 210 11% 7%;
+    --popover-foreground: 160 14% 93%;
+
+    --primary: 165 96% 71%; /* #78fcd6 */
+    --primary-foreground: 160 8% 6%; /* #0d0f0e */
+
+    --secondary: 160 14% 93%; /* #e7eceb */
+    --secondary-foreground: 165 14% 8%; /* #141a18 */
+
+    --muted: 240 2% 16%; /* #27272a */
+    --muted-foreground: 160 14% 93% / 0.7;
+
+    --accent: 240 2% 25%; /* #3f3f42 */
+    --accent-foreground: 240 2% 96%; /* #f4f4f5 */
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 210 17% 6% / 0.05; /* rgba(16,24,40,0.05) */
+    --input: 240 2% 16%;
+    --ring: 165 96% 71%;
+
+    --sidebar: 210 11% 7%;
+    --sidebar-foreground: 160 14% 93%;
+    --sidebar-primary: 165 96% 71%;
+    --sidebar-primary-foreground: 160 8% 6%;
+    --sidebar-accent: 240 2% 25%;
+    --sidebar-accent-foreground: 240 2% 96%;
+    --sidebar-border: 240 100% 100% / 0.08;
+    --sidebar-ring: 165 96% 71%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
