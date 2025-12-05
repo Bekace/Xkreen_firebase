@@ -89,23 +89,47 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       updateData.media_id = null
     } else if (finalContentType === "playlist" && selectedContentIds && selectedContentIds.length > 0) {
       const playlistId = selectedContentIds[0]
-      await supabase.from("screen_playlists").insert({
-        screen_id: params.id,
-        playlist_id: playlistId,
-        is_active: true,
-      })
+      const { data: insertedPlaylist, error: playlistInsertError } = await supabase
+        .from("screen_playlists")
+        .insert({
+          screen_id: params.id,
+          playlist_id: playlistId,
+          is_active: true,
+        })
+        .select()
+
+      if (playlistInsertError) {
+        console.error("[v0] Failed to insert playlist assignment:", playlistInsertError)
+        return NextResponse.json(
+          { error: "Failed to assign playlist", details: playlistInsertError.message },
+          { status: 500 },
+        )
+      }
+
       updateData.content_type = "playlist"
       updateData.media_id = null
-      console.log(`[v0] - Assigned single playlist: ${playlistId}`)
+      console.log(`[v0] - Successfully assigned playlist: ${playlistId}`, insertedPlaylist)
     } else if (finalContentType === "asset" && selectedContentIds && selectedContentIds.length > 0) {
       const mediaAssignments = selectedContentIds.map((mediaId: string) => ({
         screen_id: params.id,
         media_id: mediaId,
       }))
-      const { data: insertedMedia } = await supabase.from("screen_media").insert(mediaAssignments).select()
+      const { data: insertedMedia, error: mediaInsertError } = await supabase
+        .from("screen_media")
+        .insert(mediaAssignments)
+        .select()
+
+      if (mediaInsertError) {
+        console.error("[v0] Failed to insert media assignments:", mediaInsertError)
+        return NextResponse.json(
+          { error: "Failed to assign media assets", details: mediaInsertError.message },
+          { status: 500 },
+        )
+      }
+
       updateData.content_type = "asset"
       updateData.media_id = selectedContentIds[0]
-      console.log(`[v0] - Assigned ${insertedMedia?.length || 0} media assets`)
+      console.log(`[v0] - Successfully assigned ${insertedMedia?.length || 0} media assets`)
     } else {
       updateData.content_type = "none"
       updateData.media_id = null
