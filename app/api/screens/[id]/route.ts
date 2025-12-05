@@ -65,10 +65,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     const requestData = await request.json()
-    const { name, location, resolution, orientation, selectedContentIds } = requestData
+    const { name, location, resolution, orientation, selectedContentIds, contentType } = requestData
 
     console.log("[v0] Screen update request:")
     console.log(`[v0] - Screen ID: ${params.id}`)
+    console.log(`[v0] - Content Type: ${contentType}`)
     console.log(`[v0] - Selected content IDs:`, selectedContentIds)
 
     const updateData: any = {
@@ -79,74 +80,34 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       updated_at: new Date().toISOString(),
     }
 
-    if (selectedContentIds && Array.isArray(selectedContentIds)) {
-      const { error: deletePlaylistsError } = await supabase
-        .from("screen_playlists")
-        .delete()
-        .eq("screen_id", params.id)
-      const { error: deleteMediaError } = await supabase.from("screen_media").delete().eq("screen_id", params.id)
+    await supabase.from("screen_playlists").delete().eq("screen_id", params.id)
+    await supabase.from("screen_media").delete().eq("screen_id", params.id)
 
-      console.log("[v0] - Deleted existing assignments")
-      if (deletePlaylistsError) console.error("[v0] - Error deleting playlists:", deletePlaylistsError)
-      if (deleteMediaError) console.error("[v0] - Error deleting media:", deleteMediaError)
-
-      if (selectedContentIds.length === 0) {
-        updateData.media_id = null
-        updateData.content_type = "none"
-      } else {
-        const { data: playlists } = await supabase
-          .from("playlists")
-          .select("id")
-          .in("id", selectedContentIds)
-          .eq("user_id", user.id)
-
-        const playlistIds = playlists?.map((p) => p.id) || []
-        const mediaIds = selectedContentIds.filter((id) => !playlistIds.includes(id))
-
-        console.log(`[v0] - Detected ${playlistIds.length} playlists`)
-        console.log(`[v0] - Detected ${mediaIds.length} media assets`)
-        console.log(`[v0] - Playlist IDs:`, playlistIds)
-        console.log(`[v0] - Media IDs:`, mediaIds)
-
-        if (playlistIds.length > 0) {
-          const playlistAssignments = playlistIds.map((playlistId) => ({
-            screen_id: params.id,
-            playlist_id: playlistId,
-            is_active: true,
-          }))
-          const { data: insertedPlaylists, error: playlistInsertError } = await supabase
-            .from("screen_playlists")
-            .insert(playlistAssignments)
-            .select()
-
-          console.log(`[v0] - Inserted ${insertedPlaylists?.length || 0} playlist assignments`)
-          if (playlistInsertError) console.error("[v0] - Error inserting playlists:", playlistInsertError)
-        }
-
-        if (mediaIds.length > 0) {
-          const mediaAssignments = mediaIds.map((mediaId) => ({
-            screen_id: params.id,
-            media_id: mediaId,
-          }))
-          const { data: insertedMedia, error: mediaInsertError } = await supabase
-            .from("screen_media")
-            .insert(mediaAssignments)
-            .select()
-
-          console.log(`[v0] - Inserted ${insertedMedia?.length || 0} media assignments`)
-          if (mediaInsertError) console.error("[v0] - Error inserting media:", mediaInsertError)
-        }
-
-        if (playlistIds.length > 0 && mediaIds.length > 0) {
-          updateData.content_type = "mixed"
-        } else if (playlistIds.length > 0) {
-          updateData.content_type = "playlist"
-        } else if (mediaIds.length > 0) {
-          updateData.content_type = "asset"
-        }
-
-        updateData.media_id = mediaIds.length > 0 ? mediaIds[0] : null
-      }
+    if (contentType === "schedule") {
+      updateData.content_type = "schedule"
+      updateData.media_id = null
+    } else if (contentType === "playlist" && selectedContentIds && selectedContentIds.length > 0) {
+      const playlistId = selectedContentIds[0]
+      await supabase.from("screen_playlists").insert({
+        screen_id: params.id,
+        playlist_id: playlistId,
+        is_active: true,
+      })
+      updateData.content_type = "playlist"
+      updateData.media_id = null
+      console.log(`[v0] - Assigned single playlist: ${playlistId}`)
+    } else if (contentType === "asset" && selectedContentIds && selectedContentIds.length > 0) {
+      const mediaAssignments = selectedContentIds.map((mediaId: string) => ({
+        screen_id: params.id,
+        media_id: mediaId,
+      }))
+      const { data: insertedMedia } = await supabase.from("screen_media").insert(mediaAssignments).select()
+      updateData.content_type = "asset"
+      updateData.media_id = selectedContentIds[0]
+      console.log(`[v0] - Assigned ${insertedMedia?.length || 0} media assets`)
+    } else {
+      updateData.content_type = "none"
+      updateData.media_id = null
     }
 
     const { data: screen, error } = await supabase
