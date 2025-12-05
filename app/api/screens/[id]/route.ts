@@ -65,11 +65,12 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     const requestData = await request.json()
-    const { name, location, resolution, orientation, selectedContentIds, contentType } = requestData
+    const { name, location, resolution, orientation, selectedContentIds, content_type, contentType } = requestData
+    const finalContentType = content_type || contentType
 
     console.log("[v0] Screen update request:")
     console.log(`[v0] - Screen ID: ${params.id}`)
-    console.log(`[v0] - Content Type: ${contentType}`)
+    console.log(`[v0] - Content Type: ${finalContentType}`)
     console.log(`[v0] - Selected content IDs:`, selectedContentIds)
 
     const updateData: any = {
@@ -83,10 +84,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     await supabase.from("screen_playlists").delete().eq("screen_id", params.id)
     await supabase.from("screen_media").delete().eq("screen_id", params.id)
 
-    if (contentType === "schedule") {
+    if (finalContentType === "schedule") {
       updateData.content_type = "schedule"
       updateData.media_id = null
-    } else if (contentType === "playlist" && selectedContentIds && selectedContentIds.length > 0) {
+    } else if (finalContentType === "playlist" && selectedContentIds && selectedContentIds.length > 0) {
       const playlistId = selectedContentIds[0]
       await supabase.from("screen_playlists").insert({
         screen_id: params.id,
@@ -96,7 +97,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       updateData.content_type = "playlist"
       updateData.media_id = null
       console.log(`[v0] - Assigned single playlist: ${playlistId}`)
-    } else if (contentType === "asset" && selectedContentIds && selectedContentIds.length > 0) {
+    } else if (finalContentType === "asset" && selectedContentIds && selectedContentIds.length > 0) {
       const mediaAssignments = selectedContentIds.map((mediaId: string) => ({
         screen_id: params.id,
         media_id: mediaId,
@@ -110,7 +111,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       updateData.media_id = null
     }
 
-    const { data: screen, error } = await supabase
+    const { data: screen, error: updateError } = await supabase
       .from("screens")
       .update(updateData)
       .eq("id", params.id)
@@ -118,8 +119,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       .select()
       .single()
 
-    if (error) {
-      console.error("Database error:", error)
+    if (updateError) {
+      console.error("Database error:", updateError)
       return NextResponse.json({ error: "Failed to update screen" }, { status: 500 })
     }
 
