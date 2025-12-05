@@ -1,115 +1,197 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import "tw-animate-css";
 
-@layer base {
-  :root {
-        /* Themeable Colors - Restored to Original Vibe */
-    --background: 210 11% 7%; /* #0f1211 */
-    --foreground: 160 14% 93%; /* #e7eceb */
+@custom-variant dark (&:is(.dark *));
 
-    --muted: 240 2% 16%; /* #27272a */
-    --muted-foreground: 160 14% 93% / 0.7; /* rgba(231, 236, 235, 0.7) */
-    --muted-foreground-light: 160 14% 93% / 0.5; /* rgba(231, 236, 235, 0.5) */
-    --muted-foreground-dark: 160 14% 93% / 0.6; /* rgba(231, 236, 235, 0.6) */
-    
-    
-    
-    /* Updated design tokens to match XKREEN dashboard design brief */
-    /*--background: 249 250 251;*/ /*249 250 251;  #f9fafb - Light Gray for overall background */
-    /*--foreground: 75 85 99; *//* #4b5563 - Dark Gray for primary text */
+:root {
+  /* Themeable Colors - Restored to Original Vibe */
+  --card: hsl(210 11% 12%); /* Dark card background for proper contrast with light text */
+  --card-foreground: hsl(160 14% 93%);
 
-    --card: 220 17% 98% / 0.01; /* #ffffff - White for card backgrounds */
-    --card-foreground: 160 14% 93%; /* #4b5563 - Dark Gray for card text */
+  --popover: hsl(210 11% 7%);
+  --popover-foreground: hsl(160 14% 93%);
 
-    --popover: 255 255 255; /* #ffffff - White for popovers */
-    --popover-foreground: 75 85 99; /* #4b5563 - Dark Gray for popover text */
+  --primary: hsl(165 96% 71%); /* #78fcd6 */
+  --primary-foreground: hsl(160 8% 6%); /* #0d0f0e */
 
-    --primary: 8 145 178; /* #0891b2 - Cyan for primary actions and buttons */
-    --primary-foreground: 255 255 255; /* #ffffff - White for text on primary buttons */
+  --secondary: hsl(160 14% 93%); /* #e7eceb */
+  --secondary-foreground: hsl(165 14% 8%); /* #141a18 */
 
-    --secondary: 245 158 11; /* #f59e0b - Amber for secondary actions */
-    --secondary-foreground: 75 85 99; /* #4b5563 - Dark Gray for text on secondary actions */
+  --muted: hsl(240 2% 16%); /* #27272a */
+  --muted-foreground: hsl(160 14% 75%); /* Increased muted-foreground opacity for better contrast */
 
-    /*--muted: 249 250 251; *//* #f9fafb - Light Gray for muted backgrounds */
-    /*--muted-foreground: 107 114 128; *//* #6b7280 - Medium Gray for muted text */
+  --accent: hsl(240 2% 25%); /* #3f3f42 */
+  --accent-foreground: hsl(240 2% 96%); /* #f4f4f5 */
 
-    --accent: 245 158 11; /* #f59e0b - Amber for highlights or indicators */
-    --accent-foreground: 75 85 99; /* #4b5563 - Dark Gray for accent text */
+  --background: hsl(210 11% 7%); /* #0f1211 - Dark background for light text */
+  --foreground: hsl(160 14% 93%); /* #e7eceb */
 
-    --destructive: 220 38 38; /* #dc2626 - Red for destructive actions */
-    --destructive-foreground: 255 255 255; /* #ffffff - White for text on destructive buttons */
+  --muted-foreground-light: hsl(71 85 105 / 0.5);
+  --muted-foreground-dark: hsl(71 85 105 / 0.6);
 
-    --border: 240 100% 100% / 0.08; /* rgba(255, 255, 255, 0.08) */
-    --input: 255 255 255; /* #ffffff - White for input backgrounds */
-    --ring: 8 145 178; /* #0891b2 - Cyan for focus rings */
+  /* Updated font configuration to use Google Fonts Inter directly */
+  --font-sans: "Inter", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
-    /* Chart colors for data visualization */
-    --chart-1: 8 145 178; /* #0891b2 - Primary chart color */
-    --chart-2: 245 158 11; /* #f59e0b - Secondary chart color */
-    --chart-3: 75 85 99; /* #4b5563 - Tertiary chart color */
-    --chart-4: 220 38 38; /* #dc2626 - Fourth chart color */
-    --chart-5: 156 163 175; /* #9ca3af - Fifth chart color */
+  /* Updated design tokens to match device player design brief */
+  --destructive: hsl(0 62.8% 30.6%);
+  --destructive-foreground: hsl(210 40% 98%);
 
-    /* Sidebar specific tokens */
-    --sidebar: 255 255 255; /* #ffffff - White for sidebar background */
-    --sidebar-foreground: 75 85 99; /* #4b5563 - Dark Gray for sidebar text */
-    --sidebar-primary: 8 145 178; /* #0891b2 - Cyan for sidebar highlights */
-    --sidebar-primary-foreground: 255 255 255; /* #ffffff - White for sidebar primary text */
-    --sidebar-accent: 245 158 11; /* #f59e0b - Amber for sidebar accent elements */
-    --sidebar-accent-foreground: 75 85 99; /* #4b5563 - Dark Gray for sidebar accent text */
-    --sidebar-border: 229 231 235; /* #e5e7eb - Light Gray for sidebar borders */
-    --sidebar-ring: 8 145 178; /* #0891b2 - Cyan for sidebar focus rings */
+  --border: hsl(210 17% 6% / 0.2); /* Fixed border opacity for better visibility */
+  --input: hsl(240 2% 16%);
+  --ring: hsl(165 96% 71%);
 
-    --radius: 0.5rem;
-  }
+  --sidebar: hsl(210 11% 7%);
+  --sidebar-foreground: hsl(160 14% 93%);
+  --sidebar-primary: hsl(165 96% 71%);
+  --sidebar-primary-foreground: hsl(160 8% 6%);
+  --sidebar-accent: hsl(240 2% 25%);
+  --sidebar-accent-foreground: hsl(240 2% 96%);
+  --sidebar-border: hsl(240 100% 100% / 0.08);
+  --sidebar-ring: hsl(165 96% 71%);
 
-  .dark {
-    /* Dark mode variants - keeping original dark theme for contrast */
-    --background: 210 11% 7%; /* #0f1211 */
-    --foreground: 160 14% 93%; /* #e7eceb */
+  /* Chart colors for data visualization */
+  --chart-1: hsl(99 102 241); /* #6366f1 - Indigo */
+  --chart-2: hsl(217 119 6); /* #d97706 - Amber */
+  --chart-3: hsl(22 78 99); /* #164e63 - Cyan-800 */
+  --chart-4: hsl(71 85 105); /* #475569 - Dark cyan */
+  --chart-5: hsl(254 252 232); /* #fefce8 - Light yellow */
 
-    --card: 220 17% 98% / 0.01;
-    --card-foreground: 160 14% 93%;
+  --radius: 0.5rem;
+}
 
-    --popover: 210 11% 7%;
-    --popover-foreground: 160 14% 93%;
+.dark {
+  /* Dark mode variants - keeping original dark theme for contrast */
+  --background: hsl(210 11% 7%); /* #0f1211 */
+  --foreground: hsl(160 14% 93%); /* #e7eceb */
 
-    --primary: 165 96% 71%; /* #78fcd6 */
-    --primary-foreground: 160 8% 6%; /* #0d0f0e */
+  --card: hsl(210 11% 12%); /* Dark card background for proper contrast with light text */
+  --card-foreground: hsl(160 14% 93%);
 
-    --secondary: 160 14% 93%; /* #e7eceb */
-    --secondary-foreground: 165 14% 8%; /* #141a18 */
+  --popover: hsl(210 11% 7%);
+  --popover-foreground: hsl(160 14% 93%);
 
-    --muted: 240 2% 16%; /* #27272a */
-    --muted-foreground: 160 14% 93% / 0.7;
+  --primary: hsl(165 96% 71%); /* #78fcd6 */
+  --primary-foreground: hsl(160 8% 6%); /* #0d0f0e */
 
-    --accent: 240 2% 25%; /* #3f3f42 */
-    --accent-foreground: 240 2% 96%; /* #f4f4f5 */
+  --secondary: hsl(160 14% 93%); /* #e7eceb */
+  --secondary-foreground: hsl(165 14% 8%); /* #141a18 */
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+  --muted: hsl(240 2% 16%); /* #27272a */
+  --muted-foreground: hsl(160 14% 85%); /* Increased muted-foreground opacity for better contrast in dark mode */
 
-    --border: 210 17% 6% / 0.05; /* rgba(16,24,40,0.05) */
-    --input: 240 2% 16%;
-    --ring: 165 96% 71%;
+  --accent: hsl(240 2% 25%); /* #3f3f42 */
+  --accent-foreground: hsl(240 2% 96%); /* #f4f4f5 */
 
-    --sidebar: 210 11% 7%;
-    --sidebar-foreground: 160 14% 93%;
-    --sidebar-primary: 165 96% 71%;
-    --sidebar-primary-foreground: 160 8% 6%;
-    --sidebar-accent: 240 2% 25%;
-    --sidebar-accent-foreground: 240 2% 96%;
-    --sidebar-border: 240 100% 100% / 0.08;
-    --sidebar-ring: 165 96% 71%;
-  }
+  --destructive: hsl(0 62.8% 30.6%);
+  --destructive-foreground: hsl(210 40% 98%);
+
+  --border: hsl(210 17% 6% / 0.15); /* Fixed border opacity for better visibility in dark mode */
+  --input: hsl(240 2% 16%);
+  --ring: hsl(165 96% 71%);
+
+  --sidebar: hsl(210 11% 7%);
+  --sidebar-foreground: hsl(160 14% 93%);
+  --sidebar-primary: hsl(165 96% 71%);
+  --sidebar-primary-foreground: hsl(160 8% 6%);
+  --sidebar-accent: hsl(240 2% 25%);
+  --sidebar-accent-foreground: hsl(240 2% 96%);
+  --sidebar-border: hsl(240 100% 100% / 0.08);
+  --sidebar-ring: hsl(165 96% 71%);
+}
+
+@theme inline {
+  /* optional: --font-sans, --font-serif, --font-mono if they are applied in the layout.tsx */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 }
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Added Inter font utility class for consistent usage */
+.font-inter {
+  font-family: "Inter", sans-serif;
+  font-optical-sizing: auto;
+  font-style: normal;
+}
+
+/* TV-specific focus styles for 10-foot UI */
+.tv-focusable {
+  outline: none;
+  transition: all 0.2s ease-in-out;
+}
+
+.tv-focusable:focus-visible {
+  outline: 4px solid var(--color-primary);
+  outline-offset: 4px;
+  transform: scale(1.05);
+  box-shadow: 0 0 0 4px var(--color-primary), 0 0 20px var(--color-primary);
+}
+
+/* TV mode cursor hiding for cleaner experience */
+.tv-mode {
+  cursor: none;
+}
+
+.tv-mode * {
+  cursor: none;
+}
+
+/* Large touch targets for remote navigation */
+.tv-button {
+  min-width: 120px;
+  min-height: 48px;
+  font-size: 1.125rem;
+}
+
+/* Added scrollbar-hide utility for cleaner modal scrolling */
+/* Hide scrollbar while maintaining scroll functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
 }

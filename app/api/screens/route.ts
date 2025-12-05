@@ -3,9 +3,12 @@ import { type NextRequest, NextResponse } from "next/server"
 
 export async function GET() {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
 
-    // Check authentication
+    if (!supabase) {
+      return NextResponse.json({ error: "Supabase not configured" }, { status: 500 })
+    }
+
     const {
       data: { user },
       error: authError,
@@ -22,6 +25,10 @@ export async function GET() {
           playlist_id,
           is_active,
           playlists(id, name)
+        ),
+        screen_media(
+          media_id,
+          media(id, name, mime_type, file_path)
         )
       `)
       .eq("user_id", user.id)
@@ -41,9 +48,12 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
 
-    // Check authentication
+    if (!supabase) {
+      return NextResponse.json({ error: "Supabase not configured" }, { status: 500 })
+    }
+
     const {
       data: { user },
       error: authError,
@@ -52,7 +62,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { name, location, resolution, orientation } = await request.json()
+    const { name, location, resolution, orientation, content_type } = await request.json()
 
     if (!name) {
       return NextResponse.json({ error: "Screen name is required" }, { status: 400 })
@@ -72,6 +82,7 @@ export async function POST(request: NextRequest) {
         orientation,
         screen_code: screenCode,
         status: "offline",
+        content_type: content_type || "none",
       })
       .select()
       .single()

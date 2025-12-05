@@ -1,0 +1,9 @@
+ICON FILE NEEDED:
+Place a Windows icon file (.ico) at: electron/icon.ico
+
+You can:
+1. Create one at: https://www.icoconverter.com/
+2. Or use any 256x256 PNG and convert it to .ico
+3. Or temporarily remove icon references from electron-builder.json
+
+For now, the build will work without an icon (Windows will use default).

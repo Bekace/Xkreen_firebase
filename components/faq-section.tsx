@@ -6,35 +6,35 @@ import { ChevronDown } from "lucide-react"
 
 const faqData = [
   {
-    question: "What is Pointer and who is it for?",
-    answer:
-      "Pointer is an AI-powered development platform designed for developers, teams, and organizations who want toaccelerate their coding workflow. It's perfect for both individual developers looking to enhance their productivity and teams seeking seamless collaboration tools.",
-  },
-  {
-    question: "How does Pointer's AI code review work?",
-    answer:
-      "Our AI analyzes your code in real-time, providing intelligent suggestions for improvements, catching potential bugs, and ensuring best practices. It learns from your coding patterns and adapts to your team's standards, making code reviews faster and more consistent.",
-  },
-  {
-    question: "Can I integrate Pointer with my existing tools?",
-    answer:
-      "Yes! Pointer offers one-click integrations with popular development tools including GitHub, GitLab, VS Code, Slack, and many more. Our MCP connectivity allows you to easily manage and configure server access across your entire development stack.",
-  },
-  {
-    question: "What's included in the free plan?",
-    answer:
-      "The free plan includes real-time code suggestions, basic integrations, single MCP server connection, up to 2 AI coding agents, and Vercel deployments with Pointer branding. It's perfect for individual developers getting started.",
-  },
-  {
-    question: "How do parallel coding agents work?",
-    answer:
-      "Our parallel coding agents can work on different parts of your codebase simultaneously, solving complex problems faster than traditional single-threaded approaches. You can launch multiple agents to handle different tasks like bug fixes, feature development, and code optimization concurrently.",
-  },
-  {
-    question: "Is my code secure with Pointer?",
-    answer:
-      "Absolutely. We use enterprise-grade security measures including end-to-end encryption, secure data transmission, and compliance with industry standards. Your code never leaves your secure environment without your explicit permission, and we offer on-premises deployment options for enterprise customers.",
-  },
+  question: "What is Xkreen and who is it for?",
+  answer:
+    "Xkreen is an AI-powered digital signage platform designed for businesses, franchises, and organizations that want to engage audiences through smarter screen management. It’s perfect for small businesses starting with one screen, as well as large enterprises managing hundreds of displays.",
+},
+{
+  question: "How does the AI-powered signage work?",
+  answer:
+    "Our AI analyzes your content and scheduling needs in real time, suggesting the best layouts, timing, and media combinations. It learns from your audience engagement patterns and adapts to your business goals, making digital signage more effective and consistent.",
+},
+{
+  question: "Can I integrate Xkreen with my existing tools?",
+  answer:
+    "Yes! Xkreen offers integrations with popular tools including Google Drive, Dropbox, Canva, and Slack. You can easily upload content, sync media libraries, and manage screens directly from your existing workflow.",
+},
+{
+  question: "What's included in the free plan?",
+  answer:
+    "The free plan includes screen pairing, basic templates, real-time content uploads, and management for a single display with platform watermarking. It’s the perfect way to get started with digital signage.",
+},
+{
+  question: "How does multi-screen management work?",
+  answer:
+    "With our platform, you can manage multiple screens across different locations from one dashboard. Schedule campaigns, launch playlists, and update content instantly on all displays or target specific groups of screens.",
+},
+{
+  question: "Is my data secure with Xkreen?",
+  answer:
+    "Absolutely. We use enterprise-grade security including end-to-end encryption, secure content delivery, and compliance with industry standards. Your data and media are protected, and we also offer custom hosting and on-premises options for enterprise customers.",
+},
 ]
 
 interface FAQItemProps {
@@ -99,7 +99,7 @@ export function FAQSection() {
             Frequently Asked Questions
           </h2>
           <p className="self-stretch text-center text-muted-foreground text-sm font-medium leading-[18.20px] break-words">
-            Everything you need to know about Pointer and how it can transform your development workflow
+            {"Discover how AI-powered digital signage helps agencies and brands optimize campaigns, boost revenue, and deliver smarter content."}
           </p>
         </div>
       </div>

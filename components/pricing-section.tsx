@@ -12,32 +12,30 @@ export function PricingSection() {
       name: "Free",
       monthlyPrice: "$0",
       annualPrice: "$0",
-      description: "Perfect for individuals starting their journey.",
-      features: [
-        "Real-time code suggestions",
-        "Basic integration logos",
-        "Single MCP server connection",
-        "Up to 2 AI coding agents",
-        "Vercel deployments with Pointer branding",
-      ],
+      description: "Perfect for small businesses starting with digital signage.",
+        features: [
+        "Easy screen pairing with a unique code",
+        "Upload and schedule media in real time",
+        "Basic template and branding options",
+        "Manage a single display screen",
+        "Starter plan with platform watermark",
+        ],
       buttonText: "Get Started",
       buttonClass:
         "bg-zinc-300 shadow-[0px_1px_1px_-0.5px_rgba(16,24,40,0.20)] outline outline-0.5 outline-[#1e29391f] outline-offset-[-0.5px] text-gray-800 text-shadow-[0px_1px_1px_rgba(16,24,40,0.08)] hover:bg-zinc-400",
     },
     {
       name: "Pro",
-      monthlyPrice: "$20",
-      annualPrice: "$16",
-      description: "Ideal for professionals.",
-      features: [
-        "Enhanced real-time previews",
-        "Unlimited integrations with custom logos",
-        "Multiple MCP server connections",
-        "Up to 10 concurrent AI coding agents",
-        "Collaborative coding with team chat",
-        "Advanced version control integrations",
-        "Priority email and chat support",
-      ],
+      monthlyPrice: "$60",
+      annualPrice: "$46",
+      description: "Designed for growing brands that need more flexibility.",
+features: [
+  "Connect and manage up to 10 screens",
+  "Advanced scheduling and playlists",
+  "Custom branding and templates",
+  "Multi-user team access",
+  "Email support with priority response",
+],
       buttonText: "Join now",
       buttonClass:
         "bg-primary-foreground shadow-[0px_1px_1px_-0.5px_rgba(16,24,40,0.20)] text-primary text-shadow-[0px_1px_1px_rgba(16,24,40,0.08)] hover:bg-primary-foreground/90",
@@ -47,14 +45,14 @@ export function PricingSection() {
       name: "Ultra",
       monthlyPrice: "$200",
       annualPrice: "$160",
-      description: "Tailored solutions for teams.",
-      features: [
-        "Dedicated account support",
-        "Unlimited MCP server clusters",
-        "Unlimited AI coding agents",
-        "Enterprise-grade security and compliance",
-        "Priority deployments and SLA guarantees",
-      ],
+      description: "Built for enterprises and franchises at scale.",
+features: [
+  "Unlimited screens and locations",
+  "Centralized control panel for networks",
+  "White-label branding and custom domains",
+  "24/7 premium support",
+  "Dedicated account manager and onboarding",
+],
       buttonText: "Talk to Sales",
       buttonClass:
         "bg-secondary shadow-[0px_1px_1px_-0.5px_rgba(16,24,40,0.20)] text-secondary-foreground text-shadow-[0px_1px_1px_rgba(16,24,40,0.08)] hover:bg-secondary/90",
@@ -66,11 +64,10 @@ export function PricingSection() {
       <div className="self-stretch relative flex flex-col justify-center items-center gap-2 py-0">
         <div className="flex flex-col justify-start items-center gap-4">
           <h2 className="text-center text-foreground text-4xl md:text-5xl font-semibold leading-tight md:leading-[40px]">
-            Pricing built for every developer
+            Affordable, scalable pricing for growing brands
           </h2>
           <p className="self-stretch text-center text-muted-foreground text-sm font-medium leading-tight">
-            Choose a plan that fits your coding workflow, from individuals starting out to <br /> growing professionals
-            and large organizations.
+            Choose a plan that fits your signage needs, from small businesses just getting started to growing brands and large enterprises leveraging AI-powered displays.
           </p>
         </div>
         <div className="pt-4">

@@ -4,7 +4,11 @@ import { type NextRequest, NextResponse } from "next/server"
 
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
+
+    if (!supabase) {
+      return NextResponse.json({ error: "Database connection failed" }, { status: 500 })
+    }
 
     // Check authentication
     const {
@@ -21,10 +25,9 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "No media ID provided" }, { status: 400 })
     }
 
-    // Get media record to verify ownership and get blob URL
     const { data: media, error: fetchError } = await supabase
       .from("media")
-      .select("file_path") // using correct column name instead of blob_url
+      .select("file_path, mime_type")
       .eq("id", id)
       .eq("user_id", user.id)
       .single()
@@ -33,8 +36,22 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Media not found" }, { status: 404 })
     }
 
-    // Delete from Vercel Blob
-    await del(media.file_path) // using file_path instead of blob_url
+    const isExternalMedia =
+      media.mime_type === "video/youtube" ||
+      media.mime_type === "application/vnd.google-apps.presentation" ||
+      media.file_path.includes("youtube.com") ||
+      media.file_path.includes("youtube-nocookie.com") ||
+      media.file_path.includes("docs.google.com")
+
+    if (!isExternalMedia) {
+      // Only delete from blob storage if it's an actual blob URL
+      try {
+        await del(media.file_path)
+      } catch (blobError) {
+        console.error("Blob delete error (non-critical):", blobError)
+        // Continue with database deletion even if blob deletion fails
+      }
+    }
 
     // Delete from database
     const { error: deleteError } = await supabase.from("media").delete().eq("id", id).eq("user_id", user.id)

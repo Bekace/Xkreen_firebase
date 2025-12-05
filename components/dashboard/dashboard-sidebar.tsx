@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { useUser } from "@/lib/hooks/use-user"
 import {
   LayoutDashboard,
   Monitor,
@@ -14,6 +15,10 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  Shield,
+  Users,
+  CreditCard,
+  Zap,
 } from "lucide-react"
 
 const navigation = [
@@ -49,9 +54,35 @@ const navigation = [
   },
 ]
 
+const adminNavigation = [
+  {
+    name: "Admin Overview",
+    href: "/dashboard/admin-overview",
+    icon: Shield,
+  },
+  {
+    name: "User Management",
+    href: "/dashboard/user-management",
+    icon: Users,
+  },
+  {
+    name: "Plan Management",
+    href: "/dashboard/plan-management",
+    icon: CreditCard,
+  },
+  {
+    name: "Feature Management",
+    href: "/dashboard/feature-management",
+    icon: Zap,
+  },
+]
+
 export function DashboardSidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
+  const { profile } = useUser()
+
+  const isAdmin = profile?.role === "admin" || profile?.role === "superadmin"
 
   return (
     <div
@@ -68,7 +99,7 @@ export function DashboardSidebar() {
               <div className="w-8 h-8 bg-sidebar-primary rounded-lg flex items-center justify-center">
                 <Monitor className="w-5 h-5 text-sidebar-primary-foreground" />
               </div>
-              <span className="text-lg font-semibold text-sidebar-foreground">XKREEN</span>
+              <img src="/xkreen-logo.svg" alt="XKREEN" className="h-6 w-auto" />
             </div>
           )}
           <Button
@@ -105,6 +136,40 @@ export function DashboardSidebar() {
               </Link>
             )
           })}
+
+          {isAdmin && (
+            <>
+              <div className="pt-4 pb-2">
+                {!collapsed && (
+                  <h3 className="text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider px-3">
+                    Administration
+                  </h3>
+                )}
+              </div>
+              {adminNavigation.map((item) => {
+                const isActive = pathname === item.href
+                const Icon = item.icon
+
+                return (
+                  <Link key={item.name} href={item.href}>
+                    <Button
+                      variant={isActive ? "default" : "ghost"}
+                      className={cn(
+                        "w-full justify-start gap-3 h-11",
+                        isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent/10",
+                        collapsed && "px-3",
+                      )}
+                    >
+                      <Icon className="w-5 h-5 flex-shrink-0" />
+                      {!collapsed && <span>{item.name}</span>}
+                    </Button>
+                  </Link>
+                )
+              })}
+            </>
+          )}
         </nav>
       </div>
     </div>

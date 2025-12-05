@@ -7,7 +7,7 @@ export function HeroSection() {
   return (
     <section
       className="flex flex-col items-center text-center relative mx-auto rounded-2xl overflow-hidden my-6 py-0 px-4
-         w-full h-[400px] md:w-[1220px] md:h-[600px] lg:h-[810px] md:px-0"
+         w-full h-[400px] md:w-[1440px] md:h-[600px] lg:h-[810px] md:px-0"
     >
       {/* SVG Background */}
       <div className="absolute inset-0 z-0">
@@ -26,10 +26,10 @@ export function HeroSection() {
               maskUnits="userSpaceOnUse"
               x="10"
               y="-1"
-              width="1200"
+              width="1440"
               height="812"
             >
-              <rect x="10" y="-0.84668" width="1200" height="811.693" fill="url(#paint0_linear_186_1134)" />
+              <rect x="10" y="-0.84668" width="1440" height="811.693" fill="url(#paint0_linear_186_1134)" />
             </mask>
             <g mask="url(#mask0_186_1134)">
               {/* Grid Rectangles */}
@@ -437,13 +437,12 @@ export function HeroSection() {
         <Header />
       </div>
 
-      <div className="relative z-10 space-y-4 md:space-y-5 lg:space-y-6 mb-6 md:mb-7 lg:mb-9 max-w-md md:max-w-[500px] lg:max-w-[588px] mt-16 md:mt-[120px] lg:mt-[160px] px-4">
+      <div className="relative z-10 space-y-4 md:space-y-5 lg:space-y-6 mb-6 md:mb-7 lg:mb-9 max-w-md md:max-w-[500px] lg:max-w-[788px] mt-16 md:mt-[120px] lg:mt-[160px] px-4">
         <h1 className="text-foreground text-3xl md:text-4xl lg:text-6xl font-semibold leading-tight">
-          AI-Powered Digital Signage
+          AI-Powered Smart Digital Signage 
         </h1>
         <p className="text-muted-foreground text-base md:text-base lg:text-lg font-medium leading-relaxed max-w-lg mx-auto">
-          Transform your displays with intelligent content management, real-time analytics, and seamless playlist
-          automation.
+          We use AI with Media Intelligence &amp; Audience Analytics to analyze visitor insights, captivate audiences with digital signage, and maximize revenue from your prime spaces.
         </p>
       </div>
 

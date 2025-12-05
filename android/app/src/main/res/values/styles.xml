@@ -1,0 +1,8 @@
+<resources>
+    <!-- Base application theme for TV -->
+    <style name="Theme.PointerTV" parent="android:Theme.NoTitleBar.Fullscreen">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">true</item>
+    </style>
+</resources>

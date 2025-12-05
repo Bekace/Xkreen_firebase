@@ -2,61 +2,61 @@ import Image from "next/image"
 
 const testimonials = [
   {
-    quote:
-      "The real-time code suggestions from Pointer feel like having a senior engineer reviewing every line of code as you write. The accuracy of its recommendations has improved our overall code quality, reduced review time.",
-    name: "Annette Black",
-    company: "Sony",
-    avatar: "/images/avatars/annette-black.png",
-    type: "large-teal",
-  },
-  {
-    quote:
-      "Integrating Pointer into our stack was smooth, and the MCP server connections saved us days of configuration work",
-    name: "Dianne Russell",
-    company: "McDonald's",
-    avatar: "/images/avatars/dianne-russell.png",
-    type: "small-dark",
-  },
-  {
-    quote:
-      "Pointer’s multi-agent coding feature has been a game changer. We’re fixing complex bugs in hours instead of spending entire sprints on them.",
-    name: "Cameron Williamson",
-    company: "IBM",
-    avatar: "/images/avatars/cameron-williamson.png",
-    type: "small-dark",
-  },
-  {
-    quote:
-      "We no longer juggle multiple tools. Pointer brought all our integrations together in one place, which simplified our entire workflow.",
-    name: "Robert Fox",
-    company: "MasterCard",
-    avatar: "/images/avatars/robert-fox.png",
-    type: "small-dark",
-  },
-  {
-    quote:
-      "We started with the free plan just to test it out, but within a week we upgraded to Pro. Now, we can’t imagine coding without it",
-    name: "Darlene Robertson",
-    company: "Ferrari",
-    avatar: "/images/avatars/darlene-robertson.png",
-    type: "small-dark",
-  },
-  {
-    quote:
-      "Collaborative coding feels effortless now. With Pointer’s real-time previews, pair programming has become faster and more productive.",
-    name: "Cody Fisher",
-    company: "Apple",
-    avatar: "/images/avatars/cody-fisher.png",
-    type: "small-dark",
-  },
-  {
-    quote:
-      "Deploying on Vercel with Pointer was not just simple, it felt seamless. We went from coding to seeing our changes live in minutes without worrying about build pipelines or configuration issues.",
-    name: "Albert Flores",
-    company: "Louis Vuitton",
-    avatar: "/images/avatars/albert-flores.png",
-    type: "large-light",
-  },
+  quote:
+    "The AI-powered scheduling feels like having a full marketing team optimizing our screens. Recommendations on timing and layout have boosted engagement across all our locations.",
+  name: "Annette Black",
+  company: "Sony",
+  avatar: "/images/avatars/annette-black.png",
+  type: "large-teal",
+},
+{
+  quote:
+    "Integrating the platform into our stores was smooth, and pairing new screens took just minutes. We saved days compared to our old signage setup.",
+  name: "Dianne Russell",
+  company: "McDonald's",
+  avatar: "/images/avatars/dianne-russell.png",
+  type: "small-dark",
+},
+{
+  quote:
+    "The AI-driven content suggestions have been a game changer. We update promotions in hours instead of spending weeks designing and scheduling campaigns.",
+  name: "Cameron Williamson",
+  company: "IBM",
+  avatar: "/images/avatars/cameron-williamson.png",
+  type: "small-dark",
+},
+{
+  quote:
+    "We no longer juggle multiple tools. The platform brought content, scheduling, and screen management into one place, simplifying our entire workflow.",
+  name: "Robert Fox",
+  company: "MasterCard",
+  avatar: "/images/avatars/robert-fox.png",
+  type: "small-dark",
+},
+{
+  quote:
+    "We started with the free plan to test it out, but within a week we upgraded to Pro. Now we can’t imagine managing our screens without it.",
+  name: "Darlene Robertson",
+  company: "Ferrari",
+  avatar: "/images/avatars/darlene-robertson.png",
+  type: "small-dark",
+},
+{
+  quote:
+    "Collaborating on campaigns is effortless now. With real-time previews, our team can align faster and launch content without delays.",
+  name: "Cody Fisher",
+  company: "Apple",
+  avatar: "/images/avatars/cody-fisher.png",
+  type: "small-dark",
+},
+{
+  quote:
+    "Deploying new content to screens was not just simple, it felt seamless. We went from uploading assets to seeing them live in minutes, without worrying about formats or configurations.",
+  name: "Albert Flores",
+  company: "Louis Vuitton",
+  avatar: "/images/avatars/albert-flores.png",
+  type: "large-light",
+},
 ]
 
 const TestimonialCard = ({ quote, name, company, avatar, type }) => {
@@ -133,11 +133,11 @@ export function TestimonialGridSection() {
       <div className="self-stretch py-6 md:py-8 lg:py-14 flex flex-col justify-center items-center gap-2">
         <div className="flex flex-col justify-start items-center gap-4">
           <h2 className="text-center text-foreground text-3xl md:text-4xl lg:text-[40px] font-semibold leading-tight md:leading-tight lg:leading-[40px]">
-            Coding made effortless
+            Data-driven decisions made easy
           </h2>
           <p className="self-stretch text-center text-muted-foreground text-sm md:text-sm lg:text-base font-medium leading-[18.20px] md:leading-relaxed lg:leading-relaxed">
-            {"Hear how developers ship products faster, collaborate seamlessly,"} <br />{" "}
-            {"and build with confidence using Pointer's powerful AI tools"}
+            {"See how businesses create dynamic displays faster, manage content seamlessly,"} <br />{" "}
+            {"and engage audiences with confidence using our AI-powered digital signage platform."}
           </p>
         </div>
       </div>

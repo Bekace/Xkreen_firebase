@@ -1,0 +1,175 @@
+import { createClient } from "@supabase/supabase-js"
+import { type NextRequest, NextResponse } from "next/server"
+
+export async function GET(request: NextRequest, { params }: { params: { deviceCode: string } }) {
+  try {
+    const { deviceCode } = params
+
+    console.log("[v0] Device config API called for:", deviceCode)
+
+    if (!deviceCode) {
+      return NextResponse.json({ error: "Device code is required" }, { status: 400 })
+    }
+
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+
+    const { data: device, error: deviceError } = await supabase
+      .from("devices")
+      .select("*")
+      .eq("device_code", deviceCode)
+      .maybeSingle()
+
+    console.log("[v0] Device lookup result:", { device, deviceError })
+
+    if (deviceError || !device) {
+      console.log("[v0] Device not found for code:", deviceCode)
+      return NextResponse.json({ error: "Device not found" }, { status: 404 })
+    }
+
+    if (!device.screen_id) {
+      console.log("[v0] Device not paired to screen:", deviceCode)
+      return NextResponse.json({ error: "Device not paired to screen" }, { status: 404 })
+    }
+
+    const { data: screen, error: screenError } = await supabase
+      .from("screens")
+      .select("id, name, orientation, status, media_id, content_type")
+      .eq("id", device.screen_id)
+      .single()
+
+    console.log("[v0] Screen lookup result:", { screen, screenError })
+
+    if (screenError || !screen) {
+      return NextResponse.json({ error: "Screen not found" }, { status: 404 })
+    }
+
+    let playlistContent = []
+    let activePlaylist = null
+
+    // Check for individual asset first
+    if (screen.media_id) {
+      const { data: mediaItem, error: mediaError } = await supabase
+        .from("media")
+        .select("id, name, file_path, mime_type, file_size, duration")
+        .eq("id", screen.media_id)
+        .single()
+
+      if (!mediaError && mediaItem) {
+        playlistContent = [
+          {
+            id: `asset-${mediaItem.id}`,
+            position: 1,
+            duration_override: null,
+            transition_type: null,
+            transition_duration: null,
+            media: mediaItem,
+          },
+        ]
+
+        // Create a virtual playlist for asset display
+        activePlaylist = {
+          id: `asset-playlist-${screen.id}`,
+          name: `Asset: ${mediaItem.name}`,
+          background_color: "#000000",
+          is_active: true,
+          scale_image: "fit",
+          scale_video: "fit",
+          scale_document: "fit",
+          shuffle: false,
+          default_transition: "fade",
+        }
+      }
+    }
+    // If no asset, check for playlist
+    else {
+      const { data: screenPlaylist, error: playlistError } = await supabase
+        .from("screen_playlists")
+        .select(`
+          playlist_id,
+          playlists (
+            id,
+            name,
+            background_color,
+            is_active,
+            scale_image,
+            scale_video,
+            scale_document,
+            shuffle,
+            default_transition
+          )
+        `)
+        .eq("screen_id", screen.id)
+        .eq("is_active", true)
+        .maybeSingle()
+
+      if (screenPlaylist?.playlists) {
+        activePlaylist = screenPlaylist.playlists
+
+        const { data: playlistItems, error: itemsError } = await supabase
+          .from("playlist_items")
+          .select(`
+            id,
+            position,
+            duration_override,
+            transition_type,
+            transition_duration,
+            media (
+              id,
+              name,
+              file_path,
+              mime_type,
+              file_size,
+              duration
+            )
+          `)
+          .eq("playlist_id", activePlaylist.id)
+          .order("position")
+
+        if (!itemsError && playlistItems) {
+          playlistContent = playlistItems.filter((item) => item.media)
+        }
+      }
+    }
+
+    await supabase
+      .from("devices")
+      .update({
+        is_paired: true,
+        last_heartbeat: new Date().toISOString(),
+      })
+      .eq("id", device.id)
+
+    console.log("[v0] Device config response:", {
+      deviceId: device.id,
+      screenId: screen.id,
+      contentCount: playlistContent.length,
+    })
+
+    const responseData = {
+      device: {
+        id: device.id,
+        device_code: device.device_code,
+        is_paired: true,
+        screen_id: device.screen_id,
+      },
+      screen: {
+        id: screen.id,
+        name: screen.name,
+        orientation: screen.orientation,
+        status: screen.status,
+        playlist: activePlaylist,
+        content: playlistContent,
+      },
+    }
+
+    const response = NextResponse.json(responseData)
+    response.headers.set("Cache-Control", "no-cache, no-store, must-revalidate")
+    response.headers.set("Pragma", "no-cache")
+    response.headers.set("Expires", "0")
+
+    return response
+  } catch (error) {
+    console.error("Device config error:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}

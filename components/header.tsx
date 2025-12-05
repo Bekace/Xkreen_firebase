@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Menu } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 
 export function Header() {
   const navItems = [
@@ -28,7 +29,7 @@ export function Header() {
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3">
-            <span className="text-foreground text-xl font-semibold">Xkreen</span>
+            <Image src="/xkreen-logo.svg" alt="Xkreen" width={120} height={24} className="h-6 w-auto" />
           </div>
           <nav className="hidden md:flex items-center gap-2">
             {navItems.map((item) => (

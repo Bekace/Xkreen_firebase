@@ -4,38 +4,67 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Monitor, ImageIcon, PlayCircle, Activity, Plus, TrendingUp, Zap } from "lucide-react"
 import type { User } from "@supabase/supabase-js"
+import { useEffect, useState } from "react"
 
 interface DashboardOverviewProps {
   user: User
 }
 
+interface DashboardStats {
+  activeScreens: { value: number; change: string }
+  mediaFiles: { value: number; change: string }
+  activePlaylists: { value: number; change: string }
+  totalViews: { value: number; change: string }
+}
+
 export function DashboardOverview({ user }: DashboardOverviewProps) {
-  const stats = [
+  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const response = await fetch("/api/dashboard/stats")
+        if (response.ok) {
+          const data = await response.json()
+          setStats(data.stats)
+        }
+      } catch (error) {
+        console.error("[v0] Error fetching dashboard stats:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchStats()
+  }, [])
+
+  const statsData = [
     {
       title: "Active Screens",
-      value: "12",
-      change: "+2 from last month",
+      value: loading ? "..." : stats?.activeScreens.value.toString() || "0",
+      change: loading ? "Loading..." : stats?.activeScreens.change || "No change",
       icon: Monitor,
       color: "text-primary",
     },
     {
       title: "Media Files",
-      value: "248",
-      change: "+18 this week",
+      value: loading ? "..." : stats?.mediaFiles.value.toString() || "0",
+      change: loading ? "Loading..." : stats?.mediaFiles.change || "No change",
       icon: ImageIcon,
       color: "text-secondary",
     },
     {
       title: "Active Playlists",
-      value: "8",
-      change: "+1 this week",
+      value: loading ? "..." : stats?.activePlaylists.value.toString() || "0",
+      change: loading ? "Loading..." : stats?.activePlaylists.change || "No change",
       icon: PlayCircle,
       color: "text-accent",
     },
     {
       title: "Total Views",
-      value: "1,429",
-      change: "+12% from last week",
+      value: loading ? "..." : stats?.totalViews.value.toLocaleString() || "0",
+      change: loading ? "Loading..." : stats?.totalViews.change || "No change",
       icon: Activity,
       color: "text-chart-4",
     },
@@ -101,7 +130,7 @@ export function DashboardOverview({ user }: DashboardOverviewProps) {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat) => {
+        {statsData.map((stat) => {
           const Icon = stat.icon
           return (
             <Card key={stat.title}>

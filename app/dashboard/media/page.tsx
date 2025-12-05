@@ -6,10 +6,21 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Upload, Search, Grid, List, Trash2, Plus, ImageIcon, Video } from "lucide-react"
+import { Upload, Search, Grid, List, Trash2, Plus, ImageIcon, Video, Eye, LinkIcon, Pencil } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { createClient } from "@/lib/supabase/client"
-import { ConfirmationDialog } from "@/components/ui/confirmation-dialog" // Added import for custom confirmation dialog
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+  DialogHeader,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { useUploadLimits } from "@/hooks/use-upload-limits"
+import { StorageUsageBar } from "@/components/ui/storage-usage-bar"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Label } from "@/components/ui/label"
 
 interface MediaItem {
   id: string
@@ -21,6 +32,174 @@ interface MediaItem {
   created_at: string
 }
 
+function MediaPreviewModal({
+  media,
+  isOpen,
+  onClose,
+}: {
+  media: MediaItem | null
+  isOpen: boolean
+  onClose: () => void
+}) {
+  if (!media) return null
+
+  const getGoogleSlidesEmbedUrl = (url: string) => {
+    // Handle various Google Slides URL formats
+    const patterns = [
+      /https:\/\/docs\.google\.com\/presentation\/d\/([a-zA-Z0-9-_]+)\/edit/,
+      /https:\/\/docs\.google\.com\/presentation\/d\/([a-zA-Z0-9-_]+)/,
+    ]
+
+    for (const pattern of patterns) {
+      const match = url.match(pattern)
+      if (match) {
+        return `https://docs.google.com/presentation/d/${match[1]}/embed?start=false&loop=false&delayms=3000`
+      }
+    }
+
+    // If already an embed URL, return as is
+    if (url.includes("/embed")) {
+      return url
+    }
+
+    return url
+  }
+
+  const isGoogleSlides = (media: MediaItem) => {
+    return (
+      media.file_path?.includes("docs.google.com/presentation") ||
+      media.mime_type?.includes("presentation") ||
+      media.name?.toLowerCase().includes("slides")
+    )
+  }
+
+  const isYouTubeVideo = (media: MediaItem) => {
+    return (
+      media.mime_type === "video/youtube" ||
+      media.file_path?.includes("youtube.com/embed") ||
+      media.file_path?.includes("youtube-nocookie.com/embed")
+    )
+  }
+
+  // Helper function to ensure YouTube videos autoplay
+  const getYouTubeUrlWithAutoplay = (url: string) => {
+    try {
+      const urlObj = new URL(url)
+      urlObj.searchParams.set("autoplay", "1")
+      urlObj.searchParams.set("mute", "1")
+      urlObj.searchParams.set("controls", "0")
+      urlObj.searchParams.set("showinfo", "0")
+      urlObj.searchParams.set("fs", "0")
+      urlObj.searchParams.set("modestbranding", "1")
+      urlObj.searchParams.set("iv_load_policy", "3")
+      return urlObj.toString()
+    } catch (error) {
+      console.error("Error parsing YouTube URL:", error)
+      return url
+    }
+  }
+
+  const renderMedia = () => {
+    if (media.mime_type?.startsWith("image/")) {
+      return (
+        <img src={media.file_path || "/placeholder.svg"} alt={media.name} className="w-full h-full object-contain" />
+      )
+    }
+
+    if (isYouTubeVideo(media)) {
+      const autoplayUrl = getYouTubeUrlWithAutoplay(media.file_path)
+      return (
+        <iframe
+          key={media.id}
+          src={autoplayUrl}
+          className="w-full h-full border-0"
+          allowFullScreen
+          title={media.name}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          referrerPolicy="no-referrer-when-downgrade"
+        />
+      )
+    }
+
+    if (media.mime_type?.startsWith("video/")) {
+      return <video src={media.file_path} className="w-full h-full object-contain" controls playsInline />
+    }
+
+    if (isGoogleSlides(media)) {
+      const embedUrl = getGoogleSlidesEmbedUrl(media.file_path || "")
+      return <iframe src={embedUrl} className="w-full h-full border-0" allowFullScreen title={media.name} />
+    }
+
+    return (
+      <div className="flex items-center justify-center h-full bg-gray-100">
+        <div className="text-center">
+          <ImageIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-600">Preview not available for this file type</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-full max-h-full p-0 m-0" style={{ width: "100vw", height: "100vh" }}>
+        <DialogTitle className="sr-only">{media.name}</DialogTitle>
+        <DialogDescription className="sr-only">
+          Preview of {media.mime_type} file, {formatFileSize(media.file_size)}, created on{" "}
+          {new Date(media.created_at).toLocaleDateString()}
+        </DialogDescription>
+
+        <div className="absolute top-0 left-0 right-0 z-10 bg-black/50 backdrop-blur-sm text-white p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg font-semibold truncate">{media.name}</h2>
+              <div className="flex items-center gap-4 text-sm text-white/80 mt-1">
+                <span>{media.mime_type}</span>
+                <span>{formatFileSize(media.file_size)}</span>
+                <span>Created: {new Date(media.created_at).toLocaleDateString()}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 ml-4">
+              {media.tags && media.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {media.tags.slice(0, 3).map((tag, index) => (
+                    <Badge key={index} variant="secondary" className="text-xs bg-white/20 text-white border-white/30">
+                      {tag}
+                    </Badge>
+                  ))}
+                  {media.tags.length > 3 && (
+                    <Badge variant="secondary" className="text-xs bg-white/20 text-white border-white/30">
+                      +{media.tags.length - 3}
+                    </Badge>
+                  )}
+                </div>
+              )}
+              <Button
+                onClick={onClose}
+                variant="ghost"
+                size="sm"
+                className="text-white hover:bg-white/20 border border-white/30"
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <div className="w-full h-full bg-black flex items-center justify-center pt-20">{renderMedia()}</div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes === 0) return "0 Bytes"
+  const k = 1024
+  const sizes = ["Bytes", "KB", "MB", "GB"]
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
+}
+
 export default function MediaLibraryPage() {
   const [media, setMedia] = useState<MediaItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -29,7 +208,10 @@ export default function MediaLibraryPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [tags, setTags] = useState("")
-  const [authError, setAuthError] = useState(false)
+  const [importUrl, setImportUrl] = useState("")
+  const [importName, setImportName] = useState("")
+  const [importTags, setImportTags] = useState("")
+  const [importing, setImporting] = useState(false)
   const [deleteDialog, setDeleteDialog] = useState<{
     open: boolean
     itemId: string
@@ -39,46 +221,37 @@ export default function MediaLibraryPage() {
     itemId: "",
     itemName: "",
   })
+  const [previewMedia, setPreviewMedia] = useState<MediaItem | null>(null)
+  const [editDialog, setEditDialog] = useState<{
+    open: boolean
+    item: MediaItem | null
+  }>({
+    open: false,
+    item: null,
+  })
+  const [editName, setEditName] = useState("")
+  const [editTags, setEditTags] = useState("")
+  const [updating, setUpdating] = useState(false)
   const { toast } = useToast()
+  const uploadLimits = useUploadLimits()
 
   useEffect(() => {
-    checkAuthAndFetchMedia()
+    fetchMedia()
   }, [])
-
-  const checkAuthAndFetchMedia = async () => {
-    try {
-      const supabase = createClient()
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser()
-
-      if (error || !user) {
-        console.error("Authentication error:", error)
-        setAuthError(true)
-        setLoading(false)
-        toast({
-          title: "Authentication Error",
-          description: "Please log in to access the media library",
-          variant: "destructive",
-        })
-        return
-      }
-
-      await fetchMedia()
-    } catch (error) {
-      console.error("Auth check error:", error)
-      setAuthError(true)
-      setLoading(false)
-    }
-  }
 
   const fetchMedia = async () => {
     try {
       const response = await fetch("/api/media/list")
+
       if (response.ok) {
         const data = await response.json()
         setMedia(Array.isArray(data.media) ? data.media : [])
+      } else if (response.status === 401) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to access the media library",
+          variant: "destructive",
+        })
       } else {
         toast({
           title: "Error",
@@ -101,6 +274,14 @@ export default function MediaLibraryPage() {
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
+      if (!uploadLimits.canUpload(file.size)) {
+        toast({
+          title: "Storage Limit Exceeded",
+          description: `This file (${formatFileSize(file.size)}) would exceed your storage limit. You have ${uploadLimits.remainingStorageFormatted.toFixed(2)} ${uploadLimits.storageUnit} remaining.`,
+          variant: "destructive",
+        })
+        return
+      }
       setSelectedFile(file)
     }
   }
@@ -108,26 +289,10 @@ export default function MediaLibraryPage() {
   const handleUpload = async () => {
     if (!selectedFile) return
 
-    try {
-      const supabase = createClient()
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser()
-
-      if (error || !user) {
-        toast({
-          title: "Authentication Error",
-          description: "Please log in to upload media",
-          variant: "destructive",
-        })
-        return
-      }
-    } catch (error) {
-      console.error("Auth check error:", error)
+    if (!uploadLimits.canUpload(selectedFile.size)) {
       toast({
-        title: "Error",
-        description: "Authentication failed",
+        title: "Storage Limit Exceeded",
+        description: `Cannot upload file. You have ${uploadLimits.remainingStorageFormatted.toFixed(2)} ${uploadLimits.storageUnit} remaining.`,
         variant: "destructive",
       })
       return
@@ -151,6 +316,7 @@ export default function MediaLibraryPage() {
         setMedia((prev) => [newMedia, ...prev])
         setSelectedFile(null)
         setTags("")
+        await uploadLimits.refresh()
         toast({
           title: "Success",
           description: "Media uploaded successfully",
@@ -172,6 +338,59 @@ export default function MediaLibraryPage() {
       })
     } finally {
       setUploading(false)
+    }
+  }
+
+  const handleImportUrl = async () => {
+    if (!importUrl) {
+      toast({
+        title: "Error",
+        description: "Please enter a URL",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setImporting(true)
+    try {
+      const response = await fetch("/api/media/import-url", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: importUrl,
+          name: importName || undefined,
+          tags: importTags || undefined,
+        }),
+      })
+
+      if (response.ok) {
+        const newMedia = await response.json()
+        setMedia((prev) => [newMedia, ...prev])
+        setImportUrl("")
+        setImportName("")
+        setImportTags("")
+        toast({
+          title: "Success",
+          description: "Media imported successfully",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: "Import failed",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Import error:", error)
+      toast({
+        title: "Error",
+        description: "Import failed",
+        variant: "destructive",
+      })
+    } finally {
+      setImporting(false)
     }
   }
 
@@ -197,6 +416,8 @@ export default function MediaLibraryPage() {
 
       if (response.ok) {
         setMedia((prev) => prev.filter((item) => item.id !== itemId))
+        await uploadLimits.refresh()
+        setDeleteDialog({ open: false, itemId: "", itemName: "" })
         toast({
           title: "Success",
           description: "Media deleted successfully",
@@ -207,6 +428,7 @@ export default function MediaLibraryPage() {
           description: "Failed to delete media",
           variant: "destructive",
         })
+        setDeleteDialog({ open: false, itemId: "", itemName: "" })
       }
     } catch (error) {
       console.error("Delete error:", error)
@@ -215,6 +437,67 @@ export default function MediaLibraryPage() {
         description: "Failed to delete media",
         variant: "destructive",
       })
+      setDeleteDialog({ open: false, itemId: "", itemName: "" })
+    }
+  }
+
+  const handlePreview = (media: MediaItem) => {
+    setPreviewMedia(media)
+  }
+
+  const handleEdit = (item: MediaItem) => {
+    setEditDialog({
+      open: true,
+      item,
+    })
+    setEditName(item.name)
+    setEditTags(item.tags ? item.tags.join(", ") : "")
+  }
+
+  const handleConfirmEdit = async () => {
+    if (!editDialog.item) return
+
+    setUpdating(true)
+    try {
+      const response = await fetch("/api/media/update", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: editDialog.item.id,
+          name: editName,
+          tags: editTags
+            .split(",")
+            .map((tag) => tag.trim())
+            .filter((tag) => tag.length > 0),
+        }),
+      })
+
+      if (response.ok) {
+        const { media: updatedMedia } = await response.json()
+        setMedia((prev) => prev.map((item) => (item.id === updatedMedia.id ? updatedMedia : item)))
+        setEditDialog({ open: false, item: null })
+        toast({
+          title: "Success",
+          description: "Media updated successfully",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to update media",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Update error:", error)
+      toast({
+        title: "Error",
+        description: "Failed to update media",
+        variant: "destructive",
+      })
+    } finally {
+      setUpdating(false)
     }
   }
 
@@ -230,32 +513,11 @@ export default function MediaLibraryPage() {
     return nameMatch || tagMatch
   })
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return "0 Bytes"
-    const k = 1024
-    const sizes = ["Bytes", "KB", "MB", "GB"]
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
-  }
-
-  if (authError) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 space-y-4">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Authentication Required</h2>
-          <p className="text-gray-600">Please log in to access the media library</p>
-        </div>
-        <Button onClick={() => (window.location.href = "/auth/login")} className="bg-cyan-500 hover:bg-cyan-600">
-          Go to Login
-        </Button>
-      </div>
-    )
-  }
-
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex flex-col items-center justify-center h-64 space-y-4">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
+        <p className="text-sm text-gray-600">Loading media library...</p>
       </div>
     )
   }
@@ -269,10 +531,10 @@ export default function MediaLibraryPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant={viewMode === "grid" ? "default" : "outline"} size="sm" onClick={() => setViewMode("grid")}>
-            <Grid className="h-4 w-4" />
+            <Grid className="h-5 w-5" />
           </Button>
           <Button variant={viewMode === "list" ? "default" : "outline"} size="sm" onClick={() => setViewMode("list")}>
-            <List className="h-4 w-4" />
+            <List className="h-5 w-5" />
           </Button>
         </div>
       </div>
@@ -282,36 +544,112 @@ export default function MediaLibraryPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
-            Upload Media
+            Add Media
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
-            <Input type="file" accept="image/*,video/*" onChange={handleFileSelect} className="flex-1" />
-            <Input
-              placeholder="Tags (comma separated)"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-              className="w-64"
+          {!uploadLimits.loading && (
+            <StorageUsageBar
+              currentFormatted={uploadLimits.currentStorageFormatted}
+              maxStorage={uploadLimits.maxStorage}
+              storageUnit={uploadLimits.storageUnit}
+              usagePercentage={uploadLimits.storageUsagePercentage}
             />
-            <Button
-              onClick={handleUpload}
-              disabled={!selectedFile || uploading}
-              className="bg-cyan-500 hover:bg-cyan-600"
-            >
-              {uploading ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              ) : (
-                <Plus className="h-4 w-4" />
-              )}
-              Upload
-            </Button>
-          </div>
-          {selectedFile && (
-            <p className="text-sm text-gray-600">
-              Selected: {selectedFile.name} ({formatFileSize(selectedFile.size)})
-            </p>
           )}
+
+          <Tabs defaultValue="upload" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="upload">
+                <Upload className="h-4 w-4 mr-2" />
+                Upload File
+              </TabsTrigger>
+              <TabsTrigger value="import">
+                <LinkIcon className="h-4 w-4 mr-2" />
+                Import URL
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="upload" className="space-y-4 mt-4">
+              <div className="flex items-center gap-4">
+                <Input
+                  type="file"
+                  accept="image/*,video/*"
+                  onChange={handleFileSelect}
+                  className="flex-1"
+                  disabled={uploadLimits.isAtLimit}
+                />
+                <Input
+                  placeholder="Tags (comma separated)"
+                  value={tags}
+                  onChange={(e) => setTags(e.target.value)}
+                  className="w-64"
+                />
+                <Button
+                  onClick={handleUpload}
+                  disabled={!selectedFile || uploading || uploadLimits.isAtLimit}
+                  className="bg-cyan-500 hover:bg-cyan-600"
+                >
+                  {uploading ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  ) : (
+                    <Plus className="h-4 w-4" />
+                  )}
+                  Upload
+                </Button>
+              </div>
+              {selectedFile && (
+                <p className="text-sm text-gray-600">
+                  Selected: {selectedFile.name} ({formatFileSize(selectedFile.size)})
+                </p>
+              )}
+              {uploadLimits.isAtLimit && (
+                <p className="text-sm text-red-600">
+                  Storage limit reached. Please delete some files or upgrade your plan to upload more content.
+                </p>
+              )}
+            </TabsContent>
+
+            <TabsContent value="import" className="space-y-4 mt-4">
+              <div className="space-y-3">
+                <Input
+                  placeholder="Google Slides or YouTube URL"
+                  value={importUrl}
+                  onChange={(e) => setImportUrl(e.target.value)}
+                  className="w-full"
+                />
+                <div className="flex items-center gap-4">
+                  <Input
+                    placeholder="Name (optional)"
+                    value={importName}
+                    onChange={(e) => setImportName(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Input
+                    placeholder="Tags (comma separated)"
+                    value={importTags}
+                    onChange={(e) => setImportTags(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={handleImportUrl}
+                    disabled={!importUrl || importing}
+                    className="bg-cyan-500 hover:bg-cyan-600"
+                  >
+                    {importing ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    ) : (
+                      <Plus className="h-4 w-4" />
+                    )}
+                    Import
+                  </Button>
+                </div>
+              </div>
+              <p className="text-sm text-gray-600">
+                Supported: Google Slides presentations and YouTube videos. External URLs don't count toward your storage
+                limit.
+              </p>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
@@ -366,14 +704,27 @@ export default function MediaLibraryPage() {
                         <Video className="h-12 w-12 text-gray-400" />
                       </div>
                     )}
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => handleDelete(item.id, item.name)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handlePreview(item)}
+                        className="bg-white/90 hover:bg-white"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleEdit(item)}
+                        className="bg-white/90 hover:bg-white"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => handleDelete(item.id, item.name)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                   <CardContent className="p-4">
                     <h3 className="font-semibold truncate" title={item.name}>
@@ -421,15 +772,37 @@ export default function MediaLibraryPage() {
                         </div>
                       )}
                     </div>
-                    <Button variant="destructive" size="sm" onClick={() => handleDelete(item.id, item.name)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handlePreview(item)}
+                        className="text-cyan-600 hover:text-cyan-700 hover:bg-cyan-50"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(item)}
+                        className="text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => handleDelete(item.id, item.name)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               )}
             </Card>
           ))}
         </div>
+      )}
+
+      {previewMedia && (
+        <MediaPreviewModal media={previewMedia} isOpen={!!previewMedia} onClose={() => setPreviewMedia(null)} />
       )}
 
       <ConfirmationDialog
@@ -442,6 +815,49 @@ export default function MediaLibraryPage() {
         onConfirm={handleConfirmDelete}
         variant="destructive"
       />
+
+      {/* Edit Dialog */}
+      <Dialog open={editDialog.open} onOpenChange={(open) => setEditDialog({ ...editDialog, open })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Media</DialogTitle>
+            <DialogDescription>Update the name and tags for this media item.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Name</Label>
+              <Input
+                id="edit-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Enter media name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-tags">Tags</Label>
+              <Input
+                id="edit-tags"
+                value={editTags}
+                onChange={(e) => setEditTags(e.target.value)}
+                placeholder="Enter tags (comma separated)"
+              />
+              <p className="text-sm text-gray-500">Separate multiple tags with commas</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialog({ open: false, item: null })} disabled={updating}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmEdit} disabled={updating || !editName.trim()}>
+              {updating ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

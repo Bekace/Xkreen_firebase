@@ -4,7 +4,11 @@ import { type NextRequest, NextResponse } from "next/server"
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
+
+    if (!supabase) {
+      return NextResponse.json({ error: "Supabase not configured" }, { status: 500 })
+    }
 
     // Check authentication
     const {
@@ -23,6 +27,49 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 })
     }
 
+    // Get user's storage limits
+    const { data: userData, error: userError } = await supabase
+      .from("profiles")
+      .select(`
+        *,
+        user_subscriptions!inner(
+          status,
+          subscription_plans(
+            max_media_storage
+          )
+        )
+      `)
+      .eq("id", user.id)
+      .single()
+
+    const maxStorageBytes =
+      userData?.user_subscriptions?.subscription_plans?.max_media_storage || 1 * 1024 * 1024 * 1024
+    const isUnlimited = maxStorageBytes === -1
+    const maxStorageGB = isUnlimited ? -1 : Math.round(maxStorageBytes / (1024 * 1024 * 1024))
+
+    // Calculate current storage usage
+    const { data: mediaData, error: mediaError } = await supabase
+      .from("media")
+      .select("file_size")
+      .eq("user_id", user.id)
+
+    if (mediaError) {
+      console.error("Media data error:", mediaError)
+      return NextResponse.json({ error: "Failed to check storage usage" }, { status: 500 })
+    }
+
+    const currentStorageBytes = mediaData?.reduce((total, item) => total + (item.file_size || 0), 0) || 0
+
+    if (!isUnlimited && currentStorageBytes + file.size > maxStorageBytes) {
+      const remainingGB = Math.max(0, (maxStorageBytes - currentStorageBytes) / (1024 * 1024 * 1024))
+      return NextResponse.json(
+        {
+          error: `Storage limit exceeded. You have ${remainingGB.toFixed(2)} GB remaining of your ${maxStorageGB} GB limit.`,
+        },
+        { status: 413 },
+      )
+    }
+
     // Validate file type
     const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp", "video/mp4", "video/webm"]
     if (!allowedTypes.includes(file.type)) {
@@ -36,7 +83,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Save metadata to Supabase
-    const { data: mediaData, error: dbError } = await supabase
+    const { data: insertedMediaData, error: dbError } = await supabase
       .from("media")
       .insert({
         user_id: user.id,
@@ -55,13 +102,13 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      id: mediaData.id,
+      id: insertedMediaData.id,
       name: file.name,
       mime_type: file.type,
       file_size: file.size,
       file_path: blob.url,
-      tags: mediaData.tags,
-      created_at: mediaData.created_at,
+      tags: insertedMediaData.tags,
+      created_at: insertedMediaData.created_at,
     })
   } catch (error) {
     console.error("Upload error:", error)
