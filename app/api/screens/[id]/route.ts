@@ -65,13 +65,20 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     const requestData = await request.json()
+
+    console.log("[v0] ===== SCREEN UPDATE REQUEST =====")
+    console.log("[v0] Full request body:", JSON.stringify(requestData, null, 2))
+    console.log("[v0] Screen ID:", params.id)
+
     const { name, location, resolution, orientation, selectedContentIds, content_type, contentType } = requestData
     const finalContentType = content_type || contentType
 
-    console.log("[v0] Screen update request:")
-    console.log(`[v0] - Screen ID: ${params.id}`)
-    console.log(`[v0] - Content Type: ${finalContentType}`)
-    console.log(`[v0] - Selected content IDs:`, selectedContentIds)
+    console.log("[v0] Extracted values:")
+    console.log(`[v0] - content_type: ${content_type}`)
+    console.log(`[v0] - contentType: ${contentType}`)
+    console.log(`[v0] - finalContentType: ${finalContentType}`)
+    console.log(`[v0] - selectedContentIds:`, selectedContentIds)
+    console.log("[v0] ===================================")
 
     const updateData: any = {
       name,
