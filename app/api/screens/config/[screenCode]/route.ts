@@ -104,14 +104,16 @@ export async function GET(request: NextRequest, { params }: { params: { screenCo
 
         console.log(`[v0] Found ${playlistItems?.length || 0} playlist items`)
 
-        console.log(
-          `[v0] Playlist items details:`,
-          JSON.stringify(
-            playlistItems.map((i) => ({ id: i.id, position: i.position, media_id: i.media_id })),
-            null,
-            2,
-          ),
-        )
+        if (playlistItems) {
+          console.log(
+            `[v0] Playlist items details:`,
+            JSON.stringify(
+              playlistItems.map((i) => ({ id: i.id, position: i.position, media_id: i.media_id })),
+              null,
+              2,
+            ),
+          )
+        }
 
         if (itemsError) {
           console.error(`[v0] Error fetching playlist items:`, itemsError)
