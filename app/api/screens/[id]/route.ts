@@ -65,20 +65,12 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     const requestData = await request.json()
+    const { name, location, resolution, orientation, selectedContentIds, content_type } = requestData
 
-    console.log("[v0] ===== SCREEN UPDATE REQUEST =====")
-    console.log("[v0] Full request body:", JSON.stringify(requestData, null, 2))
-    console.log("[v0] Screen ID:", params.id)
-
-    const { name, location, resolution, orientation, selectedContentIds, content_type, contentType } = requestData
-    const finalContentType = content_type || contentType
-
-    console.log("[v0] Extracted values:")
-    console.log(`[v0] - content_type: ${content_type}`)
-    console.log(`[v0] - contentType: ${contentType}`)
-    console.log(`[v0] - finalContentType: ${finalContentType}`)
-    console.log(`[v0] - selectedContentIds:`, selectedContentIds)
-    console.log("[v0] ===================================")
+    console.log("[v0] Screen update request:")
+    console.log(`[v0] - Screen ID: ${params.id}`)
+    console.log(`[v0] - Content Type: ${content_type}`)
+    console.log(`[v0] - Selected content IDs:`, selectedContentIds)
 
     const updateData: any = {
       name,
@@ -88,55 +80,59 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       updated_at: new Date().toISOString(),
     }
 
-    await supabase.from("screen_playlists").delete().eq("screen_id", params.id)
-    await supabase.from("screen_media").delete().eq("screen_id", params.id)
+    const { error: deletePlaylistsError } = await supabase.from("screen_playlists").delete().eq("screen_id", params.id)
+    const { error: deleteMediaError } = await supabase.from("screen_media").delete().eq("screen_id", params.id)
 
-    if (finalContentType === "schedule") {
-      updateData.content_type = "schedule"
+    console.log("[v0] - Deleted existing assignments")
+    if (deletePlaylistsError) console.error("[v0] - Error deleting playlists:", deletePlaylistsError)
+    if (deleteMediaError) console.error("[v0] - Error deleting media:", deleteMediaError)
+
+    if (content_type === "playlist" && selectedContentIds && selectedContentIds.length > 0) {
+      updateData.content_type = "playlist"
       updateData.media_id = null
-    } else if (finalContentType === "playlist" && selectedContentIds && selectedContentIds.length > 0) {
-      const playlistId = selectedContentIds[0]
+
+      const playlistAssignment = {
+        screen_id: params.id,
+        playlist_id: selectedContentIds[0],
+        is_active: true,
+      }
+
       const { data: insertedPlaylist, error: playlistInsertError } = await supabase
         .from("screen_playlists")
-        .insert({
-          screen_id: params.id,
-          playlist_id: playlistId,
-          is_active: true,
-        })
+        .insert([playlistAssignment])
         .select()
 
+      console.log(`[v0] - Inserted playlist assignment:`, insertedPlaylist)
       if (playlistInsertError) {
-        console.error("[v0] Failed to insert playlist assignment:", playlistInsertError)
+        console.error("[v0] - Error inserting playlist:", playlistInsertError)
         return NextResponse.json(
-          { error: "Failed to assign playlist", details: playlistInsertError.message },
+          { error: "Failed to assign playlist: " + playlistInsertError.message },
           { status: 500 },
         )
       }
+    } else if (content_type === "asset" && selectedContentIds && selectedContentIds.length > 0) {
+      updateData.content_type = "asset"
+      updateData.media_id = selectedContentIds[0]
 
-      updateData.content_type = "playlist"
-      updateData.media_id = null
-      console.log(`[v0] - Successfully assigned playlist: ${playlistId}`, insertedPlaylist)
-    } else if (finalContentType === "asset" && selectedContentIds && selectedContentIds.length > 0) {
       const mediaAssignments = selectedContentIds.map((mediaId: string) => ({
         screen_id: params.id,
         media_id: mediaId,
       }))
+
       const { data: insertedMedia, error: mediaInsertError } = await supabase
         .from("screen_media")
         .insert(mediaAssignments)
         .select()
 
+      console.log(`[v0] - Inserted ${insertedMedia?.length || 0} media assignments`)
       if (mediaInsertError) {
-        console.error("[v0] Failed to insert media assignments:", mediaInsertError)
-        return NextResponse.json(
-          { error: "Failed to assign media assets", details: mediaInsertError.message },
-          { status: 500 },
-        )
+        console.error("[v0] - Error inserting media:", mediaInsertError)
+        return NextResponse.json({ error: "Failed to assign media: " + mediaInsertError.message }, { status: 500 })
       }
-
-      updateData.content_type = "asset"
-      updateData.media_id = selectedContentIds[0]
-      console.log(`[v0] - Successfully assigned ${insertedMedia?.length || 0} media assets`)
+    } else if (content_type === "schedule") {
+      updateData.content_type = "schedule"
+      updateData.media_id = null
+      // TODO: Schedule logic placeholder
     } else {
       updateData.content_type = "none"
       updateData.media_id = null

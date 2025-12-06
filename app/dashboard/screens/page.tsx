@@ -1,7 +1,7 @@
 "use client"
 
 import { Switch } from "@/components/ui/switch"
-import { X, Calendar } from "lucide-react" // Import X icon for closing modals and Calendar icon
+import { X } from "lucide-react" // Import X icon for closing modals
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
@@ -72,7 +72,7 @@ interface Screen {
   media_id?: string
   screen_playlists?: { playlist_id: string; is_active: boolean }[]
   screen_media?: { media_id: string; media?: { id: string; name: string } }[] // Added screen_media
-  content_type?: string // Added content_type
+  content_type?: "playlist" | "asset" | "none" // Added content_type
 }
 
 interface Playlist {
@@ -124,9 +124,8 @@ export default function ScreensPage() {
   const [repairingScreen, setRepairingScreen] = useState<Screen | null>(null)
   const [newPairingCode, setNewPairingCode] = useState("")
   const [isCreatingScreen, setIsCreatingScreen] = useState(false)
-  const [editingContentType, setEditingContentType] = useState<"asset" | "playlist" | "schedule">("playlist")
+  const [editingContentType, setEditingContentType] = useState<"playlist" | "asset">("playlist")
   const [previewingScreen, setPreviewingScreen] = useState<Screen | null>(null)
-  const [showScheduleModal, setShowScheduleModal] = useState(false)
   const [editingSelectedContentIds, setEditingSelectedContentIds] = useState<string[]>([])
 
   const [wizardState, setWizardState] = useState<WizardState>({
@@ -875,37 +874,23 @@ export default function ScreensPage() {
   const handleUpdateScreen = async () => {
     if (!editingScreen) return
 
-    console.log("[v0] handleUpdateScreen - editingSelectedContentIds:", editingSelectedContentIds)
+    console.log("[v0] handleUpdateScreen - content type:", editingContentType)
+    console.log("[v0] handleUpdateScreen - selectedContentIds:", editingSelectedContentIds)
 
     setUpdating(true)
     try {
       console.log("[v0] Updating screen with data:", editingScreen)
-
-      // Determine content_type based on editingContentType
-      let contentType = editingContentType
-      if (editingContentType === "schedule") {
-        contentType = "schedule"
-      } else if (editingContentType === "playlist") {
-        contentType = "playlist"
-      } else if (editingContentType === "asset") {
-        contentType = "asset"
-      }
-
-      // Prepare the payload for the PUT request
-      const payload = {
-        ...editingScreen,
-        content_type: contentType,
-        selectedContentIds: editingSelectedContentIds,
-      }
-
-      console.log("[v0] Sending update payload:", payload)
 
       const response = await fetch(`/api/screens/${editingScreen.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          ...editingScreen,
+          content_type: editingContentType,
+          selectedContentIds: editingSelectedContentIds,
+        }),
       })
 
       if (response.ok) {
@@ -980,37 +965,49 @@ export default function ScreensPage() {
 
   const openEditDialog = (screen: Screen) => {
     console.log("[v0] openEditDialog - screen:", screen)
+    console.log("[v0] openEditDialog - screen.screen_playlists:", screen.screen_playlists)
+    console.log("[v0] openEditDialog - screen.screen_media:", screen.screen_media)
+    console.log("[v0] openEditDialog - screen.media_id:", screen.media_id)
 
     setEditingScreen(screen)
 
-    let contentType: "asset" | "playlist" | "schedule" = "playlist"
+    // Determine the initial content_type based on existing assignments
+    if (screen.screen_playlists && screen.screen_playlists.length > 0) {
+      setEditingContentType("playlist")
+    } else if (screen.screen_media && screen.screen_media.length > 0) {
+      setEditingContentType("asset")
+    } else if (screen.media_id) {
+      setEditingContentType("asset")
+    } else {
+      setEditingContentType("playlist") // Default to playlist if unsure
+    }
+
     const selectedIds: string[] = []
 
-    if (screen.content_type === "schedule") {
-      contentType = "schedule"
-    } else if (screen.screen_playlists && screen.screen_playlists.length > 0) {
-      contentType = "playlist"
-      // For playlist mode, only select ONE playlist
-      const firstPlaylist = screen.screen_playlists[0]
-      if (firstPlaylist.playlist_id) {
-        selectedIds.push(firstPlaylist.playlist_id)
-      }
-    } else if (screen.screen_media && screen.screen_media.length > 0) {
-      contentType = "asset"
-      // For asset mode, select all media items
+    // Add all playlists from screen_playlists
+    if (screen.screen_playlists) {
+      screen.screen_playlists.forEach((sp: any) => {
+        if (sp.playlist_id) {
+          selectedIds.push(sp.playlist_id)
+        }
+      })
+    }
+
+    // Add all media from screen_media junction table
+    if (screen.screen_media) {
       screen.screen_media.forEach((sm: any) => {
         if (sm.media_id) {
           selectedIds.push(sm.media_id)
         }
       })
-    } else if (screen.media_id) {
-      contentType = "asset"
+    }
+
+    // Fallback: if no screen_media but has media_id, add it
+    if (!screen.screen_media?.length && screen.media_id) {
       selectedIds.push(screen.media_id)
     }
 
-    console.log("[v0] openEditDialog - contentType:", contentType)
     console.log("[v0] openEditDialog - selectedIds:", selectedIds)
-    setEditingContentType(contentType)
     setEditingSelectedContentIds(selectedIds)
   }
 
@@ -1321,60 +1318,60 @@ export default function ScreensPage() {
                 </div>
 
                 <div className="space-y-4 border-t pt-4">
-                  <div>
-                    <Label htmlFor="content-type">Content Type</Label>
-                    <Select
-                      value={editingContentType}
-                      onValueChange={(value: "asset" | "playlist" | "schedule") => {
-                        setEditingContentType(value)
-                        setEditingSelectedContentIds([])
-                        if (value === "schedule") {
-                          setShowScheduleModal(true)
-                        }
-                      }}
+                  <Label className="text-base font-semibold">Assigned Content</Label>
+
+                  {/* Content Type Selection */}
+                  <div className="flex gap-4">
+                    <Button
+                      variant={editingContentType === "playlist" ? "default" : "outline"}
+                      className={editingContentType === "playlist" ? "bg-cyan-500 hover:bg-cyan-600" : ""}
+                      onClick={() => setEditingContentType("playlist")}
                     >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="asset">Asset</SelectItem>
-                        <SelectItem value="playlist">Playlist</SelectItem>
-                        <SelectItem value="schedule">Schedule</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      Playlists
+                    </Button>
+                    <Button
+                      variant={editingContentType === "asset" ? "default" : "outline"}
+                      className={editingContentType === "asset" ? "bg-cyan-500 hover:bg-cyan-600" : ""}
+                      onClick={() => setEditingContentType("asset")}
+                    >
+                      Media Assets
+                    </Button>
                   </div>
 
+                  {/* Playlists Section */}
                   {editingContentType === "playlist" && (
                     <div className="space-y-2">
-                      <Label className="text-sm font-semibold">Select Playlist</Label>
-                      <div className="space-y-2 max-h-64 overflow-y-auto border rounded-lg p-3 bg-gray-50/50 scrollbar-hide">
+                      <h4 className="text-sm font-semibold flex items-center gap-2">
+                        <PlayCircle className="h-4 w-4 text-cyan-500" />
+                        Playlists
+                      </h4>
+                      <div className="space-y-2 max-h-48 overflow-y-auto border rounded-lg p-3 bg-gray-50/50 scrollbar-hide">
                         {playlists.length === 0 ? (
                           <p className="text-sm text-gray-500 text-center py-4">No playlists available</p>
                         ) : (
                           playlists.map((playlist) => (
                             <div
                               key={playlist.id}
-                              className={`p-3 rounded-lg cursor-pointer transition-all ${
+                              className={`p-3 rounded-lg cursor-pointer transition-all bg-[rgba(142,142,148,1)] ${
                                 editingSelectedContentIds.includes(playlist.id)
                                   ? "bg-cyan-50 ring-2 ring-cyan-500"
                                   : "bg-white hover:bg-gray-50"
                               }`}
                               onClick={() => {
-                                setEditingSelectedContentIds([playlist.id])
+                                setEditingSelectedContentIds((prev) =>
+                                  prev.includes(playlist.id)
+                                    ? prev.filter((id) => id !== playlist.id)
+                                    : [...prev, playlist.id],
+                                )
                               }}
                             >
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-3 text-popover">
                                 {editingSelectedContentIds.includes(playlist.id) ? (
                                   <CheckCircle2 className="h-5 w-5 text-cyan-500" />
                                 ) : (
                                   <Circle className="h-5 w-5 text-gray-300" />
                                 )}
-                                <div>
-                                  <span className="text-sm font-medium block">{playlist.name}</span>
-                                  {playlist.description && (
-                                    <p className="text-xs text-gray-500">{playlist.description}</p>
-                                  )}
-                                </div>
+                                <span className="text-sm font-medium text-popover">{playlist.name}</span>
                               </div>
                             </div>
                           ))
@@ -1383,10 +1380,14 @@ export default function ScreensPage() {
                     </div>
                   )}
 
+                  {/* Media Assets Section */}
                   {editingContentType === "asset" && (
                     <div className="space-y-2">
-                      <Label className="text-sm font-semibold">Select Media Assets</Label>
-                      <div className="space-y-2 max-h-64 overflow-y-auto border rounded-lg p-3 bg-gray-50/50 scrollbar-hide">
+                      <h4 className="text-sm font-semibold flex items-center gap-2">
+                        <ImageIcon className="h-4 w-4 text-cyan-500" />
+                        Media Assets
+                      </h4>
+                      <div className="space-y-2 max-h-48 overflow-y-auto border rounded-lg p-3 bg-gray-50/50 scrollbar-hide">
                         {mediaItems.length === 0 ? (
                           <p className="text-sm text-gray-500 text-center py-4">No media assets available</p>
                         ) : (
@@ -1421,20 +1422,12 @@ export default function ScreensPage() {
                       </div>
                     </div>
                   )}
-
-                  {editingContentType === "schedule" && (
-                    <div className="p-6 border rounded-lg bg-gray-50/50 text-center">
-                      <Calendar className="h-12 w-12 mx-auto text-gray-400 mb-3" />
-                      <p className="text-sm text-gray-600 mb-2">Schedule Configuration</p>
-                      <p className="text-xs text-gray-500">This feature will be available soon</p>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
 
             {/* Fixed Footer */}
-            <div className="p-6 border-t shrink-0 bg-gray-50/50">
+            <div className="p-6 border-t shrink-0 bg-background">
               <div className="flex justify-end gap-3">
                 <Button
                   variant="outline"
@@ -1445,11 +1438,7 @@ export default function ScreensPage() {
                 >
                   Cancel
                 </Button>
-                <Button
-                  onClick={handleUpdateScreen}
-                  disabled={updating || (editingContentType !== "schedule" && editingSelectedContentIds.length === 0)}
-                  className="bg-cyan-500 hover:bg-cyan-600"
-                >
+                <Button onClick={handleUpdateScreen} disabled={updating} className="bg-cyan-500 hover:bg-cyan-600">
                   {updating ? "Saving..." : "Save Changes"}
                 </Button>
               </div>
