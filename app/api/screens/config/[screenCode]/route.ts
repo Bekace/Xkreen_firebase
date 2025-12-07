@@ -104,7 +104,11 @@ export async function GET(request: NextRequest, { params }: { params: { screenCo
 
         console.log(`[v0] Found ${playlistItems?.length || 0} playlist items`)
 
-        if (playlistItems) {
+        if (itemsError) {
+          console.error(`[v0] Error fetching playlist items:`, itemsError)
+        }
+
+        if (playlistItems && playlistItems.length > 0) {
           console.log(
             `[v0] Playlist items details:`,
             JSON.stringify(
@@ -113,13 +117,7 @@ export async function GET(request: NextRequest, { params }: { params: { screenCo
               2,
             ),
           )
-        }
 
-        if (itemsError) {
-          console.error(`[v0] Error fetching playlist items:`, itemsError)
-        }
-
-        if (playlistItems && playlistItems.length > 0) {
           playlistItems.forEach((item) => {
             if (item.updated_at && item.updated_at > mostRecentUpdate) {
               mostRecentUpdate = item.updated_at
