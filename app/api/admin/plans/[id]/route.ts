@@ -5,44 +5,76 @@ import { logAdminAction } from "@/lib/admin/audit"
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { supabase } = await requireSuperAdmin()
-    const planData = await request.json()
+    const body = await request.json()
     const planId = params.id
 
-    const { storage_unit, ...planDataWithoutUnit } = planData
+    const { monthly_price, yearly_price, trial_days, ...planData } = body
 
-    // Try to update with storage_unit first, fallback without it if column doesn't exist
-    const updateData = planData
-    let updatedPlan
-    let error
+    // Update the plan
+    const { data: updatedPlan, error: planError } = await supabase
+      .from("subscription_plans")
+      .update({
+        name: planData.name,
+        description: planData.description,
+        max_screens: planData.max_screens,
+        max_media_storage: planData.max_media_storage,
+        storage_unit: planData.storage_unit,
+        max_playlists: planData.max_playlists,
+        is_active: planData.is_active,
+      })
+      .eq("id", planId)
+      .select()
+      .single()
 
-    try {
-      const result = await supabase.from("subscription_plans").update(updateData).eq("id", planId).select().single()
-      updatedPlan = result.data
-      error = result.error
-    } catch (updateError: any) {
-      // If storage_unit column doesn't exist, try without it
-      if (updateError?.message?.includes("storage_unit")) {
-        console.log("[v0] storage_unit column not found, updating without it")
-        const result = await supabase
-          .from("subscription_plans")
-          .update(planDataWithoutUnit)
-          .eq("id", planId)
-          .select()
-          .single()
-        updatedPlan = result.data
-        error = result.error
+    if (planError) throw planError
+
+    // First, get existing prices
+    const { data: existingPrices } = await supabase.from("subscription_prices").select("*").eq("plan_id", planId)
+
+    const monthlyPriceRecord = existingPrices?.find((p: any) => p.billing_cycle === "monthly")
+    const yearlyPriceRecord = existingPrices?.find((p: any) => p.billing_cycle === "yearly")
+
+    // Update or insert monthly price
+    if (monthly_price !== undefined) {
+      if (monthlyPriceRecord) {
+        await supabase
+          .from("subscription_prices")
+          .update({ price: monthly_price, trial_days: trial_days || 0 })
+          .eq("id", monthlyPriceRecord.id)
       } else {
-        throw updateError
+        await supabase.from("subscription_prices").insert({
+          plan_id: planId,
+          billing_cycle: "monthly",
+          price: monthly_price,
+          trial_days: trial_days || 0,
+          is_active: true,
+        })
       }
     }
 
-    if (error) throw error
+    // Update or insert yearly price
+    if (yearly_price !== undefined) {
+      if (yearlyPriceRecord) {
+        await supabase
+          .from("subscription_prices")
+          .update({ price: yearly_price, trial_days: trial_days || 0 })
+          .eq("id", yearlyPriceRecord.id)
+      } else {
+        await supabase.from("subscription_prices").insert({
+          plan_id: planId,
+          billing_cycle: "yearly",
+          price: yearly_price,
+          trial_days: trial_days || 0,
+          is_active: true,
+        })
+      }
+    }
 
     await logAdminAction({
       action: "update_subscription_plan",
       targetType: "plan",
       targetId: planId,
-      details: { name: planData.name, price: planData.price },
+      details: { name: planData.name, monthly_price, yearly_price },
     })
 
     return NextResponse.json({ plan: updatedPlan })
@@ -70,6 +102,13 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       return NextResponse.json({ error: "Cannot delete plan with active subscribers" }, { status: 400 })
     }
 
+    const { error: pricesError } = await supabase.from("subscription_prices").delete().eq("plan_id", planId)
+
+    if (pricesError) {
+      console.error("[v0] Error deleting prices:", pricesError)
+    }
+
+    // Delete the plan
     const { error } = await supabase.from("subscription_plans").delete().eq("id", planId)
 
     if (error) throw error

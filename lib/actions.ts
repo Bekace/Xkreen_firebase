@@ -38,7 +38,7 @@ export async function signIn(prevState: any, formData: FormData) {
   }
 }
 
-// Update the signUp function to handle potential null formData
+// Update the signUp function to handle potential null formData and plan assignment
 export async function signUp(prevState: any, formData: FormData) {
   // Check if formData is valid
   if (!formData) {
@@ -48,6 +48,8 @@ export async function signUp(prevState: any, formData: FormData) {
   const email = formData.get("email")
   const password = formData.get("password")
   const fullName = formData.get("fullName")
+  const companyName = formData.get("companyName")
+  const planId = formData.get("planId")
 
   // Validate required fields
   if (!email || !password) {
@@ -57,7 +59,8 @@ export async function signUp(prevState: any, formData: FormData) {
   const supabase = await createClient()
 
   try {
-    const { error } = await supabase.auth.signUp({
+    // Create auth user
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email: email.toString(),
       password: password.toString(),
       options: {
@@ -66,12 +69,63 @@ export async function signUp(prevState: any, formData: FormData) {
           `${process.env.NEXT_PUBLIC_SITE_URL || "https://v0-pointer-ai-landing-page-psi-six-73.vercel.app"}/dashboard`,
         data: {
           full_name: fullName?.toString() || "",
+          company_name: companyName?.toString() || "",
         },
       },
     })
 
-    if (error) {
-      return { error: error.message }
+    if (authError) {
+      return { error: authError.message }
+    }
+
+    // If planId is provided, create subscription record
+    // Otherwise, assign Free plan by default
+    if (authData.user) {
+      const userId = authData.user.id
+
+      // Determine which plan to assign
+      let selectedPlanId = planId?.toString()
+
+      // If no plan selected, get the Free plan
+      if (!selectedPlanId) {
+        const { data: freePlan, error: freePlanError } = await supabase
+          .from("subscription_plans")
+          .select("id")
+          .eq("name", "Free")
+          .single()
+
+        if (freePlanError) {
+          console.error("[v0] Error fetching Free plan:", freePlanError)
+        } else {
+          selectedPlanId = freePlan?.id
+        }
+      }
+
+      // Create subscription record
+      if (selectedPlanId) {
+        const { error: subscriptionError } = await supabase.from("user_subscriptions").insert({
+          user_id: userId,
+          plan_id: selectedPlanId,
+          status: "active",
+          started_at: new Date().toISOString(),
+        })
+
+        if (subscriptionError) {
+          console.error("[v0] Error creating subscription:", subscriptionError)
+        }
+      }
+
+      // Update profile with company name if provided
+      if (companyName) {
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({ company_name: companyName.toString() })
+          .eq("id", userId)
+
+        if (profileError) {
+          console.error("[v0] Error updating profile:", profileError)
+        }
+      }
     }
 
     return { success: "Check your email to confirm your account." }

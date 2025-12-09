@@ -61,6 +61,7 @@ export default function PlayerPage({ params }: PlayerPageProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0)
+  const [isPlaying, setIsPlaying] = useState(true)
   const [shuffledContent, setShuffledContent] = useState<MediaItem[]>([])
   const [analyticsEnabled, setAnalyticsEnabled] = useState(true)
   const router = useRouter()
@@ -72,6 +73,8 @@ export default function PlayerPage({ params }: PlayerPageProps) {
   const lastUpdatedAtRef = useRef<string | null>(null)
   const [hasPendingUpdate, setHasPendingUpdate] = useState(false)
   const configRef = useRef<ScreenConfig | null>(null)
+  const rotationTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const youtubePlayerRef = useRef<any>(null)
 
   const { isTVMode } = useTVNavigation({
     onUp: () => {
@@ -240,7 +243,12 @@ export default function PlayerPage({ params }: PlayerPageProps) {
 
   const sendHeartbeat = async () => {
     try {
-      await fetch(`/api/devices/heartbeat/${params.deviceCode}`, {
+      const isScreenCode = params.deviceCode.startsWith("SCR-")
+      const heartbeatEndpoint = isScreenCode
+        ? `/api/screens/heartbeat/${params.deviceCode}`
+        : `/api/devices/heartbeat/${params.deviceCode}`
+
+      await fetch(heartbeatEndpoint, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ timestamp: new Date().toISOString() }),
@@ -290,13 +298,14 @@ export default function PlayerPage({ params }: PlayerPageProps) {
       }
     }
 
-    const isScreenCode = params.deviceCode.startsWith("SCR-")
     let heartbeatInterval: NodeJS.Timeout | null = null
     let pollingInterval: NodeJS.Timeout | null = null
 
-    if (!isScreenCode) {
-      heartbeatInterval = setInterval(sendHeartbeat, 30000)
-    }
+    // Send initial heartbeat immediately
+    sendHeartbeat()
+
+    // Send heartbeat every 30 seconds for all player instances
+    heartbeatInterval = setInterval(sendHeartbeat, 30000)
 
     setTimeout(() => {
       pollingInterval = setInterval(checkForUpdates, 15000)
@@ -350,6 +359,62 @@ export default function PlayerPage({ params }: PlayerPageProps) {
       return () => clearTimeout(timer)
     }
   }, [hasPendingUpdate, currentMediaIndex])
+
+  useEffect(() => {
+    // Clear any existing timer
+    if (rotationTimerRef.current) {
+      clearTimeout(rotationTimerRef.current)
+    }
+
+    const contentToDisplay = shuffledContent.length > 0 ? shuffledContent : config?.screen.content || []
+    const currentMedia = contentToDisplay[currentMediaIndex]
+
+    if (!currentMedia) return
+
+    const isRegularVideo = currentMedia.media.mime_type.startsWith("video/") && !isYouTubeVideo(currentMedia.media)
+
+    if (!isRegularVideo) {
+      const duration = getEffectiveDuration(currentMedia)
+      console.log(`[v0] Setting rotation timer for ${currentMedia.media.name}: ${duration}ms`)
+
+      rotationTimerRef.current = setTimeout(() => {
+        console.log(`[v0] Auto-advancing from ${currentMedia.media.name}`)
+        advanceToNextMedia()
+      }, duration)
+    }
+
+    return () => {
+      if (rotationTimerRef.current) {
+        clearTimeout(rotationTimerRef.current)
+      }
+    }
+  }, [currentMediaIndex, shuffledContent, config])
+
+  useEffect(() => {
+    // Load YouTube IFrame API
+    if (!window.YT) {
+      const tag = document.createElement("script")
+      tag.src = "https://www.youtube.com/iframe_api"
+      const firstScriptTag = document.getElementsByTagName("script")[0]
+      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag)
+    }
+  }, [])
+
+  const onYouTubeIframeAPIReady = (iframeId: string) => {
+    if (window.YT && window.YT.Player) {
+      try {
+        youtubePlayerRef.current = new window.YT.Player(iframeId, {
+          events: {
+            onReady: (event: any) => {
+              event.target.playVideo()
+            },
+          },
+        })
+      } catch (e) {
+        console.error("[v0] Error initializing YouTube player:", e)
+      }
+    }
+  }
 
   const handleRetry = () => {
     setLoading(true)
@@ -524,6 +589,26 @@ export default function PlayerPage({ params }: PlayerPageProps) {
     lastUpdatedAtRef.current = updatedAt
   }
 
+  const getEffectiveDuration = (item: MediaItem): number => {
+    // Use duration_override if set, otherwise use media.duration, default to 10 seconds
+    if (item.duration_override && item.duration_override > 0) {
+      return item.duration_override * 1000 // Convert to milliseconds
+    }
+    if (item.media.duration && item.media.duration > 0) {
+      return item.media.duration * 1000 // Convert to milliseconds
+    }
+    // Default duration for images and static content (10 seconds)
+    return 10000
+  }
+
+  const advanceToNextMedia = () => {
+    setCurrentMediaIndex((prev) => {
+      const contentLength = shuffledContent.length || config?.screen.content?.length || 0
+      const nextIndex = prev + 1
+      return nextIndex >= contentLength ? 0 : nextIndex
+    })
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -693,12 +778,18 @@ export default function PlayerPage({ params }: PlayerPageProps) {
               ) : isYouTubeVideo(currentMedia.media) ? (
                 <iframe
                   key={currentMedia.id}
+                  id={`youtube-player-${currentMedia.id}`}
                   src={getYouTubeUrlWithAutoplay(currentMedia.media.file_path)}
                   className="w-full h-full border-0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   referrerPolicy="strict-origin-when-cross-origin"
                   allowFullScreen
                   title={currentMedia.media.name}
+                  onLoad={() => {
+                    setTimeout(() => {
+                      onYouTubeIframeAPIReady(`youtube-player-${currentMedia.id}`)
+                    }, 1000)
+                  }}
                 />
               ) : currentMedia.media.mime_type.startsWith("video/") ? (
                 <video
@@ -707,12 +798,7 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                   autoPlay
                   muted
                   playsInline
-                  onEnded={() => {
-                    setCurrentMediaIndex((prev) => {
-                      const nextIndex = prev + 1
-                      return nextIndex >= contentToDisplay.length ? 0 : nextIndex
-                    })
-                  }}
+                  onEnded={advanceToNextMedia}
                 />
               ) : isGoogleSlides(currentMedia.media) ? (
                 <iframe

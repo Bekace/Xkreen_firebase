@@ -6,6 +6,7 @@ interface StorageUsageBarProps {
   maxStorage: number
   storageUnit: string
   usagePercentage: number
+  planName?: string
   className?: string
 }
 
@@ -14,6 +15,7 @@ export function StorageUsageBar({
   maxStorage,
   storageUnit,
   usagePercentage,
+  planName = "Free",
   className,
 }: StorageUsageBarProps) {
   const getUsageColor = (percentage: number) => {
@@ -31,26 +33,30 @@ export function StorageUsageBar({
   const formatStorageDisplay = () => {
     if (maxStorage === -1) return "Unlimited"
 
-    let maxStorageFormatted: number
-    if (storageUnit === "GB") {
-      maxStorageFormatted = maxStorage / (1024 * 1024 * 1024)
-    } else if (storageUnit === "MB") {
-      maxStorageFormatted = maxStorage / (1024 * 1024)
-    } else if (storageUnit === "KB") {
-      maxStorageFormatted = maxStorage / 1024
-    } else {
-      // For bytes
-      maxStorageFormatted = maxStorage
+    const maxStorageGB = maxStorage / (1024 * 1024 * 1024)
+
+    if (currentFormatted < 1) {
+      const currentMB = currentFormatted * 1024
+      return `${currentMB.toFixed(2)} MB / ${maxStorageGB.toFixed(0)} GB`
     }
 
-    const maxFormatted = storageUnit === "bytes" ? maxStorageFormatted.toString() : maxStorageFormatted.toFixed(0)
-    return `${currentFormatted.toFixed(2)} ${storageUnit} / ${maxFormatted} ${storageUnit}`
+    return `${currentFormatted.toFixed(2)} GB / ${maxStorageGB.toFixed(0)} GB`
+  }
+
+  const formatPercentageDisplay = () => {
+    if (maxStorage === -1) return "Unlimited storage on your current plan"
+
+    const maxStorageGB = maxStorage / (1024 * 1024 * 1024)
+
+    const percentage = usagePercentage < 1 ? usagePercentage.toFixed(2) : Math.round(usagePercentage).toString()
+
+    return `You are using ${percentage}% of ${maxStorageGB.toFixed(0)}GB on your ${planName} plan`
   }
 
   return (
     <div className={`space-y-3 ${className}`}>
       <div className="flex items-center justify-between">
-        <span className="text-sm text-gray-600">Storage Usage</span>
+        <span className="text-sm text-muted-foreground">{formatPercentageDisplay()}</span>
         <Badge
           variant={getBadgeVariant(usagePercentage)}
           className={`

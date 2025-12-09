@@ -1,6 +1,15 @@
 import { createClient } from "@/lib/supabase/server"
 import { type NextRequest, NextResponse } from "next/server"
 
+const OFFLINE_THRESHOLD_MS = 2 * 60 * 1000 // 2 minutes
+
+function isScreenOffline(lastSeen: string | null): boolean {
+  if (!lastSeen) return true
+  const lastSeenDate = new Date(lastSeen)
+  const now = new Date()
+  return now.getTime() - lastSeenDate.getTime() > OFFLINE_THRESHOLD_MS
+}
+
 export async function GET() {
   try {
     const supabase = await createClient()
@@ -39,7 +48,21 @@ export async function GET() {
       return NextResponse.json({ error: "Failed to fetch screens" }, { status: 500 })
     }
 
-    return NextResponse.json({ screens })
+    const screensWithUpdatedStatus = screens?.map((screen) => {
+      const shouldBeOffline = isScreenOffline(screen.last_seen)
+      if (shouldBeOffline && screen.status === "online") {
+        // Update status in background (don't wait for it)
+        supabase
+          .from("screens")
+          .update({ status: "offline" })
+          .eq("id", screen.id)
+          .then(() => {})
+        return { ...screen, status: "offline" }
+      }
+      return screen
+    })
+
+    return NextResponse.json({ screens: screensWithUpdatedStatus })
   } catch (error) {
     console.error("Error listing screens:", error)
     return NextResponse.json({ error: "Failed to list screens" }, { status: 500 })

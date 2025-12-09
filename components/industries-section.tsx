@@ -36,7 +36,7 @@ export function IndustriesSection() {
   ]
 
   return (
-    <section className="py-16 px-6">
+    <section className="px-6 py-0">
       <div className="text-center mb-12">
         <h2 className="text-4xl text-white mb-6 text-balance md:text-6xl font-semibold">
           AI-Powered Digital Signage

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts"
 import {
@@ -17,8 +18,10 @@ import {
   RefreshCw,
   Crown,
   Database,
+  Settings,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { UploadSettings } from "./upload-settings"
 
 interface AdminStats {
   users: {
@@ -190,232 +193,254 @@ export function AdminDashboard() {
         </Button>
       </div>
 
-      {/* User Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.users.total.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground flex items-center mt-1">
-              <TrendingUp className="w-3 h-3 mr-1" />+{stats.users.newThisMonth} this month
-            </p>
-          </CardContent>
-        </Card>
+      {/* Tabs for Overview and Upload Settings */}
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <Activity className="w-4 h-4" />
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="upload-settings" className="flex items-center gap-2">
+            <Settings className="w-4 h-4" />
+            Upload Settings
+          </TabsTrigger>
+        </TabsList>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
-            <UserCheck className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.users.active.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              {((stats.users.active / stats.users.total) * 100).toFixed(1)}% of total users
-            </p>
-          </CardContent>
-        </Card>
+        <TabsContent value="overview" className="space-y-6">
+          {/* User Statistics */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.users.total.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground flex items-center mt-1">
+                  <TrendingUp className="w-3 h-3 mr-1" />+{stats.users.newThisMonth} this month
+                </p>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Revenue</CardTitle>
-            <CreditCard className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(stats.subscriptions.revenue)}</div>
-            <p className="text-xs text-muted-foreground">{stats.subscriptions.active} active subscriptions</p>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+                <UserCheck className="h-4 w-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.users.active.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">
+                  {((stats.users.active / stats.users.total) * 100).toFixed(1)}% of total users
+                </p>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">System Health</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.system.systemUptime}%</div>
-            <p className="text-xs text-muted-foreground">{stats.system.activeScreens} screens online</p>
-          </CardContent>
-        </Card>
-      </div>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Revenue</CardTitle>
+                <CreditCard className="h-4 w-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{formatCurrency(stats.subscriptions.revenue)}</div>
+                <p className="text-xs text-muted-foreground">{stats.subscriptions.active} active subscriptions</p>
+              </CardContent>
+            </Card>
 
-      {/* Admin & Role Statistics */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Crown className="w-5 h-5 text-yellow-600" />
-              Admin Roles
-            </CardTitle>
-            <CardDescription>System administrators and permissions</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Badge variant="default" className="bg-yellow-100 text-yellow-800">
-                  Super Admins
-                </Badge>
-              </div>
-              <span className="font-semibold">{stats.users.superAdmins}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary">Admins</Badge>
-              </div>
-              <span className="font-semibold">{stats.users.admins}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Badge variant="outline">Regular Users</Badge>
-              </div>
-              <span className="font-semibold">{stats.users.total - stats.users.admins - stats.users.superAdmins}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-green-600" />
-              Subscription Plans
-            </CardTitle>
-            <CardDescription>Active subscription breakdown</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {stats.subscriptions.plans.map((plan) => (
-              <div key={plan.name} className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">{plan.name}</p>
-                  <p className="text-sm text-muted-foreground">{formatCurrency(plan.revenue)}</p>
-                </div>
-                <Badge variant="outline">{plan.count} users</Badge>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Database className="w-5 h-5 text-purple-600" />
-              System Resources
-            </CardTitle>
-            <CardDescription>Storage and media statistics</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Total Storage</span>
-              <span className="font-semibold">{formatBytes(stats.system.totalStorage)}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Media Files</span>
-              <span className="font-semibold">{stats.system.totalMedia.toLocaleString()}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Active Screens</span>
-              <span className="font-semibold">{stats.system.activeScreens}</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Growth Trends */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Growth Trends</CardTitle>
-            <CardDescription>User growth and revenue over the last 30 days</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={chartConfig}>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={stats.trends}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="date"
-                    tickFormatter={(value) =>
-                      new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric" })
-                    }
-                  />
-                  <YAxis />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Line
-                    type="monotone"
-                    dataKey="newUsers"
-                    stroke="var(--color-newUsers)"
-                    strokeWidth={2}
-                    dot={{ fill: "var(--color-newUsers)" }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="activeUsers"
-                    stroke="var(--color-activeUsers)"
-                    strokeWidth={2}
-                    dot={{ fill: "var(--color-activeUsers)" }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-
-        {/* Revenue by Plan */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Revenue by Plan</CardTitle>
-            <CardDescription>Monthly revenue breakdown by subscription plan</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={chartConfig}>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={stats.subscriptions.plans}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="revenue" fill="var(--color-revenue)" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Activity */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="w-5 h-5 text-blue-600" />
-            Recent System Activity
-          </CardTitle>
-          <CardDescription>Latest administrative actions and system events</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {stats.recentActivity.map((activity) => (
-              <div key={activity.id} className="flex items-start gap-3 p-3 border rounded-lg">
-                <div className={`p-2 rounded-full bg-muted ${getActivityColor(activity.type)}`}>
-                  {getActivityIcon(activity.type)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground">{activity.action}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <p className="text-xs text-muted-foreground">by {activity.user}</p>
-                    <span className="text-xs text-muted-foreground">•</span>
-                    <p className="text-xs text-muted-foreground">{activity.timestamp}</p>
-                  </div>
-                </div>
-                <Badge variant="outline" className="text-xs">
-                  {activity.type}
-                </Badge>
-              </div>
-            ))}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">System Health</CardTitle>
+                <CheckCircle className="h-4 w-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.system.systemUptime}%</div>
+                <p className="text-xs text-muted-foreground">{stats.system.activeScreens} screens online</p>
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Admin & Role Statistics */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Crown className="w-5 h-5 text-yellow-600" />
+                  Admin Roles
+                </CardTitle>
+                <CardDescription>System administrators and permissions</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="default" className="bg-yellow-100 text-yellow-800">
+                      Super Admins
+                    </Badge>
+                  </div>
+                  <span className="font-semibold">{stats.users.superAdmins}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary">Admins</Badge>
+                  </div>
+                  <span className="font-semibold">{stats.users.admins}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">Regular Users</Badge>
+                  </div>
+                  <span className="font-semibold">
+                    {stats.users.total - stats.users.admins - stats.users.superAdmins}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-green-600" />
+                  Subscription Plans
+                </CardTitle>
+                <CardDescription>Active subscription breakdown</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {stats.subscriptions.plans.map((plan) => (
+                  <div key={plan.name} className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">{plan.name}</p>
+                      <p className="text-sm text-muted-foreground">{formatCurrency(plan.revenue)}</p>
+                    </div>
+                    <Badge variant="outline">{plan.count} users</Badge>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Database className="w-5 h-5 text-purple-600" />
+                  System Resources
+                </CardTitle>
+                <CardDescription>Storage and media statistics</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Total Storage</span>
+                  <span className="font-semibold">{formatBytes(stats.system.totalStorage)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Media Files</span>
+                  <span className="font-semibold">{stats.system.totalMedia.toLocaleString()}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Active Screens</span>
+                  <span className="font-semibold">{stats.system.activeScreens}</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Charts Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Growth Trends */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Growth Trends</CardTitle>
+                <CardDescription>User growth and revenue over the last 30 days</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={chartConfig}>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={stats.trends}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="date"
+                        tickFormatter={(value) =>
+                          new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                        }
+                      />
+                      <YAxis />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Line
+                        type="monotone"
+                        dataKey="newUsers"
+                        stroke="var(--color-newUsers)"
+                        strokeWidth={2}
+                        dot={{ fill: "var(--color-newUsers)" }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="activeUsers"
+                        stroke="var(--color-activeUsers)"
+                        strokeWidth={2}
+                        dot={{ fill: "var(--color-activeUsers)" }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+
+            {/* Revenue by Plan */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Revenue by Plan</CardTitle>
+                <CardDescription>Monthly revenue breakdown by subscription plan</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={chartConfig}>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={stats.subscriptions.plans}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Bar dataKey="revenue" fill="var(--color-revenue)" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Recent Activity */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="w-5 h-5 text-blue-600" />
+                Recent System Activity
+              </CardTitle>
+              <CardDescription>Latest administrative actions and system events</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {stats.recentActivity.map((activity) => (
+                  <div key={activity.id} className="flex items-start gap-3 p-3 border rounded-lg">
+                    <div className={`p-2 rounded-full bg-muted ${getActivityColor(activity.type)}`}>
+                      {getActivityIcon(activity.type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground">{activity.action}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-xs text-muted-foreground">by {activity.user}</p>
+                        <span className="text-xs text-muted-foreground">•</span>
+                        <p className="text-xs text-muted-foreground">{activity.timestamp}</p>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-xs">
+                      {activity.type}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="upload-settings">
+          <UploadSettings />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

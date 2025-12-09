@@ -21,6 +21,8 @@ import { useUploadLimits } from "@/hooks/use-upload-limits"
 import { StorageUsageBar } from "@/components/ui/storage-usage-bar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
+import { SmartFileUploader } from "@/components/media/smart-file-uploader"
+import { SimpleUploader } from "@/components/media/simple-uploader"
 
 interface MediaItem {
   id: string
@@ -274,70 +276,27 @@ export default function MediaLibraryPage() {
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
+      if (file.size > uploadLimits.maxFileSize) {
+        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2)
+        const maxSizeMB = Math.round(uploadLimits.maxFileSize / (1024 * 1024))
+        toast({
+          title: "File Too Large",
+          description: `This file (${fileSizeMB} MB) exceeds the maximum file size of ${maxSizeMB} MB for your ${uploadLimits.planName || ""} plan.`,
+          variant: "destructive",
+        })
+        return
+      }
+
       if (!uploadLimits.canUpload(file.size)) {
+        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2)
         toast({
           title: "Storage Limit Exceeded",
-          description: `This file (${formatFileSize(file.size)}) would exceed your storage limit. You have ${uploadLimits.remainingStorageFormatted.toFixed(2)} ${uploadLimits.storageUnit} remaining.`,
+          description: `This file (${fileSizeMB} MB) would exceed your storage limit. You have ${uploadLimits.remainingStorageFormatted.toFixed(2)} ${uploadLimits.storageUnit} remaining.`,
           variant: "destructive",
         })
         return
       }
       setSelectedFile(file)
-    }
-  }
-
-  const handleUpload = async () => {
-    if (!selectedFile) return
-
-    if (!uploadLimits.canUpload(selectedFile.size)) {
-      toast({
-        title: "Storage Limit Exceeded",
-        description: `Cannot upload file. You have ${uploadLimits.remainingStorageFormatted.toFixed(2)} ${uploadLimits.storageUnit} remaining.`,
-        variant: "destructive",
-      })
-      return
-    }
-
-    setUploading(true)
-    try {
-      const formData = new FormData()
-      formData.append("file", selectedFile)
-      if (tags) {
-        formData.append("tags", tags)
-      }
-
-      const response = await fetch("/api/media/upload", {
-        method: "POST",
-        body: formData,
-      })
-
-      if (response.ok) {
-        const newMedia = await response.json()
-        setMedia((prev) => [newMedia, ...prev])
-        setSelectedFile(null)
-        setTags("")
-        await uploadLimits.refresh()
-        toast({
-          title: "Success",
-          description: "Media uploaded successfully",
-        })
-      } else {
-        const error = await response.json()
-        toast({
-          title: "Error",
-          description: error.error || "Upload failed",
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
-      console.error("Upload error:", error)
-      toast({
-        title: "Error",
-        description: "Upload failed",
-        variant: "destructive",
-      })
-    } finally {
-      setUploading(false)
     }
   }
 
@@ -554,6 +513,7 @@ export default function MediaLibraryPage() {
               maxStorage={uploadLimits.maxStorage}
               storageUnit={uploadLimits.storageUnit}
               usagePercentage={uploadLimits.storageUsagePercentage}
+              planName={uploadLimits.planName}
             />
           )}
 
@@ -570,43 +530,45 @@ export default function MediaLibraryPage() {
             </TabsList>
 
             <TabsContent value="upload" className="space-y-4 mt-4">
-              <div className="flex items-center gap-4">
-                <Input
-                  type="file"
-                  accept="image/*,video/*"
-                  onChange={handleFileSelect}
-                  className="flex-1"
-                  disabled={uploadLimits.isAtLimit}
-                />
-                <Input
-                  placeholder="Tags (comma separated)"
-                  value={tags}
-                  onChange={(e) => setTags(e.target.value)}
-                  className="w-64"
-                />
-                <Button
-                  onClick={handleUpload}
-                  disabled={!selectedFile || uploading || uploadLimits.isAtLimit}
-                  className="bg-cyan-500 hover:bg-cyan-600"
-                >
-                  {uploading ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  ) : (
-                    <Plus className="h-4 w-4" />
-                  )}
-                  Upload
-                </Button>
-              </div>
-              {selectedFile && (
-                <p className="text-sm text-gray-600">
-                  Selected: {selectedFile.name} ({formatFileSize(selectedFile.size)})
-                </p>
-              )}
-              {uploadLimits.isAtLimit && (
-                <p className="text-sm text-red-600">
-                  Storage limit reached. Please delete some files or upgrade your plan to upload more content.
-                </p>
-              )}
+              <SimpleUploader
+                onUploadComplete={async (media) => {
+                  setMedia((prev) => [media as MediaItem, ...prev])
+                  await uploadLimits.refresh()
+                  toast({
+                    title: "Success",
+                    description: "File uploaded successfully",
+                  })
+                }}
+                onUploadError={(error) => {
+                  toast({
+                    title: "Upload Failed",
+                    description: error,
+                    variant: "destructive",
+                  })
+                }}
+                maxFileSizeMB={Math.round(uploadLimits.maxFileSize / (1024 * 1024))}
+              />
+            </TabsContent>
+
+            {/* Smart Upload Tab */}
+            <TabsContent value="smart-upload" className="mt-4">
+              <SmartFileUploader
+                onUploadSuccess={async () => {
+                  await fetchMedia()
+                  await uploadLimits.refresh()
+                  toast({
+                    title: "Success",
+                    description: "File uploaded successfully",
+                  })
+                }}
+                onUploadError={(error) => {
+                  toast({
+                    title: "Upload Failed",
+                    description: error,
+                    variant: "destructive",
+                  })
+                }}
+              />
             </TabsContent>
 
             <TabsContent value="import" className="space-y-4 mt-4">

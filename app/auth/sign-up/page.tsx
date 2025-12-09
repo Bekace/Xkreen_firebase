@@ -2,8 +2,6 @@ export const dynamic = "force-dynamic"
 
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
-import SignUpForm from "@/components/sign-up-form"
-
 export default async function SignUpPage() {
   // If Supabase is not configured, show setup message directly
   if (!isSupabaseConfigured()) {
@@ -19,12 +17,8 @@ export default async function SignUpPage() {
     const supabase = await createClient()
 
     if (!supabase) {
-      // If client creation fails, show the sign-up form anyway
-      return (
-        <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8">
-          <SignUpForm />
-        </div>
-      )
+      // If client creation fails, redirect to pricing
+      redirect("/auth/pricing")
     }
 
     const {
@@ -37,12 +31,7 @@ export default async function SignUpPage() {
     }
   } catch (error) {
     console.error("Auth check failed:", error)
-    // Continue to show sign-up form if auth check fails
   }
 
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8">
-      <SignUpForm />
-    </div>
-  )
+  redirect("/auth/pricing")
 }

@@ -70,7 +70,7 @@ interface Screen {
   created_at: string
   playlists?: { id: string; name: string }[]
   media_id?: string
-  screen_playlists?: { playlist_id: string; is_active: boolean }[]
+  screen_playlists?: { playlist_id: string; is_active: boolean; playlists?: { id: string; name: string } }[] // Added playlists relation
   screen_media?: { media_id: string; media?: { id: string; name: string } }[] // Added screen_media
   content_type?: "playlist" | "asset" | "none" // Added content_type
 }
@@ -1105,6 +1105,38 @@ export default function ScreensPage() {
                     <span className="text-gray-600">Orientation:</span>
                     <span className="capitalize">{screen.orientation}</span>
                   </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Content:</span>
+                    <span className="capitalize">
+                      {screen.screen_playlists && screen.screen_playlists.length > 0
+                        ? "Playlist"
+                        : screen.screen_media && screen.screen_media.length > 0
+                          ? "Media Asset"
+                          : screen.media_id
+                            ? "Media Asset"
+                            : "None"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Assigned:</span>
+                    <span
+                      className="truncate max-w-[180px]"
+                      title={
+                        screen.screen_playlists && screen.screen_playlists.length > 0
+                          ? screen.screen_playlists.map((sp: any) => sp.playlists?.name || "Unknown").join(", ")
+                          : screen.screen_media && screen.screen_media.length > 0
+                            ? screen.screen_media.map((sm: any) => sm.media?.name || "Unknown").join(", ")
+                            : "Not assigned"
+                      }
+                    >
+                      {screen.screen_playlists && screen.screen_playlists.length > 0
+                        ? screen.screen_playlists.map((sp: any) => sp.playlists?.name || "Unknown").join(", ")
+                        : screen.screen_media && screen.screen_media.length > 0
+                          ? screen.screen_media.map((sm: any) => sm.media?.name || "Unknown").join(", ")
+                          : "Not assigned"}
+                    </span>
+                  </div>
+                  {/* End content type and name display */}
                   {screen.last_seen && (
                     <div className="flex justify-between">
                       <span className="text-gray-600">Last Seen:</span>

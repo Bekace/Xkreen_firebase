@@ -10,16 +10,34 @@ export async function GET(request: NextRequest) {
       .from("subscription_plans")
       .select(`
         *,
+        subscription_prices (
+          id,
+          plan_id,
+          billing_cycle,
+          price,
+          stripe_price_id,
+          trial_days,
+          is_active
+        ),
         user_subscriptions(count)
       `)
       .order("created_at", { ascending: false })
 
     if (error) throw error
 
-    const formattedPlans = plans.map((plan: any) => ({
-      ...plan,
-      subscriber_count: plan.user_subscriptions?.filter((sub: any) => sub.count > 0).length || 0,
-    }))
+    const formattedPlans = plans.map((plan: any) => {
+      const prices = plan.subscription_prices || []
+      const monthlyPrice = prices.find((p: any) => p.billing_cycle === "monthly")?.price || 0
+      const yearlyPrice = prices.find((p: any) => p.billing_cycle === "yearly")?.price || 0
+
+      return {
+        ...plan,
+        prices,
+        monthly_price: monthlyPrice,
+        yearly_price: yearlyPrice,
+        subscriber_count: plan.user_subscriptions?.filter((sub: any) => sub.count > 0).length || 0,
+      }
+    })
 
     await logAdminAction({
       action: "view_subscription_plans",
@@ -37,38 +55,63 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const { supabase } = await requireSuperAdmin()
-    const planData = await request.json()
+    const body = await request.json()
 
-    const { storage_unit, ...planDataWithoutUnit } = planData
+    const { monthly_price, yearly_price, trial_days, ...planData } = body
 
-    // Try to insert with storage_unit first, fallback without it if column doesn't exist
-    const insertData = planData
-    let newPlan
-    let error
+    // Create the plan first
+    const { data: newPlan, error: planError } = await supabase
+      .from("subscription_plans")
+      .insert({
+        name: planData.name,
+        description: planData.description,
+        max_screens: planData.max_screens,
+        max_media_storage: planData.max_media_storage,
+        storage_unit: planData.storage_unit,
+        max_playlists: planData.max_playlists,
+        is_active: planData.is_active,
+      })
+      .select()
+      .single()
 
-    try {
-      const result = await supabase.from("subscription_plans").insert(insertData).select().single()
-      newPlan = result.data
-      error = result.error
-    } catch (insertError: any) {
-      // If storage_unit column doesn't exist, try without it
-      if (insertError?.message?.includes("storage_unit")) {
-        console.log("[v0] storage_unit column not found, inserting without it")
-        const result = await supabase.from("subscription_plans").insert(planDataWithoutUnit).select().single()
-        newPlan = result.data
-        error = result.error
-      } else {
-        throw insertError
-      }
+    if (planError) throw planError
+
+    const pricesToInsert = []
+
+    if (monthly_price !== undefined) {
+      pricesToInsert.push({
+        plan_id: newPlan.id,
+        billing_cycle: "monthly",
+        price: monthly_price,
+        trial_days: trial_days || 0,
+        is_active: true,
+      })
     }
 
-    if (error) throw error
+    if (yearly_price !== undefined) {
+      pricesToInsert.push({
+        plan_id: newPlan.id,
+        billing_cycle: "yearly",
+        price: yearly_price,
+        trial_days: trial_days || 0,
+        is_active: true,
+      })
+    }
+
+    if (pricesToInsert.length > 0) {
+      const { error: pricesError } = await supabase.from("subscription_prices").insert(pricesToInsert)
+
+      if (pricesError) {
+        console.error("[v0] Error creating prices:", pricesError)
+        // Don't throw, plan was created successfully
+      }
+    }
 
     await logAdminAction({
       action: "create_subscription_plan",
       targetType: "plan",
       targetId: newPlan.id,
-      details: { name: planData.name, price: planData.price },
+      details: { name: planData.name, monthly_price, yearly_price },
     })
 
     return NextResponse.json({ plan: newPlan })
