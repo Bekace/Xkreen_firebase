@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { requireSuperAdmin } from "@/lib/admin/auth"
 import { logAdminAction } from "@/lib/admin/audit"
+import { stripe } from "@/lib/stripe"
 
 export async function GET(request: NextRequest) {
   try {
@@ -59,6 +60,22 @@ export async function POST(request: NextRequest) {
 
     const { monthly_price, yearly_price, trial_days, ...planData } = body
 
+    let stripeProduct = null
+    try {
+      stripeProduct = await stripe.products.create({
+        name: planData.name,
+        description: planData.description || undefined,
+        metadata: {
+          max_screens: String(planData.max_screens || 0),
+          max_playlists: String(planData.max_playlists || 0),
+          max_media_storage: String(planData.max_media_storage || 0),
+        },
+      })
+    } catch (stripeError) {
+      console.error("[v0] Stripe product creation error:", stripeError)
+      // Continue without Stripe - can sync later
+    }
+
     // Create the plan first
     const { data: newPlan, error: planError } = await supabase
       .from("subscription_plans")
@@ -70,6 +87,7 @@ export async function POST(request: NextRequest) {
         storage_unit: planData.storage_unit,
         max_playlists: planData.max_playlists,
         is_active: planData.is_active,
+        stripe_product_id: stripeProduct?.id || null,
       })
       .select()
       .single()
@@ -79,22 +97,54 @@ export async function POST(request: NextRequest) {
     const pricesToInsert = []
 
     if (monthly_price !== undefined) {
+      let stripePriceId = null
+      if (stripeProduct && monthly_price > 0) {
+        try {
+          const stripePrice = await stripe.prices.create({
+            product: stripeProduct.id,
+            unit_amount: Math.round(monthly_price * 100), // Convert to cents
+            currency: "usd",
+            recurring: { interval: "month" },
+          })
+          stripePriceId = stripePrice.id
+        } catch (stripeError) {
+          console.error("[v0] Stripe monthly price creation error:", stripeError)
+        }
+      }
+
       pricesToInsert.push({
         plan_id: newPlan.id,
         billing_cycle: "monthly",
         price: monthly_price,
         trial_days: trial_days || 0,
         is_active: true,
+        stripe_price_id: stripePriceId,
       })
     }
 
     if (yearly_price !== undefined) {
+      let stripePriceId = null
+      if (stripeProduct && yearly_price > 0) {
+        try {
+          const stripePrice = await stripe.prices.create({
+            product: stripeProduct.id,
+            unit_amount: Math.round(yearly_price * 100), // Convert to cents
+            currency: "usd",
+            recurring: { interval: "year" },
+          })
+          stripePriceId = stripePrice.id
+        } catch (stripeError) {
+          console.error("[v0] Stripe yearly price creation error:", stripeError)
+        }
+      }
+
       pricesToInsert.push({
         plan_id: newPlan.id,
         billing_cycle: "yearly",
         price: yearly_price,
         trial_days: trial_days || 0,
         is_active: true,
+        stripe_price_id: stripePriceId,
       })
     }
 
@@ -103,7 +153,6 @@ export async function POST(request: NextRequest) {
 
       if (pricesError) {
         console.error("[v0] Error creating prices:", pricesError)
-        // Don't throw, plan was created successfully
       }
     }
 
@@ -111,7 +160,12 @@ export async function POST(request: NextRequest) {
       action: "create_subscription_plan",
       targetType: "plan",
       targetId: newPlan.id,
-      details: { name: planData.name, monthly_price, yearly_price },
+      details: {
+        name: planData.name,
+        monthly_price,
+        yearly_price,
+        stripe_product_id: stripeProduct?.id,
+      },
     })
 
     return NextResponse.json({ plan: newPlan })
