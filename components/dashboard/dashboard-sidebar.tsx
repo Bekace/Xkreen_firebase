@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -80,9 +80,16 @@ const adminNavigation = [
 export function DashboardSidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
-  const { profile } = useUser()
+  const { profile, loading } = useUser()
 
   const isAdmin = profile?.role === "admin" || profile?.role === "superadmin"
+
+  useEffect(() => {
+    console.log("[v0] DashboardSidebar - loading:", loading)
+    console.log("[v0] DashboardSidebar - profile:", profile)
+    console.log("[v0] DashboardSidebar - profile?.role:", profile?.role)
+    console.log("[v0] DashboardSidebar - isAdmin:", isAdmin)
+  }, [profile, loading, isAdmin])
 
   return (
     <div

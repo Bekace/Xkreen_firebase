@@ -8,7 +8,7 @@ import { Loader2, Check } from "lucide-react"
 import Link from "next/link"
 import { signUp } from "@/lib/actions"
 
-function SubmitButton() {
+function SubmitButton({ isPaidPlan }: { isPaidPlan: boolean }) {
   const { pending } = useFormStatus()
 
   return (
@@ -20,8 +20,10 @@ function SubmitButton() {
       {pending ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Creating account...
+          {isPaidPlan ? "Redirecting to payment..." : "Creating account..."}
         </>
+      ) : isPaidPlan ? (
+        "Continue to Payment"
       ) : (
         "Create Account"
       )}
@@ -33,15 +35,19 @@ interface SignUpFormProps {
   selectedPlan?: {
     id: string
     name: string
+    description?: string
     price: number
-    billing_cycle: string
+    priceId: string | null
+    stripePriceId: string | null
+    billingCycle: string
+    trialDays: number
     features: string[]
   }
 }
 
 export default function SignUpForm({ selectedPlan }: SignUpFormProps) {
-  // Initialize with null as the initial state
   const [state, formAction] = useActionState(signUp, null)
+  const isPaidPlan = selectedPlan && selectedPlan.price > 0
 
   return (
     <div className="w-full max-w-md space-y-8">
@@ -58,10 +64,18 @@ export default function SignUpForm({ selectedPlan }: SignUpFormProps) {
               <p className="text-lg font-semibold text-foreground">{selectedPlan.name}</p>
             </div>
             <div className="text-right">
-              <p className="text-2xl font-bold text-foreground">${selectedPlan.price}</p>
-              <p className="text-sm text-muted-foreground">/{selectedPlan.billing_cycle}</p>
+              <p className="text-2xl font-bold text-foreground">
+                ${selectedPlan.billingCycle === "yearly" ? Math.round(selectedPlan.price / 12) : selectedPlan.price}
+              </p>
+              <p className="text-sm text-muted-foreground">/month</p>
             </div>
           </div>
+          {selectedPlan.billingCycle === "yearly" && (
+            <p className="text-xs text-primary mb-2">Billed ${selectedPlan.price}/year</p>
+          )}
+          {selectedPlan.trialDays > 0 && (
+            <p className="text-xs text-muted-foreground mb-2">{selectedPlan.trialDays}-day free trial included</p>
+          )}
           <div className="space-y-1">
             {selectedPlan.features.slice(0, 3).map((feature, idx) => (
               <div key={idx} className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -77,7 +91,15 @@ export default function SignUpForm({ selectedPlan }: SignUpFormProps) {
       )}
 
       <form action={formAction} className="space-y-6 bg-popover">
-        {selectedPlan && <input type="hidden" name="planId" value={selectedPlan.id} />}
+        {/* Hidden fields for plan info */}
+        {selectedPlan && (
+          <>
+            <input type="hidden" name="planId" value={selectedPlan.id} />
+            <input type="hidden" name="priceId" value={selectedPlan.priceId || ""} />
+            <input type="hidden" name="stripePriceId" value={selectedPlan.stripePriceId || ""} />
+            <input type="hidden" name="billingCycle" value={selectedPlan.billingCycle} />
+          </>
+        )}
 
         {state?.error && (
           <div className="bg-destructive/10 border border-destructive/50 text-destructive px-4 py-3 rounded">
@@ -144,7 +166,13 @@ export default function SignUpForm({ selectedPlan }: SignUpFormProps) {
           </div>
         </div>
 
-        <SubmitButton />
+        <SubmitButton isPaidPlan={!!isPaidPlan} />
+
+        {isPaidPlan && (
+          <p className="text-xs text-center text-muted-foreground">
+            You&apos;ll be redirected to our secure payment provider to complete your subscription.
+          </p>
+        )}
 
         <div className="text-center text-muted-foreground">
           Already have an account?{" "}

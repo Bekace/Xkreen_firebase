@@ -2,10 +2,9 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
+import { stripe } from "@/lib/stripe"
 
-// Update the signIn function to handle redirects properly
 export async function signIn(prevState: any, formData: FormData) {
-  // Check if formData is valid
   if (!formData) {
     return { error: "Form data is missing" }
   }
@@ -13,7 +12,6 @@ export async function signIn(prevState: any, formData: FormData) {
   const email = formData.get("email")
   const password = formData.get("password")
 
-  // Validate required fields
   if (!email || !password) {
     return { error: "Email and password are required" }
   }
@@ -30,7 +28,6 @@ export async function signIn(prevState: any, formData: FormData) {
       return { error: error.message }
     }
 
-    // Return success instead of redirecting directly
     return { success: true }
   } catch (error) {
     console.error("Login error:", error)
@@ -38,9 +35,7 @@ export async function signIn(prevState: any, formData: FormData) {
   }
 }
 
-// Update the signUp function to handle potential null formData and plan assignment
 export async function signUp(prevState: any, formData: FormData) {
-  // Check if formData is valid
   if (!formData) {
     return { error: "Form data is missing" }
   }
@@ -50,8 +45,10 @@ export async function signUp(prevState: any, formData: FormData) {
   const fullName = formData.get("fullName")
   const companyName = formData.get("companyName")
   const planId = formData.get("planId")
+  const priceId = formData.get("priceId")
+  const stripePriceId = formData.get("stripePriceId")
+  const billingCycle = formData.get("billingCycle")
 
-  // Validate required fields
   if (!email || !password) {
     return { error: "Email and password are required" }
   }
@@ -59,7 +56,6 @@ export async function signUp(prevState: any, formData: FormData) {
   const supabase = await createClient()
 
   try {
-    // Create auth user
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: email.toString(),
       password: password.toString(),
@@ -78,57 +74,116 @@ export async function signUp(prevState: any, formData: FormData) {
       return { error: authError.message }
     }
 
-    // If planId is provided, create subscription record
-    // Otherwise, assign Free plan by default
-    if (authData.user) {
-      const userId = authData.user.id
+    if (!authData.user) {
+      return { error: "Failed to create user" }
+    }
 
-      // Determine which plan to assign
-      let selectedPlanId = planId?.toString()
+    const userId = authData.user.id
 
-      // If no plan selected, get the Free plan
-      if (!selectedPlanId) {
-        const { data: freePlan, error: freePlanError } = await supabase
-          .from("subscription_plans")
+    if (companyName) {
+      await supabase.from("profiles").update({ company_name: companyName.toString() }).eq("id", userId)
+    }
+
+    let selectedPlanId = planId?.toString()
+    let selectedPriceId = priceId?.toString()
+
+    if (!selectedPlanId) {
+      const { data: freePlan } = await supabase.from("subscription_plans").select("id").eq("name", "Free").single()
+
+      if (freePlan) {
+        selectedPlanId = freePlan.id
+
+        const { data: freePrice } = await supabase
+          .from("subscription_prices")
           .select("id")
-          .eq("name", "Free")
+          .eq("plan_id", freePlan.id)
+          .eq("billing_cycle", "monthly")
           .single()
 
-        if (freePlanError) {
-          console.error("[v0] Error fetching Free plan:", freePlanError)
-        } else {
-          selectedPlanId = freePlan?.id
-        }
-      }
-
-      // Create subscription record
-      if (selectedPlanId) {
-        const { error: subscriptionError } = await supabase.from("user_subscriptions").insert({
-          user_id: userId,
-          plan_id: selectedPlanId,
-          status: "active",
-          started_at: new Date().toISOString(),
-        })
-
-        if (subscriptionError) {
-          console.error("[v0] Error creating subscription:", subscriptionError)
-        }
-      }
-
-      // Update profile with company name if provided
-      if (companyName) {
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .update({ company_name: companyName.toString() })
-          .eq("id", userId)
-
-        if (profileError) {
-          console.error("[v0] Error updating profile:", profileError)
+        if (freePrice) {
+          selectedPriceId = freePrice.id
         }
       }
     }
 
-    return { success: "Check your email to confirm your account." }
+    const isPaidPlan = stripePriceId && stripePriceId.toString().startsWith("price_")
+
+    if (isPaidPlan && selectedPlanId && selectedPriceId) {
+      try {
+        const customer = await stripe.customers.create({
+          email: email.toString(),
+          name: fullName?.toString() || undefined,
+          metadata: {
+            user_id: userId,
+            plan_id: selectedPlanId,
+          },
+        })
+
+        const { data: priceData } = await supabase
+          .from("subscription_prices")
+          .select("trial_days")
+          .eq("id", selectedPriceId)
+          .single()
+
+        const trialDays = priceData?.trial_days || 0
+
+        const session = await stripe.checkout.sessions.create({
+          customer: customer.id,
+          mode: "subscription",
+          payment_method_types: ["card"],
+          line_items: [
+            {
+              price: stripePriceId.toString(),
+              quantity: 1,
+            },
+          ],
+          subscription_data: {
+            trial_period_days: trialDays > 0 ? trialDays : undefined,
+            metadata: {
+              user_id: userId,
+              plan_id: selectedPlanId,
+              price_id: selectedPriceId,
+            },
+          },
+          success_url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://v0-pointer-ai-landing-page-psi-six-73.vercel.app"}/auth/checkout-success?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://v0-pointer-ai-landing-page-psi-six-73.vercel.app"}/auth/pricing`,
+          metadata: {
+            user_id: userId,
+            plan_id: selectedPlanId,
+            price_id: selectedPriceId,
+          },
+        })
+
+        await supabase.from("user_subscriptions").insert({
+          user_id: userId,
+          plan_id: selectedPlanId,
+          price_id: selectedPriceId,
+          status: "pending",
+          stripe_customer_id: customer.id,
+          started_at: new Date().toISOString(),
+        })
+
+        if (session.url) {
+          redirect(session.url)
+        }
+      } catch (stripeError) {
+        console.error("[v0] Stripe error:", stripeError)
+        return { error: "Failed to create payment session. Please try again." }
+      }
+    } else {
+      if (selectedPlanId && selectedPriceId) {
+        await supabase.from("user_subscriptions").insert({
+          user_id: userId,
+          plan_id: selectedPlanId,
+          price_id: selectedPriceId,
+          status: "active",
+          started_at: new Date().toISOString(),
+          expires_at: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000).toISOString(),
+        })
+      }
+
+      return { success: "Check your email to confirm your account." }
+    }
   } catch (error) {
     console.error("Sign up error:", error)
     return { error: "An unexpected error occurred. Please try again." }
