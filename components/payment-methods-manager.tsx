@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { CreditCard, Check, Trash2, Plus, Loader2 } from "lucide-react"
+import { CreditCard, Check, Trash2, Plus, Loader2, Edit } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import {
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog"
 import { getPaymentMethods, setDefaultPaymentMethod, removePaymentMethod } from "@/lib/actions/stripe"
 import { useToast } from "@/hooks/use-toast"
+import { AddPaymentMethodDialog } from "@/components/add-payment-method-dialog"
 
 interface PaymentMethod {
   id: string
@@ -99,6 +100,11 @@ export function PaymentMethodsManager() {
     setDeleteDialogOpen(true)
   }
 
+  const handleAddSuccess = async () => {
+    setAddDialogOpen(false)
+    await loadPaymentMethods()
+  }
+
   const getCardBrandIcon = (brand?: string) => {
     return <CreditCard className="w-5 h-5" />
   }
@@ -149,6 +155,18 @@ export function PaymentMethodsManager() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    // Open add dialog - in Stripe, you replace cards by adding new ones
+                    setAddDialogOpen(true)
+                  }}
+                  disabled={!!actionLoading}
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit
+                </Button>
                 {!method.isDefault && (
                   <Button
                     size="sm"
@@ -173,28 +191,7 @@ export function PaymentMethodsManager() {
         ))
       )}
 
-      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Payment Method</DialogTitle>
-            <DialogDescription>
-              Add a new payment method to your account. You can update your payment methods during checkout or by
-              contacting support.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-muted-foreground">
-              To add a new payment method, please start a new subscription or upgrade process. Payment methods are
-              securely added during checkout.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AddPaymentMethodDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} onSuccess={handleAddSuccess} />
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
