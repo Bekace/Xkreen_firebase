@@ -15,6 +15,7 @@ import {
 import { getPaymentMethods, setDefaultPaymentMethod, removePaymentMethod } from "@/lib/actions/stripe"
 import { useToast } from "@/hooks/use-toast"
 import { AddPaymentMethodDialog } from "@/components/add-payment-method-dialog"
+import { EditPaymentMethodDialog } from "@/components/edit-payment-method-dialog"
 
 interface PaymentMethod {
   id: string
@@ -32,6 +33,8 @@ export function PaymentMethodsManager() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedMethodId, setSelectedMethodId] = useState<string | null>(null)
   const [addDialogOpen, setAddDialogOpen] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editingMethod, setEditingMethod] = useState<PaymentMethod | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -105,6 +108,17 @@ export function PaymentMethodsManager() {
     await loadPaymentMethods()
   }
 
+  const openEditDialog = (method: PaymentMethod) => {
+    setEditingMethod(method)
+    setEditDialogOpen(true)
+  }
+
+  const handleEditSuccess = async () => {
+    setEditDialogOpen(false)
+    setEditingMethod(null)
+    await loadPaymentMethods()
+  }
+
   const getCardBrandIcon = (brand?: string) => {
     return <CreditCard className="w-5 h-5" />
   }
@@ -155,15 +169,7 @@ export function PaymentMethodsManager() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    // Open add dialog - in Stripe, you replace cards by adding new ones
-                    setAddDialogOpen(true)
-                  }}
-                  disabled={!!actionLoading}
-                >
+                <Button size="sm" variant="outline" onClick={() => openEditDialog(method)} disabled={!!actionLoading}>
                   <Edit className="w-4 h-4 mr-2" />
                   Edit
                 </Button>
@@ -192,6 +198,15 @@ export function PaymentMethodsManager() {
       )}
 
       <AddPaymentMethodDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} onSuccess={handleAddSuccess} />
+
+      {editingMethod && (
+        <EditPaymentMethodDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          onSuccess={handleEditSuccess}
+          paymentMethod={editingMethod}
+        />
+      )}
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
