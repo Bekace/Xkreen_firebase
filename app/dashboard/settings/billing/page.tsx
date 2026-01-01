@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { CreditCard, Package, Receipt } from "lucide-react"
 import BillingClient from "./billing-client"
+import { PaymentMethodsManager } from "@/components/payment-methods-manager"
+import { InvoicesList } from "@/components/invoices-list"
 
 export default async function BillingSettingsPage() {
   const supabase = await createClient()
@@ -171,51 +173,41 @@ export default async function BillingSettingsPage() {
       </div>
 
       <div className="rounded-lg border border-border/50 p-6">
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-4 mb-4">
           <div className="p-2 bg-muted/50 rounded-lg">
             <CreditCard className="w-5 h-5 text-muted-foreground" />
           </div>
           <div className="flex-1">
-            <h2 className="text-lg font-semibold mb-2">Payment Method</h2>
-            <p className="text-sm text-muted-foreground mb-4">Manage your payment methods and billing information.</p>
+            <h2 className="text-lg font-semibold mb-2">Payment Methods</h2>
+            <p className="text-sm text-muted-foreground">Manage your payment methods and billing information.</p>
           </div>
         </div>
-        <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/50">
-          <p className="text-sm text-muted-foreground">
-            {hasActiveSubscription ? "Manage in Stripe portal" : "Available after subscribing"}
-          </p>
-          <BillingClient
-            plans={allPlans}
-            currentPlanId={plan?.id}
-            hasActiveSubscription={hasActiveSubscription}
-            stripeCustomerId={subscription?.stripe_customer_id}
-            showManageButton="payment"
-          />
-        </div>
+        {hasActiveSubscription ? (
+          <PaymentMethodsManager />
+        ) : (
+          <div className="text-center py-4 text-sm text-muted-foreground">
+            Payment methods will be available after subscribing
+          </div>
+        )}
       </div>
 
       <div className="rounded-lg border border-border/50 p-6">
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-4 mb-4">
           <div className="p-2 bg-muted/50 rounded-lg">
             <Receipt className="w-5 h-5 text-muted-foreground" />
           </div>
           <div className="flex-1">
             <h2 className="text-lg font-semibold mb-2">Invoices</h2>
-            <p className="text-sm text-muted-foreground mb-4">View and download your past invoices.</p>
+            <p className="text-sm text-muted-foreground">View and download your past invoices.</p>
           </div>
         </div>
-        <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/50">
-          <p className="text-sm text-muted-foreground">
-            {hasActiveSubscription ? "View in Stripe portal" : "Available after subscribing"}
-          </p>
-          <BillingClient
-            plans={allPlans}
-            currentPlanId={plan?.id}
-            hasActiveSubscription={hasActiveSubscription}
-            stripeCustomerId={subscription?.stripe_customer_id}
-            showManageButton="invoices"
-          />
-        </div>
+        {hasActiveSubscription ? (
+          <InvoicesList />
+        ) : (
+          <div className="text-center py-4 text-sm text-muted-foreground">
+            Invoices will be available after your first payment
+          </div>
+        )}
       </div>
     </div>
   )

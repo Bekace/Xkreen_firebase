@@ -6,7 +6,7 @@ import UpgradePlanDialog from "@/components/upgrade-plan-dialog"
 import { CancelSubscriptionDialog } from "@/components/cancel-subscription-dialog"
 import { useToast } from "@/hooks/use-toast"
 import { useSearchParams, useRouter } from "next/navigation"
-import { createCustomerPortalSession, reactivateSubscription } from "@/lib/actions/stripe"
+import { reactivateSubscription } from "@/lib/actions/stripe"
 import { Loader2 } from "lucide-react"
 
 type Price = {
@@ -42,7 +42,6 @@ interface BillingClientProps {
   currentPlanId?: string
   hasActiveSubscription?: boolean
   stripeCustomerId?: string | null
-  showManageButton?: "subscription" | "payment" | "invoices"
   cancelAtPeriodEnd?: boolean
   planName?: string
   expiresAt?: string
@@ -52,15 +51,12 @@ export default function BillingClient({
   plans,
   currentPlanId,
   hasActiveSubscription,
-  stripeCustomerId,
-  showManageButton,
   cancelAtPeriodEnd,
   planName,
   expiresAt,
 }: BillingClientProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
-  const [isLoadingPortal, setIsLoadingPortal] = useState(false)
   const [isReactivating, setIsReactivating] = useState(false)
   const { toast } = useToast()
   const searchParams = useSearchParams()
@@ -76,20 +72,6 @@ export default function BillingClient({
       router.refresh()
     }
   }, [searchParams, toast, router])
-
-  const handleManageSubscription = async () => {
-    try {
-      setIsLoadingPortal(true)
-      await createCustomerPortalSession()
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to open subscription management. Please try again.",
-        variant: "destructive",
-      })
-      setIsLoadingPortal(false)
-    }
-  }
 
   const handleReactivate = async () => {
     setIsReactivating(true)
@@ -118,27 +100,6 @@ export default function BillingClient({
     } finally {
       setIsReactivating(false)
     }
-  }
-
-  if (showManageButton === "payment") {
-    return (
-      <Button size="sm" disabled={!hasActiveSubscription || isLoadingPortal} onClick={handleManageSubscription}>
-        {isLoadingPortal ? "Loading..." : hasActiveSubscription ? "Manage Payment" : "Add Payment Method"}
-      </Button>
-    )
-  }
-
-  if (showManageButton === "invoices") {
-    return (
-      <Button
-        size="sm"
-        variant="outline"
-        disabled={!hasActiveSubscription || isLoadingPortal}
-        onClick={handleManageSubscription}
-      >
-        {isLoadingPortal ? "Loading..." : "View Invoices"}
-      </Button>
-    )
   }
 
   return (

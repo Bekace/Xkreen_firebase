@@ -333,3 +333,193 @@ export async function reactivateSubscription() {
     return { error: error.message || "Failed to reactivate subscription" }
   }
 }
+
+export async function getInvoices() {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: "Not authenticated" }
+  }
+
+  // Get Stripe customer ID
+  const { data: subscription } = await supabase
+    .from("user_subscriptions")
+    .select("stripe_customer_id")
+    .eq("user_id", user.id)
+    .single()
+
+  if (!subscription?.stripe_customer_id) {
+    return { error: "No customer found" }
+  }
+
+  try {
+    const invoices = await stripe.invoices.list({
+      customer: subscription.stripe_customer_id,
+      limit: 12,
+    })
+
+    return {
+      success: true,
+      invoices: invoices.data.map((invoice) => ({
+        id: invoice.id,
+        number: invoice.number,
+        status: invoice.status,
+        amount: invoice.amount_paid / 100, // Convert from cents
+        currency: invoice.currency,
+        created: invoice.created,
+        pdfUrl: invoice.invoice_pdf,
+        hostedUrl: invoice.hosted_invoice_url,
+      })),
+    }
+  } catch (error: any) {
+    console.error("[v0] Get invoices error:", error)
+    return { error: error.message || "Failed to fetch invoices" }
+  }
+}
+
+export async function getPaymentMethods() {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: "Not authenticated" }
+  }
+
+  // Get Stripe customer ID
+  const { data: subscription } = await supabase
+    .from("user_subscriptions")
+    .select("stripe_customer_id")
+    .eq("user_id", user.id)
+    .single()
+
+  if (!subscription?.stripe_customer_id) {
+    return { error: "No customer found" }
+  }
+
+  try {
+    const paymentMethods = await stripe.paymentMethods.list({
+      customer: subscription.stripe_customer_id,
+      type: "card",
+    })
+
+    // Get default payment method
+    const customer = await stripe.customers.retrieve(subscription.stripe_customer_id)
+    const defaultPaymentMethodId =
+      typeof customer !== "deleted" && customer.invoice_settings?.default_payment_method
+        ? customer.invoice_settings.default_payment_method
+        : null
+
+    return {
+      success: true,
+      paymentMethods: paymentMethods.data.map((pm) => ({
+        id: pm.id,
+        brand: pm.card?.brand,
+        last4: pm.card?.last4,
+        expMonth: pm.card?.exp_month,
+        expYear: pm.card?.exp_year,
+        isDefault: pm.id === defaultPaymentMethodId,
+      })),
+    }
+  } catch (error: any) {
+    console.error("[v0] Get payment methods error:", error)
+    return { error: error.message || "Failed to fetch payment methods" }
+  }
+}
+
+export async function setDefaultPaymentMethod(paymentMethodId: string) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: "Not authenticated" }
+  }
+
+  // Get Stripe customer ID
+  const { data: subscription } = await supabase
+    .from("user_subscriptions")
+    .select("stripe_customer_id")
+    .eq("user_id", user.id)
+    .single()
+
+  if (!subscription?.stripe_customer_id) {
+    return { error: "No customer found" }
+  }
+
+  try {
+    await stripe.customers.update(subscription.stripe_customer_id, {
+      invoice_settings: {
+        default_payment_method: paymentMethodId,
+      },
+    })
+
+    return { success: true }
+  } catch (error: any) {
+    console.error("[v0] Set default payment method error:", error)
+    return { error: error.message || "Failed to set default payment method" }
+  }
+}
+
+export async function removePaymentMethod(paymentMethodId: string) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: "Not authenticated" }
+  }
+
+  try {
+    await stripe.paymentMethods.detach(paymentMethodId)
+    return { success: true }
+  } catch (error: any) {
+    console.error("[v0] Remove payment method error:", error)
+    return { error: error.message || "Failed to remove payment method" }
+  }
+}
+
+export async function createSetupIntent() {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: "Not authenticated" }
+  }
+
+  // Get Stripe customer ID
+  const { data: subscription } = await supabase
+    .from("user_subscriptions")
+    .select("stripe_customer_id")
+    .eq("user_id", user.id)
+    .single()
+
+  if (!subscription?.stripe_customer_id) {
+    return { error: "No customer found" }
+  }
+
+  try {
+    const setupIntent = await stripe.setupIntents.create({
+      customer: subscription.stripe_customer_id,
+      payment_method_types: ["card"],
+    })
+
+    return { success: true, clientSecret: setupIntent.client_secret }
+  } catch (error: any) {
+    console.error("[v0] Create setup intent error:", error)
+    return { error: error.message || "Failed to create setup intent" }
+  }
+}
