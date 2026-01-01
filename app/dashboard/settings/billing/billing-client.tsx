@@ -102,32 +102,50 @@ export default function BillingClient({
     }
   }
 
+  const renderUpgradeButton = () => {
+    if (hasActiveSubscription && cancelAtPeriodEnd) {
+      return (
+        <Button size="sm" variant="default" onClick={handleReactivate} disabled={isReactivating}>
+          {isReactivating ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Reactivating...
+            </>
+          ) : (
+            "Reactivate Subscription"
+          )}
+        </Button>
+      )
+    }
+
+    return (
+      <Button size="sm" variant="default" onClick={() => setIsDialogOpen(true)}>
+        Upgrade Plan
+      </Button>
+    )
+  }
+
+  const renderCancelLink = () => {
+    if (!hasActiveSubscription || cancelAtPeriodEnd) {
+      return null
+    }
+
+    return (
+      <button
+        onClick={() => setIsCancelDialogOpen(true)}
+        className="text-sm text-muted-foreground hover:text-destructive underline-offset-4 hover:underline transition-colors"
+      >
+        Cancel subscription
+      </button>
+    )
+  }
+
   return (
     <>
-      <div className="flex gap-2">
-        {hasActiveSubscription ? (
-          cancelAtPeriodEnd ? (
-            <Button size="sm" variant="default" onClick={handleReactivate} disabled={isReactivating}>
-              {isReactivating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Reactivating...
-                </>
-              ) : (
-                "Reactivate Subscription"
-              )}
-            </Button>
-          ) : (
-            <Button size="sm" variant="outline" onClick={() => setIsCancelDialogOpen(true)}>
-              Cancel Subscription
-            </Button>
-          )
-        ) : (
-          <Button size="sm" variant="outline" onClick={() => setIsDialogOpen(true)}>
-            Upgrade Plan
-          </Button>
-        )}
-      </div>
+      <div className="billing-actions-upgrade">{renderUpgradeButton()}</div>
+
+      <div className="billing-actions-cancel">{renderCancelLink()}</div>
+
       <UpgradePlanDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}

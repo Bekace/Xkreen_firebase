@@ -160,15 +160,17 @@ export default async function BillingSettingsPage() {
         </div>
         <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/50">
           <p className="text-sm text-muted-foreground">{getSubscriptionStatus()}</p>
-          <BillingClient
-            plans={allPlans}
-            currentPlanId={plan?.id}
-            hasActiveSubscription={hasActiveSubscription}
-            stripeCustomerId={subscription?.stripe_customer_id}
-            cancelAtPeriodEnd={subscription?.cancel_at_period_end}
-            planName={plan?.name}
-            expiresAt={formattedExpiresAt}
-          />
+          <div className="billing-client-upgrade-wrapper">
+            <BillingClient
+              plans={allPlans}
+              currentPlanId={plan?.id}
+              hasActiveSubscription={hasActiveSubscription}
+              stripeCustomerId={subscription?.stripe_customer_id}
+              cancelAtPeriodEnd={subscription?.cancel_at_period_end}
+              planName={plan?.name}
+              expiresAt={formattedExpiresAt}
+            />
+          </div>
         </div>
       </div>
 
@@ -209,6 +211,22 @@ export default async function BillingSettingsPage() {
           </div>
         )}
       </div>
+
+      {hasActiveSubscription && (
+        <div className="flex justify-center pt-4 border-t border-border/50">
+          <div className="billing-client-cancel-wrapper">
+            <BillingClient
+              plans={allPlans}
+              currentPlanId={plan?.id}
+              hasActiveSubscription={hasActiveSubscription}
+              stripeCustomerId={subscription?.stripe_customer_id}
+              cancelAtPeriodEnd={subscription?.cancel_at_period_end}
+              planName={plan?.name}
+              expiresAt={formattedExpiresAt}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

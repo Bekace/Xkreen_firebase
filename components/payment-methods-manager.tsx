@@ -30,6 +30,7 @@ export function PaymentMethodsManager() {
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedMethodId, setSelectedMethodId] = useState<string | null>(null)
+  const [addDialogOpen, setAddDialogOpen] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -110,66 +111,90 @@ export function PaymentMethodsManager() {
     )
   }
 
-  if (paymentMethods.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <CreditCard className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-        <p className="text-sm text-muted-foreground mb-4">No payment methods found</p>
-        <Button size="sm" disabled>
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button size="sm" variant="outline" onClick={() => setAddDialogOpen(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Add Payment Method
         </Button>
-        <p className="text-xs text-muted-foreground mt-2">Add cards during checkout</p>
       </div>
-    )
-  }
 
-  return (
-    <div className="space-y-4">
-      {paymentMethods.map((method) => (
-        <Card key={method.id} className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {getCardBrandIcon(method.brand)}
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium capitalize">{method.brand || "Card"}</span>
-                  <span className="text-muted-foreground">•••• {method.last4}</span>
-                  {method.isDefault && (
-                    <span className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                      <Check className="w-3 h-3" />
-                      Default
-                    </span>
-                  )}
+      {paymentMethods.length === 0 ? (
+        <div className="text-center py-8">
+          <CreditCard className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-sm text-muted-foreground mb-4">No payment methods found</p>
+          <p className="text-xs text-muted-foreground">Click "Add Payment Method" above to add your first card</p>
+        </div>
+      ) : (
+        paymentMethods.map((method) => (
+          <Card key={method.id} className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {getCardBrandIcon(method.brand)}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium capitalize">{method.brand || "Card"}</span>
+                    <span className="text-muted-foreground">•••• {method.last4}</span>
+                    {method.isDefault && (
+                      <span className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                        <Check className="w-3 h-3" />
+                        Default
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Expires {method.expMonth}/{method.expYear}
+                  </p>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Expires {method.expMonth}/{method.expYear}
-                </p>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {!method.isDefault && (
+              <div className="flex items-center gap-2">
+                {!method.isDefault && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleSetDefault(method.id)}
+                    disabled={actionLoading === method.id}
+                  >
+                    {actionLoading === method.id ? <Loader2 className="w-4 h-4 animate-spin" /> : "Set as Default"}
+                  </Button>
+                )}
                 <Button
                   size="sm"
-                  variant="outline"
-                  onClick={() => handleSetDefault(method.id)}
-                  disabled={actionLoading === method.id}
+                  variant="ghost"
+                  onClick={() => openDeleteDialog(method.id)}
+                  disabled={method.isDefault || actionLoading === method.id}
                 >
-                  {actionLoading === method.id ? <Loader2 className="w-4 h-4 animate-spin" /> : "Set as Default"}
+                  <Trash2 className="w-4 h-4" />
                 </Button>
-              )}
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => openDeleteDialog(method.id)}
-                disabled={method.isDefault || actionLoading === method.id}
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
+              </div>
             </div>
+          </Card>
+        ))
+      )}
+
+      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Payment Method</DialogTitle>
+            <DialogDescription>
+              Add a new payment method to your account. You can update your payment methods during checkout or by
+              contacting support.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              To add a new payment method, please start a new subscription or upgrade process. Payment methods are
+              securely added during checkout.
+            </p>
           </div>
-        </Card>
-      ))}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
