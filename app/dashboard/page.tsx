@@ -2,7 +2,14 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { DashboardOverview } from "@/components/dashboard/dashboard-overview"
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ welcome?: string }>
+}) {
+  const params = await searchParams
+  const showWelcome = params.welcome === "true"
+
   if (!isSupabaseConfigured()) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -28,7 +35,7 @@ export default async function DashboardPage() {
       redirect("/auth/login")
     }
 
-    return <DashboardOverview user={user} />
+    return <DashboardOverview user={user} showWelcome={showWelcome} />
   } catch (error) {
     console.error("[v0] Dashboard auth error:", error)
     redirect("/auth/login")

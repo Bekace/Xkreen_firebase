@@ -25,16 +25,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
-    console.log("[v0] Confirm upload - making file public:", { gcsFileName, bucketName })
+    console.log("[v0] Confirm upload - file accessibility via bucket IAM:", { gcsFileName, bucketName })
 
     try {
       await makeFilePublic(bucketName, gcsFileName)
-      console.log("[v0] File is now public")
+      console.log("[v0] File accessibility confirmed")
     } catch (error) {
-      console.error("[v0] Failed to make file public:", error)
+      console.error("[v0] File accessibility check failed:", error)
       return NextResponse.json(
         {
-          error: `Failed to make file public: ${error instanceof Error ? error.message : "Unknown error"}`,
+          error: `Failed to confirm file accessibility: ${error instanceof Error ? error.message : "Unknown error"}`,
         },
         { status: 500 },
       )

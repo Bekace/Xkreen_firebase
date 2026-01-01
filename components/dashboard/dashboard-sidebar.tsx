@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -84,13 +84,6 @@ export function DashboardSidebar() {
 
   const isAdmin = profile?.role === "admin" || profile?.role === "superadmin"
 
-  useEffect(() => {
-    console.log("[v0] DashboardSidebar - loading:", loading)
-    console.log("[v0] DashboardSidebar - profile:", profile)
-    console.log("[v0] DashboardSidebar - profile?.role:", profile?.role)
-    console.log("[v0] DashboardSidebar - isAdmin:", isAdmin)
-  }, [profile, loading, isAdmin])
-
   return (
     <div
       className={cn(
@@ -103,10 +96,7 @@ export function DashboardSidebar() {
         <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
           {!collapsed && (
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-background">
-                <Monitor className="w-5 h-5 text-sidebar-primary-foreground" />
-              </div>
-              <img src="/xkreen-logo.svg" alt="XKREEN" className="h-6 w-auto" />
+                <img src="/xkreen-logo.svg" alt="XKREEN" className="h-6 w-auto" />
             </div>
           )}
           <Button

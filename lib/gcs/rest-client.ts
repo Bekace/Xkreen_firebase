@@ -169,7 +169,16 @@ async function getAccessToken(): Promise<string> {
 }
 
 // Make a file public after upload
+// NOTE: This function is deprecated for buckets with uniform bucket-level access enabled.
+// Instead, configure your bucket to be publicly readable at the bucket level via IAM.
 export async function makeFilePublic(bucketName: string, fileName: string): Promise<void> {
+  console.log(
+    "[v0] Skipping makeFilePublic - bucket uses uniform bucket-level access. Files are public via bucket IAM policy.",
+  )
+  return
+
+  // Original implementation kept for reference (disabled):
+  /*
   const accessToken = await getAccessToken()
 
   const encodedFileName = encodeURIComponent(fileName)
@@ -193,6 +202,7 @@ export async function makeFilePublic(bucketName: string, fileName: string): Prom
   }
 
   console.log("[v0] File made public successfully")
+  */
 }
 
 // Delete file from GCS

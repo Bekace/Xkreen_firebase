@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Loader2, Check } from "lucide-react"
 import Link from "next/link"
 import { signUp } from "@/lib/actions"
+import { OAuthButtons } from "@/components/oauth-buttons"
 
 function SubmitButton({ isPaidPlan }: { isPaidPlan: boolean }) {
   const { pending } = useFormStatus()
@@ -20,7 +21,7 @@ function SubmitButton({ isPaidPlan }: { isPaidPlan: boolean }) {
       {pending ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          {isPaidPlan ? "Redirecting to payment..." : "Creating account..."}
+          Creating account...
         </>
       ) : isPaidPlan ? (
         "Continue to Payment"
@@ -35,19 +36,23 @@ interface SignUpFormProps {
   selectedPlan?: {
     id: string
     name: string
-    description?: string
     price: number
-    priceId: string | null
-    stripePriceId: string | null
-    billingCycle: string
-    trialDays: number
+    billing_cycle: string
     features: string[]
+    priceId?: string
+    stripePriceId?: string
+    trialDays?: number
   }
 }
 
 export default function SignUpForm({ selectedPlan }: SignUpFormProps) {
   const [state, formAction] = useActionState(signUp, null)
-  const isPaidPlan = selectedPlan && selectedPlan.price > 0
+
+  const isPaidPlan = !!selectedPlan?.stripePriceId
+
+  const oauthRedirectTo = isPaidPlan
+    ? `/auth/oauth-checkout?planId=${selectedPlan.id}&priceId=${selectedPlan.priceId || ""}&stripePriceId=${selectedPlan.stripePriceId || ""}`
+    : "/dashboard"
 
   return (
     <div className="w-full max-w-md space-y-8">
@@ -64,17 +69,12 @@ export default function SignUpForm({ selectedPlan }: SignUpFormProps) {
               <p className="text-lg font-semibold text-foreground">{selectedPlan.name}</p>
             </div>
             <div className="text-right">
-              <p className="text-2xl font-bold text-foreground">
-                ${selectedPlan.billingCycle === "yearly" ? Math.round(selectedPlan.price / 12) : selectedPlan.price}
-              </p>
-              <p className="text-sm text-muted-foreground">/month</p>
+              <p className="text-2xl font-bold text-foreground">${selectedPlan.price}</p>
+              <p className="text-sm text-muted-foreground">/{selectedPlan.billing_cycle}</p>
             </div>
           </div>
-          {selectedPlan.billingCycle === "yearly" && (
-            <p className="text-xs text-primary mb-2">Billed ${selectedPlan.price}/year</p>
-          )}
-          {selectedPlan.trialDays > 0 && (
-            <p className="text-xs text-muted-foreground mb-2">{selectedPlan.trialDays}-day free trial included</p>
+          {selectedPlan.trialDays && selectedPlan.trialDays > 0 && (
+            <p className="text-sm text-primary mb-2">{selectedPlan.trialDays}-day free trial included</p>
           )}
           <div className="space-y-1">
             {selectedPlan.features.slice(0, 3).map((feature, idx) => (
@@ -90,14 +90,24 @@ export default function SignUpForm({ selectedPlan }: SignUpFormProps) {
         </div>
       )}
 
+      <OAuthButtons redirectTo={oauthRedirectTo} />
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-background px-2 text-muted-foreground">Or continue with email</span>
+        </div>
+      </div>
+
       <form action={formAction} className="space-y-6 bg-popover">
-        {/* Hidden fields for plan info */}
         {selectedPlan && (
           <>
             <input type="hidden" name="planId" value={selectedPlan.id} />
-            <input type="hidden" name="priceId" value={selectedPlan.priceId || ""} />
-            <input type="hidden" name="stripePriceId" value={selectedPlan.stripePriceId || ""} />
-            <input type="hidden" name="billingCycle" value={selectedPlan.billingCycle} />
+            {selectedPlan.priceId && <input type="hidden" name="priceId" value={selectedPlan.priceId} />}
+            {selectedPlan.stripePriceId && (
+              <input type="hidden" name="stripePriceId" value={selectedPlan.stripePriceId} />
+            )}
           </>
         )}
 
@@ -109,7 +119,14 @@ export default function SignUpForm({ selectedPlan }: SignUpFormProps) {
 
         {state?.success && (
           <div className="bg-green-500/10 border border-green-500/50 text-green-700 px-4 py-3 rounded">
-            {state.success}
+            <p className="font-medium">{state.success}</p>
+            {state.requiresVerification && (
+              <p className="text-sm mt-2">
+                <Link href="/auth/login" className="underline">
+                  Go to login page
+                </Link>
+              </p>
+            )}
           </div>
         )}
 
@@ -167,12 +184,6 @@ export default function SignUpForm({ selectedPlan }: SignUpFormProps) {
         </div>
 
         <SubmitButton isPaidPlan={!!isPaidPlan} />
-
-        {isPaidPlan && (
-          <p className="text-xs text-center text-muted-foreground">
-            You&apos;ll be redirected to our secure payment provider to complete your subscription.
-          </p>
-        )}
 
         <div className="text-center text-muted-foreground">
           Already have an account?{" "}

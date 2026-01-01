@@ -18,6 +18,8 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Uncomment and configure when you have a keystore file:
+            // signingConfig signingConfigs.release
         }
         debug {
             debuggable true
@@ -32,6 +34,18 @@ android {
     lintOptions {
         abortOnError false
     }
+
+    // To use: Create keystore file and uncomment this section
+    /*
+    signingConfigs {
+        release {
+            storeFile file("xkreen-release-key.keystore")
+            storePassword "YOUR_KEYSTORE_PASSWORD"
+            keyAlias "xkreen-key"
+            keyPassword "YOUR_KEY_PASSWORD"
+        }
+    }
+    */
 }
 
 dependencies {

@@ -4,27 +4,27 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Themeable Colors - Restored to Original Vibe */
-  --card: hsl(210 11% 12%); /* Dark card background for proper contrast with light text */
-  --card-foreground: hsl(160 14% 93%);
+  /* Light theme colors - proper light mode */
+  --card: hsl(0 0% 100%); /* White card background */
+  --card-foreground: hsl(210 11% 7%); /* Dark text on cards */
 
-  --popover: hsl(210 11% 7%);
-  --popover-foreground: hsl(160 14% 93%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(210 11% 7%);
 
-  --primary: hsl(165 96% 71%); /* #78fcd6 */
+  --primary: hsl(165 96% 71%); /* #78fcd6 - Keep brand color */
   --primary-foreground: hsl(160 8% 6%); /* #0d0f0e */
 
-  --secondary: hsl(160 14% 93%); /* #e7eceb */
-  --secondary-foreground: hsl(165 14% 8%); /* #141a18 */
+  --secondary: hsl(210 11% 96%); /* Light gray */
+  --secondary-foreground: hsl(210 11% 7%); /* Dark text */
 
-  --muted: hsl(240 2% 16%); /* #27272a */
-  --muted-foreground: hsl(160 14% 75%); /* Increased muted-foreground opacity for better contrast */
+  --muted: hsl(210 10% 93%); /* Light muted */
+  --muted-foreground: hsl(210 11% 40%); /* Medium gray text */
 
-  --accent: hsl(240 2% 25%); /* #3f3f42 */
-  --accent-foreground: hsl(240 2% 96%); /* #f4f4f5 */
+  --accent: hsl(210 10% 95%); /* Light accent */
+  --accent-foreground: hsl(210 11% 7%); /* Dark text */
 
-  --background: hsl(210 11% 7%); /* #0f1211 - Dark background for light text */
-  --foreground: hsl(160 14% 93%); /* #e7eceb */
+  --background: hsl(0 0% 100%); /* White background */
+  --foreground: hsl(210 11% 7%); /* Dark text */
 
   --muted-foreground-light: hsl(71 85 105 / 0.5);
   --muted-foreground-dark: hsl(71 85 105 / 0.6);
@@ -34,20 +34,20 @@
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
   /* Updated design tokens to match device player design brief */
-  --destructive: hsl(0 62.8% 30.6%);
-  --destructive-foreground: hsl(210 40% 98%);
+  --destructive: hsl(0 84.2% 60.2%);
+  --destructive-foreground: hsl(0 0% 100%);
 
-  --border: hsl(210 17% 6% / 0.2); /* Fixed border opacity for better visibility */
-  --input: hsl(240 2% 16%);
+  --border: hsl(210 11% 85%); /* Light borders */
+  --input: hsl(210 10% 93%); /* Light input background */
   --ring: hsl(165 96% 71%);
 
-  --sidebar: hsl(210 11% 7%);
-  --sidebar-foreground: hsl(160 14% 93%);
+  --sidebar: hsl(0 0% 100%);
+  --sidebar-foreground: hsl(210 11% 7%);
   --sidebar-primary: hsl(165 96% 71%);
   --sidebar-primary-foreground: hsl(160 8% 6%);
-  --sidebar-accent: hsl(240 2% 25%);
-  --sidebar-accent-foreground: hsl(240 2% 96%);
-  --sidebar-border: hsl(240 100% 100% / 0.08);
+  --sidebar-accent: hsl(210 10% 95%);
+  --sidebar-accent-foreground: hsl(210 11% 7%);
+  --sidebar-border: hsl(210 11% 85%);
   --sidebar-ring: hsl(165 96% 71%);
 
   /* Chart colors for data visualization */
@@ -61,7 +61,7 @@
 }
 
 .dark {
-  /* Dark mode variants - keeping original dark theme for contrast */
+  /* Dark mode variants - proper dark theme */
   --background: hsl(210 11% 7%); /* #0f1211 */
   --foreground: hsl(160 14% 93%); /* #e7eceb */
 

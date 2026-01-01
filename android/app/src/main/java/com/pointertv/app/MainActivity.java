@@ -13,16 +13,16 @@ import android.util.Log;
 import android.graphics.Color;
 
 public class MainActivity extends Activity {
-    private static final String TAG = "XkreenTV";
-    
-    // IMPORTANT: Replace this with your actual Vercel deployment URL
-    private static final String APP_URL = "https://xkreen.vercel.app/player/[deviceCode]?tv=true";
+    private static final String TAG = "XkreenPlayer";
+    private static final String WEB_PLAYER_URL = "https://v0-xkreen-ai.vercel.app/player?tv=true";
     
     private WebView webView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        WebView.setWebContentsDebuggingEnabled(false);
         
         // Enable immersive mode (hide system UI)
         enableImmersiveMode();
@@ -33,9 +33,9 @@ public class MainActivity extends Activity {
         
         configureWebView();
         
-        // Load the app
-        Log.d(TAG, "Loading app from: " + APP_URL);
-        webView.loadUrl(APP_URL);
+        // Load the web player
+        Log.d(TAG, "Loading web player from: " + WEB_PLAYER_URL);
+        webView.loadUrl(WEB_PLAYER_URL);
     }
 
     private void configureWebView() {
@@ -52,14 +52,12 @@ public class MainActivity extends Activity {
         
         // Enable caching
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
-        settings.setAppCacheEnabled(true);
         
         // Enable hardware acceleration
         webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
         
-        // Set user agent to identify as Fire TV
         String userAgent = settings.getUserAgentString();
-        settings.setUserAgentString(userAgent + " PointerTV/1.0 FireTV");
+        settings.setUserAgentString(userAgent + " AFTM XkreenPlayer/1.0");
         
         // Allow mixed content (if needed)
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
@@ -71,11 +69,19 @@ public class MainActivity extends Activity {
         // Set background color to black
         webView.setBackgroundColor(Color.BLACK);
         
+        settings.setMediaPlaybackRequiresUserGesture(false);
+        settings.setAllowFileAccess(true);
+        settings.setAllowContentAccess(true);
+        
+        // settings.setLoadWithOverviewMode(true);  // REMOVED
+        // settings.setUseWideViewPort(true);       // REMOVED
+        
         // Set WebViewClient to handle page navigation
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String url) {
                 Log.d(TAG, "Page loaded: " + url);
+                Log.d(TAG, "Page title: " + view.getTitle());
             }
             
             @Override

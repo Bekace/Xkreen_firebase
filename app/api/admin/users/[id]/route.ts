@@ -9,8 +9,6 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const { role } = await request.json()
     const userId = params.id
 
-    console.log("[v0] Updating user ID:", userId, "with role:", role)
-
     const adminSupabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
     if (profile.role === "admin") {
@@ -21,15 +19,12 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
         return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 })
       }
     }
-    // Superadmins can update any user (no additional checks needed)
 
     const { data: updatedUsers, error } = await adminSupabase
       .from("profiles")
       .update({ role })
       .eq("id", userId)
       .select()
-
-    console.log("[v0] Update result:", { updatedUsers, error })
 
     if (error) throw error
 
@@ -48,7 +43,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     return NextResponse.json({ user: updatedUser })
   } catch (error) {
-    console.error("[v0] Admin user update error:", error)
+    console.error("Admin user update error:", error)
     return NextResponse.json({ error: "Failed to update user" }, { status: 500 })
   }
 }
@@ -57,6 +52,8 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   try {
     const { supabase, profile } = await requireAdmin()
     const userId = params.id
+
+    console.log("[v0] DELETE user request for:", userId, "by admin:", profile.id)
 
     const adminSupabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
@@ -79,18 +76,53 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       }
     }
 
-    const { error } = await adminSupabase.from("profiles").delete().eq("id", userId)
+    const { error: authDeleteError } = await adminSupabase.rpc("delete_auth_user", { user_id: userId })
 
-    if (error) throw error
+    // If RPC doesn't exist, try the admin API
+    if (authDeleteError?.message?.includes("function") || authDeleteError?.message?.includes("does not exist")) {
+      console.log("[v0] RPC not available, trying admin.deleteUser")
+      const { error: adminDeleteError } = await adminSupabase.auth.admin.deleteUser(userId)
+      if (adminDeleteError) {
+        console.error("[v0] Admin deleteUser also failed:", adminDeleteError)
+        // Continue anyway - we'll still soft delete and the middleware will block them
+      }
+    } else if (authDeleteError) {
+      console.error("[v0] RPC delete_auth_user failed:", authDeleteError)
+    } else {
+      console.log("[v0] Auth user deleted via RPC")
+    }
+
+    // Soft delete: set deleted_at timestamp
+    const { data: updatedProfile, error: profileError } = await adminSupabase
+      .from("profiles")
+      .update({
+        deleted_at: new Date().toISOString(),
+        deleted_by: profile.id,
+      })
+      .eq("id", userId)
+      .select()
+      .single()
+
+    if (profileError) {
+      console.error("[v0] Profile soft delete error:", profileError)
+      return NextResponse.json({ error: "Failed to soft delete profile: " + profileError.message }, { status: 500 })
+    }
+
+    if (!updatedProfile) {
+      console.error("[v0] No profile updated for userId:", userId)
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
+    console.log("[v0] Profile soft deleted:", updatedProfile.id, "deleted_at:", updatedProfile.deleted_at)
 
     await logAdminAction({
-      action: "delete_user",
+      action: "soft_delete_user",
       targetType: "user",
       targetId: userId,
       details: { timestamp: new Date().toISOString() },
     })
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, deletedAt: updatedProfile.deleted_at })
   } catch (error) {
     console.error("[v0] Admin user deletion error:", error)
     return NextResponse.json({ error: "Failed to delete user" }, { status: 500 })

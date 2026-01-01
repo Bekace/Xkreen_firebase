@@ -1,7 +1,7 @@
 "use client"
 
 import { Switch } from "@/components/ui/switch"
-import { X } from "lucide-react" // Import X icon for closing modals
+import { X, Plus } from "lucide-react" // Import X icon for closing modals, and Plus for button
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
@@ -26,6 +26,8 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { transformScreenData } from "@/utils/transformScreenData"
 import { ScreenPreviewModal } from "@/components/screen-preview-modal" // Import the real ScreenPreviewModal component instead of using placeholder
+import { useRouter } from "next/navigation" // Import useRouter
+// import { DashboardLayout } from "@/components/dashboard/layout" // Import DashboardLayout - REMOVED AS PER UPDATES
 
 // Placeholder for the ScreenPreviewModal component
 // In a real application, this would be imported from a separate file
@@ -97,7 +99,7 @@ interface WizardState {
   name: string
   description: string
   location: string
-  resolution: string
+  resolution: "1920x1080" | "3840x2160" | "1366x768" | "1280x720"
   orientation: "landscape" | "rotate-90" | "rotate-180" | "rotate-270"
   advancedOptions: {
     locationEnabled: boolean
@@ -108,6 +110,7 @@ interface WizardState {
     preloadAssets: boolean
     showOfflineIndicator: boolean
     mute: boolean
+    notificationsEnabled: boolean // Added notificationsEnabled
   }
 }
 
@@ -127,6 +130,13 @@ export default function ScreensPage() {
   const [editingContentType, setEditingContentType] = useState<"playlist" | "asset">("playlist")
   const [previewingScreen, setPreviewingScreen] = useState<Screen | null>(null)
   const [editingSelectedContentIds, setEditingSelectedContentIds] = useState<string[]>([])
+
+  const [screenLimits, setScreenLimits] = useState<{
+    current: number
+    limit: number
+    canCreate: boolean
+    plan: string
+  } | null>(null)
 
   const [wizardState, setWizardState] = useState<WizardState>({
     step: 1,
@@ -148,16 +158,31 @@ export default function ScreensPage() {
       preloadAssets: false,
       showOfflineIndicator: true,
       mute: false,
+      notificationsEnabled: true, // Added notificationsEnabled
     },
   })
 
   const { toast } = useToast()
+  const router = useRouter() // Import useRouter
 
   useEffect(() => {
+    fetchScreenLimits()
     fetchScreens()
     fetchPlaylists()
     fetchMediaItems()
   }, [])
+
+  const fetchScreenLimits = async () => {
+    try {
+      const response = await fetch("/api/screen-limits")
+      if (response.ok) {
+        const data = await response.json()
+        setScreenLimits(data)
+      }
+    } catch (error) {
+      console.error("Error fetching screen limits:", error)
+    }
+  }
 
   const fetchScreens = async () => {
     try {
@@ -289,11 +314,21 @@ export default function ScreensPage() {
         preloadAssets: false,
         showOfflineIndicator: true,
         mute: false,
+        notificationsEnabled: true, // Reset notificationsEnabled
       },
     })
   }
 
   const handleCreateScreen = async () => {
+    if (screenLimits && !screenLimits.canCreate) {
+      toast({
+        title: "Screen Limit Reached",
+        description: `Your ${screenLimits.plan} plan allows ${screenLimits.limit} screen${screenLimits.limit > 1 ? "s" : ""}. Please upgrade to create more screens.`,
+        variant: "destructive",
+      })
+      return
+    }
+
     if (!wizardState.name.trim()) {
       toast({
         title: "Error",
@@ -315,6 +350,12 @@ export default function ScreensPage() {
     setCreating(true)
 
     try {
+      console.log("[v0] Creating screen with content:", {
+        name: wizardState.name,
+        selectedContentIds: wizardState.selectedContentIds,
+        contentCount: wizardState.selectedContentIds.length,
+      })
+
       const screenResponse = await fetch("/api/screens", {
         method: "POST",
         headers: {
@@ -325,7 +366,7 @@ export default function ScreensPage() {
           description: wizardState.description,
           location: wizardState.location,
           orientation: wizardState.orientation,
-          content_type: wizardState.selectedContentIds.length > 0 ? "playlist" : "none", // Assuming selectedContentIds are playlists for simplicity here
+          content_type: wizardState.selectedContentIds.length > 0 ? "playlist" : "none",
         }),
       })
 
@@ -334,6 +375,8 @@ export default function ScreensPage() {
       if (!screenResponse.ok) {
         throw new Error(screenData.error || "Failed to create screen")
       }
+
+      console.log("[v0] Screen created successfully:", screenData.screen.id)
 
       // Pair device to screen
       const pairResponse = await fetch("/api/devices/pair", {
@@ -353,25 +396,41 @@ export default function ScreensPage() {
         throw new Error(pairData.error || "Failed to pair device")
       }
 
+      console.log("[v0] Device paired successfully")
+
       if (wizardState.selectedContentIds.length > 0) {
-        // Assign all selected content items
-        for (const contentId of wizardState.selectedContentIds) {
-          // Check if it's a playlist or media item
+        console.log("[v0] Starting content assignment for", wizardState.selectedContentIds.length, "items")
+
+        const assignmentPromises = wizardState.selectedContentIds.map(async (contentId, index) => {
           const isPlaylist = playlists.some((p) => p.id === contentId)
 
+          console.log(`[v0] Assigning content ${index + 1}/${wizardState.selectedContentIds.length}:`, {
+            contentId,
+            isPlaylist,
+          })
+
           if (isPlaylist) {
-            await fetch(`/api/screens/${screenData.screen.id}/playlists`, {
+            const response = await fetch(`/api/screens/${screenData.screen.id}/playlists`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                playlistId: contentId, // Corrected field name
+                playlist_id: contentId,
+                is_active: true,
               }),
             })
+
+            if (!response.ok) {
+              const errorData = await response.json()
+              console.error("[v0] Failed to assign playlist:", errorData)
+              throw new Error(errorData.error || "Failed to assign playlist")
+            }
+
+            console.log("[v0] Playlist assigned successfully")
           } else {
             // It's a media item - update screen's media_id
-            await fetch(`/api/screens/${screenData.screen.id}`, {
+            const response = await fetch(`/api/screens/${screenData.screen.id}`, {
               method: "PUT",
               headers: {
                 "Content-Type": "application/json",
@@ -380,8 +439,21 @@ export default function ScreensPage() {
                 media_id: contentId,
               }),
             })
+
+            if (!response.ok) {
+              const errorData = await response.json()
+              console.error("[v0] Failed to assign media:", errorData)
+              throw new Error(errorData.error || "Failed to assign media")
+            }
+
+            console.log("[v0] Media assigned successfully")
           }
-        }
+        })
+
+        await Promise.all(assignmentPromises)
+        console.log("[v0] All content assigned successfully")
+      } else {
+        console.log("[v0] No content selected to assign")
       }
 
       toast({
@@ -393,7 +465,9 @@ export default function ScreensPage() {
       resetWizard()
       setIsCreateDialogOpen(false)
       fetchScreens()
+      fetchScreenLimits()
     } catch (error) {
+      console.error("[v0] Screen creation error:", error)
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to create screen",
@@ -499,6 +573,7 @@ export default function ScreensPage() {
           preloadAssets: false,
           showOfflineIndicator: true,
           mute: false,
+          notificationsEnabled: true, // Reset notificationsEnabled
         },
       })
     }
@@ -517,7 +592,7 @@ export default function ScreensPage() {
           <Label htmlFor="pairing-code">Device Pairing Code</Label>
           <Input
             id="pairing-code"
-            placeholder="Enter code from device (e.g., DEV-ABC123)"
+            placeholder="Enter code from device (e.g., APG13)"
             value={wizardState.pairingCode}
             onChange={(e) => setWizardState((prev) => ({ ...prev, pairingCode: e.target.value.toUpperCase() }))}
             className="font-mono"
@@ -709,7 +784,7 @@ export default function ScreensPage() {
           <Label htmlFor="screen-resolution">Resolution</Label>
           <Select
             value={wizardState.resolution}
-            onValueChange={(value) => setWizardState((prev) => ({ ...prev, resolution: value }))}
+            onValueChange={(value) => setWizardState((prev) => ({ ...prev, resolution: value as any }))}
           >
             <SelectTrigger>
               <SelectValue />
@@ -867,6 +942,22 @@ export default function ScreensPage() {
             }
           />
         </div>
+
+        <div className="flex items-center justify-between">
+          <div>
+            <Label>Notifications</Label>
+            <p className="text-sm text-gray-600">Enable screen notifications</p>
+          </div>
+          <Switch
+            checked={wizardState.advancedOptions.notificationsEnabled}
+            onCheckedChange={(checked) =>
+              setWizardState((prev) => ({
+                ...prev,
+                advancedOptions: { ...prev.advancedOptions, notificationsEnabled: checked },
+              }))
+            }
+          />
+        </div>
       </div>
     </div>
   )
@@ -933,6 +1024,8 @@ export default function ScreensPage() {
 
       if (response.ok) {
         setScreens((prev) => prev.filter((screen) => screen.id !== id))
+        // Refresh limits after deleting screen
+        fetchScreenLimits()
         toast({
           title: "Success",
           description: "Screen deleted successfully",
@@ -1012,21 +1105,28 @@ export default function ScreensPage() {
   }
 
   return (
+    // <DashboardLayout> - REMOVED AS PER UPDATES
     <div className="space-y-6">
       {/* Header Section */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Screens</h1>
-          <p className="text-gray-600 mt-1">Manage your digital signage displays</p>
+          <h1 className="text-3xl font-bold tracking-tight">Screens</h1>
+          <p className="text-muted-foreground">Manage your digital signage screens</p>
+          {screenLimits && (
+            <p className="text-sm text-muted-foreground mt-1">
+              {screenLimits.limit === -1
+                ? `${screenLimits.current} screens (Unlimited)`
+                : `${screenLimits.current} / ${screenLimits.limit} screens used`}
+            </p>
+          )}
         </div>
         <Button
-          onClick={() => {
-            resetWizard()
-            setIsCreateDialogOpen(true)
-          }}
+          onClick={() => setIsCreateDialogOpen(true)}
           className="bg-cyan-500 hover:bg-cyan-600"
+          disabled={screenLimits ? !screenLimits.canCreate : false}
         >
-          Add Screen
+          <Plus className="h-4 w-4 mr-2" />
+          {screenLimits && !screenLimits.canCreate ? "Limit Reached" : "Create Screen"}
         </Button>
       </div>
 
@@ -1146,24 +1246,6 @@ export default function ScreensPage() {
                 </div>
 
                 <div className="flex gap-2 mt-4">
-                  {/* <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setEditingScreen(screen)
-                      // Initialize editingSelectedContentIds with the screen's current playlists/media
-                      const currentContentIds = screen.playlists ? screen.playlists.map((p) => p.id) : []
-                      // If there's a media_id, add it too, assuming it's treated as a single asset
-                      if (screen.media_id && !currentContentIds.includes(screen.media_id)) {
-                        currentContentIds.push(screen.media_id)
-                      }
-                      setEditingSelectedContentIds(currentContentIds)
-                    }}
-                    className="flex-1"
-                  >
-                    Edit
-                  </Button> */}
-
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" size="sm" className="flex-1 bg-transparent">
@@ -1317,7 +1399,7 @@ export default function ScreensPage() {
                   <Label htmlFor="edit-resolution">Resolution</Label>
                   <Select
                     value={editingScreen.resolution}
-                    onValueChange={(value) => setEditingScreen({ ...editingScreen, resolution: value })}
+                    onValueChange={(value) => setEditingScreen({ ...editingScreen, resolution: value as any })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -1384,7 +1466,7 @@ export default function ScreensPage() {
                           playlists.map((playlist) => (
                             <div
                               key={playlist.id}
-                              className={`p-3 rounded-lg cursor-pointer transition-all bg-[rgba(142,142,148,1)] ${
+                              className={`p-3 rounded-lg cursor-pointer transition-all ${
                                 editingSelectedContentIds.includes(playlist.id)
                                   ? "bg-cyan-50 ring-2 ring-cyan-500"
                                   : "bg-white hover:bg-gray-50"
@@ -1486,5 +1568,6 @@ export default function ScreensPage() {
         onClose={() => setPreviewingScreen(null)}
       />
     </div>
+    // </DashboardLayout> - REMOVED AS PER UPDATES
   )
 }

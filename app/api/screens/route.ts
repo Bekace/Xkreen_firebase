@@ -85,6 +85,63 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    // Check if user is super admin
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single()
+
+    const isSuperAdmin = profile?.role === "super_admin"
+
+    if (!isSuperAdmin) {
+      // Get current screen count
+      const { count: currentScreens } = await supabase
+        .from("screens")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+
+      // Get user's active subscription or default to Free plan
+      const { data: subscription } = await supabase
+        .from("user_subscriptions")
+        .select(
+          `
+          subscription_plans (
+            max_screens,
+            name
+          )
+        `,
+        )
+        .eq("user_id", user.id)
+        .in("status", ["active", "trialing"])
+        .single()
+
+      let maxScreens = 1 // Default Free plan limit
+
+      if (subscription?.subscription_plans) {
+        const plan = subscription.subscription_plans as { max_screens: number; name: string }
+        maxScreens = plan.max_screens
+      } else {
+        // No active subscription - use Free plan limits
+        const { data: freePlan } = await supabase
+          .from("subscription_plans")
+          .select("max_screens")
+          .eq("name", "Free")
+          .single()
+
+        if (freePlan) {
+          maxScreens = freePlan.max_screens
+        }
+      }
+
+      // Check if limit reached (unlimited = -1)
+      if (maxScreens !== -1 && (currentScreens || 0) >= maxScreens) {
+        return NextResponse.json(
+          {
+            error: "Screen limit reached",
+            message: `Your current plan allows ${maxScreens} screen${maxScreens > 1 ? "s" : ""}. Please upgrade to create more screens.`,
+          },
+          { status: 403 },
+        )
+      }
+    }
+
     const { name, location, resolution, orientation, content_type } = await request.json()
 
     if (!name) {

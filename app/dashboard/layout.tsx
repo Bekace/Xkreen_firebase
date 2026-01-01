@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { UserProvider } from "@/lib/hooks/use-user"
+import { EmailVerificationBanner } from "@/components/email-verification-banner"
 
 export const dynamic = "force-dynamic"
 
@@ -36,14 +37,28 @@ export default async function DashboardLayout({
     redirect("/auth/login")
   }
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, email, role, deleted_at")
+    .eq("id", user.id)
+    .single()
+
+  if (profile?.deleted_at) {
+    // User is soft-deleted, sign them out and redirect
+    await supabase.auth.signOut()
+    redirect("/auth/login?error=account_deleted")
+  }
+
   return (
-    <UserProvider>
+    <UserProvider initialUser={user} initialProfile={profile}>
       <div className="flex h-screen bg-background">
         {/* Sidebar */}
         <DashboardSidebar />
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col overflow-hidden">
+          <EmailVerificationBanner />
+
           {/* Header */}
           <DashboardHeader user={user} />
 

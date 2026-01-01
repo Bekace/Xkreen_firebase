@@ -7,12 +7,22 @@ export async function GET(request: NextRequest) {
   try {
     const { supabase } = await requireAdmin()
 
+    const { searchParams } = new URL(request.url)
+    const includeDeleted = searchParams.get("includeDeleted") === "true"
+
     const adminSupabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
-    const { data: users, error: usersError } = await adminSupabase
+    let query = adminSupabase
       .from("profiles")
-      .select("id, email, role, created_at, full_name, company_name")
+      .select("id, email, role, created_at, full_name, company_name, deleted_at, deleted_by")
       .order("created_at", { ascending: false })
+
+    // Only filter out deleted users if not including deleted
+    if (!includeDeleted) {
+      query = query.is("deleted_at", null)
+    }
+
+    const { data: users, error: usersError } = await query
 
     if (usersError) throw usersError
 
@@ -44,13 +54,16 @@ export async function GET(request: NextRequest) {
         subscription_status: subscription?.status || "inactive",
         subscription_plan: subscription?.subscription_plans?.name || null,
         subscription_plan_id: subscription?.plan_id || null,
+        deleted_at: user.deleted_at,
+        deleted_by: user.deleted_by,
+        is_deleted: user.deleted_at !== null,
       }
     })
 
     await logAdminAction({
       action: "view_users",
       targetType: "user",
-      details: { count: formattedUsers.length },
+      details: { count: formattedUsers.length, includeDeleted },
     })
 
     return NextResponse.json({ users: formattedUsers })

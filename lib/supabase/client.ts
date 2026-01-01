@@ -21,3 +21,5 @@ export function createClient() {
 
   return globalThis.supabaseClient
 }
+
+export const supabase = createClient()

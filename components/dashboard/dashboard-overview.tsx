@@ -2,12 +2,14 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Monitor, ImageIcon, PlayCircle, Activity, Plus, TrendingUp, Zap } from "lucide-react"
+import { Monitor, ImageIcon, PlayCircle, Activity, Plus, TrendingUp, Zap, CheckCircle2, X } from "lucide-react"
 import type { User } from "@supabase/supabase-js"
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 
 interface DashboardOverviewProps {
   user: User
+  showWelcome?: boolean // Add welcome prop
 }
 
 interface DashboardStats {
@@ -17,9 +19,12 @@ interface DashboardStats {
   totalViews: { value: number; change: string }
 }
 
-export function DashboardOverview({ user }: DashboardOverviewProps) {
+export function DashboardOverview({ user, showWelcome = false }: DashboardOverviewProps) {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isWelcomeOpen, setIsWelcomeOpen] = useState(showWelcome)
+  const [subscription, setSubscription] = useState<{ planName: string } | null>(null)
+  const router = useRouter()
 
   useEffect(() => {
     async function fetchStats() {
@@ -38,6 +43,28 @@ export function DashboardOverview({ user }: DashboardOverviewProps) {
 
     fetchStats()
   }, [])
+
+  useEffect(() => {
+    if (showWelcome) {
+      async function fetchSubscription() {
+        try {
+          const response = await fetch("/api/user/subscription")
+          if (response.ok) {
+            const data = await response.json()
+            setSubscription({ planName: data.subscription?.plan?.name || "Pro" })
+          }
+        } catch (error) {
+          console.error("[v0] Error fetching subscription:", error)
+        }
+      }
+      fetchSubscription()
+    }
+  }, [showWelcome])
+
+  const closeWelcome = () => {
+    setIsWelcomeOpen(false)
+    router.replace("/dashboard", { scroll: false })
+  }
 
   const statsData = [
     {
@@ -116,6 +143,36 @@ export function DashboardOverview({ user }: DashboardOverviewProps) {
 
   return (
     <div className="space-y-6">
+      {isWelcomeOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md relative">
+            <button
+              onClick={closeWelcome}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <CardHeader className="text-center pt-8">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                <CheckCircle2 className="h-8 w-8 text-primary" />
+              </div>
+              <CardTitle className="text-2xl">Welcome to XKREEN!</CardTitle>
+              <CardDescription className="text-base">
+                Your {subscription?.planName || "Pro"} subscription is now active.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 text-center pb-8">
+              <p className="text-muted-foreground">
+                Thank you for subscribing! You now have full access to all {subscription?.planName || "Pro"} features.
+              </p>
+              <Button onClick={closeWelcome} className="w-full">
+                Get Started
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Welcome Section */}
       <div className="flex items-center justify-between">
         <div>

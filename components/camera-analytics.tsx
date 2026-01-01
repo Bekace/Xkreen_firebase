@@ -384,6 +384,7 @@ export function CameraAnalytics({
               variant="outline"
               size="sm"
               onClick={() => (onSetupClick ? onSetupClick() : window.open("/dashboard/screens/camera-setup", "_blank"))}
+              className="tv-focusable"
             >
               <Settings className="h-4 w-4 mr-2" />
               Setup
@@ -394,6 +395,7 @@ export function CameraAnalytics({
             size="sm"
             onClick={toggleAnalytics}
             disabled={isProcessing || !modelsReady}
+            className="tv-focusable"
           >
             {isActive ? (
               <>

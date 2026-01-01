@@ -9,12 +9,7 @@ buildscript {
     }
 }
 
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
+// Repositories are now defined in settings.gradle as per Gradle 8.x best practices
 
 task clean(type: Delete) {
     delete rootProject.buildDir

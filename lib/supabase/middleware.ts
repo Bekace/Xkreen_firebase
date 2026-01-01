@@ -32,15 +32,30 @@ export async function updateSession(request: NextRequest) {
   })
 
   try {
-    // Do not run code between createServerClient and
-    // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-    // issues with users being randomly logged out.
-
-    // IMPORTANT: If you remove getUser() and you use server-side rendering
-    // with the Supabase client, your users may be randomly logged out.
     const {
       data: { user },
     } = await supabase.auth.getUser()
+
+    if (user) {
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("deleted_at")
+        .eq("id", user.id)
+        .single()
+
+      // If profile has deleted_at set, sign out and redirect
+      if (profile?.deleted_at) {
+        await supabase.auth.signOut()
+        const url = request.nextUrl.clone()
+        url.pathname = "/auth/login"
+        url.searchParams.set("error", "account_deleted")
+        // Clear all auth cookies
+        supabaseResponse = NextResponse.redirect(url)
+        supabaseResponse.cookies.delete("sb-access-token")
+        supabaseResponse.cookies.delete("sb-refresh-token")
+        return supabaseResponse
+      }
+    }
 
     if (
       request.nextUrl.pathname.startsWith("/admin") ||
@@ -73,7 +88,8 @@ export async function updateSession(request: NextRequest) {
       !request.nextUrl.pathname.startsWith("/player") &&
       !request.nextUrl.pathname.startsWith("/api/devices") &&
       !request.nextUrl.pathname.startsWith("/screen") &&
-      !request.nextUrl.pathname.startsWith("/api/screens/config")
+      !request.nextUrl.pathname.startsWith("/api/screens/config") &&
+      !request.nextUrl.pathname.startsWith("/api/webhooks") // Exclude webhook routes from auth redirect
     ) {
       // no user, potentially respond by redirecting the user to the login page
       const url = request.nextUrl.clone()

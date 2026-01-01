@@ -46,3 +46,5 @@ export function createServiceRoleClient() {
     },
   })
 }
+
+export const createAdminClient = createServiceRoleClient

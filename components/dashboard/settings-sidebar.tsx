@@ -1,11 +1,9 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Input } from "@/components/ui/input"
-import { Search, User, Shield, Bell, CreditCard, Key } from "lucide-react"
+import { User, Shield, Bell, CreditCard, Key } from "lucide-react"
 
 const settingsNavigation = [
   {
@@ -42,29 +40,12 @@ const settingsNavigation = [
 
 export function SettingsSidebar() {
   const pathname = usePathname()
-  const [searchQuery, setSearchQuery] = useState("")
-
-  const filteredNavigation = settingsNavigation.filter((item) =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
 
   return (
     <div className="w-56 flex-shrink-0">
-      {/* Search Input */}
-      <div className="relative mb-6">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          type="text"
-          placeholder="Search..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9 bg-muted/50 border-border/50"
-        />
-      </div>
-
       {/* Navigation Items */}
       <nav className="space-y-1">
-        {filteredNavigation.map((item) => {
+        {settingsNavigation.map((item) => {
           const isActive = pathname === item.href
           return (
             <Link

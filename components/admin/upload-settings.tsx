@@ -95,7 +95,7 @@ export function UploadSettings() {
         setSettings(data)
         toast({
           title: "Success",
-          description: "Upload settings updated successfully",
+          description: "Upload settings updated successfully. Changes will apply immediately.",
         })
       } else {
         const error = await response.json()

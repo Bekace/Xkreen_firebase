@@ -1,11 +1,18 @@
 "use client"
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, Monitor, Wifi, Copy, CheckCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { PlayerSplash } from "@/components/player-splash"
+import Image from "next/image"
+import { Inter } from "next/font/google"
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["200"],
+  variable: "--font-inter",
+})
 
 export default function PlayerSetupPage() {
+  const [showSplash, setShowSplash] = useState(true)
   const [deviceCode, setDeviceCode] = useState("")
   const [isRegistering, setIsRegistering] = useState(true)
   const [isPaired, setIsPaired] = useState(false)
@@ -14,11 +21,58 @@ export default function PlayerSetupPage() {
   const router = useRouter()
 
   useEffect(() => {
-    const generateAndRegisterDevice = async () => {
-      console.log("[v0] Generating device code and registering device")
+    const timer = setTimeout(() => {
+      setShowSplash(false)
+    }, 3000) // 3 seconds
 
-      // Generate unique device code
-      const code = `DEV-${Date.now().toString(36).toUpperCase()}`
+    return () => clearTimeout(timer)
+  }, [])
+
+  useEffect(() => {
+    if (showSplash) return
+
+    const generateAndRegisterDevice = async () => {
+      const storedCode = localStorage.getItem("xkreen_device_code")
+
+      if (storedCode) {
+        console.log("[v0] Found existing device code in localStorage:", storedCode)
+
+        // Check if device is already paired by fetching its status
+        try {
+          const statusResponse = await fetch(`/api/devices/status/${storedCode}`)
+          const statusData = await statusResponse.json()
+
+          if (statusResponse.ok && statusData.device?.is_paired && statusData.device?.screen_id) {
+            console.log("[v0] Device already paired, redirecting to player")
+            router.push(`/player/${storedCode}`)
+            return
+          }
+        } catch (err) {
+          console.log("[v0] Error checking device status:", err)
+        }
+
+        // Device exists but not paired yet, show pairing screen
+        setDeviceCode(storedCode)
+        setIsRegistering(false)
+        startPairingPoll(storedCode)
+        return
+      }
+
+      console.log("[v0] Generating new device code and registering device")
+
+      // Generate unique 5-character alphanumeric code (uppercase letters and numbers)
+      const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+      let code = ""
+      for (let i = 0; i < 5; i++) {
+        code += characters.charAt(Math.floor(Math.random() * characters.length))
+      }
+      // Add timestamp-based suffix to ensure uniqueness
+      const timestamp = Date.now().toString(36).toUpperCase()
+      code = (code + timestamp).substring(0, 5)
+
+      localStorage.setItem("xkreen_device_code", code)
+      console.log("[v0] Stored device code in localStorage:", code)
+
       setDeviceCode(code)
 
       try {
@@ -58,7 +112,7 @@ export default function PlayerSetupPage() {
     }
 
     generateAndRegisterDevice()
-  }, [])
+  }, [showSplash])
 
   const startPairingPoll = (code: string) => {
     let pollCount = 0
@@ -137,110 +191,122 @@ export default function PlayerSetupPage() {
     }
   }
 
+  if (showSplash) {
+    return <PlayerSplash />
+  }
+
   if (isPaired) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md border-green-200 bg-green-50">
-          <CardContent className="pt-6 text-center space-y-4">
-            <CheckCircle className="h-16 w-16 text-green-600 mx-auto" />
-            <h2 className="text-2xl font-bold text-green-800">Device Paired!</h2>
-            <p className="text-green-700">Redirecting to content player...</p>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen flex flex-col items-center justify-center p-8 text-white relative">
+        {/* Background Image */}
+        <div className="absolute inset-0 -z-10">
+          <Image src="/images/desktop-20-204.png" alt="Background" fill className="object-cover" priority />
+        </div>
+
+        {/* Logo - 20% bigger */}
+        <div className="mb-12">
+          <Image src="/xkreen-logo.svg" alt="Xkreen" width={480} height={96} className="w-auto h-24" priority />
+        </div>
+
+        {/* Instructional Text */}
+        <p className="text-cyan-400 text-xl mb-12 font-light tracking-wide">
+          Enter this code in your dashboard to pair this device
+        </p>
+
+        {/* Device Code Display */}
+        <div className="text-center mb-16">
+          <div className={`text-8xl tracking-[0.3em] text-white mb-4 ${inter.className}`} style={{ fontWeight: 200 }}>
+            {deviceCode}
+          </div>
+        </div>
+
+        {/* Instructions */}
+        <div className="text-center space-y-3 max-w-xl">
+          <h3 className="text-white text-lg font-normal mb-4">How to pair:</h3>
+          <ol className="text-white text-base font-light space-y-2 text-left list-none">
+            <li className="flex items-start">
+              <span className="mr-3 text-cyan-400">1.</span>
+              <span>Go to your dashboard and create a new screen</span>
+            </li>
+            <li className="flex items-start">
+              <span className="mr-3 text-cyan-400">2.</span>
+              <span>Enter this device code when prompted</span>
+            </li>
+            <li className="flex items-start">
+              <span className="mr-3 text-cyan-400">3.</span>
+              <span>Your content will start displaying automatically</span>
+            </li>
+          </ol>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-8">
-        {/* Header */}
-        <div className="text-center space-y-4">
-          <div className="flex justify-center">
-            <div className="p-4 bg-primary/10 rounded-full">
-              <Monitor className="h-12 w-12 text-primary" />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold text-foreground">Device Player</h1>
-            <p className="text-muted-foreground">
-              {isRegistering ? "Setting up device..." : "Waiting for pairing from dashboard"}
-            </p>
+    <div className="min-h-screen flex flex-col items-center justify-center p-8 text-white relative">
+      {/* Background Image */}
+      <div className="absolute inset-0 -z-10">
+        <Image src="/images/desktop-20-204.png" alt="Background" fill className="object-cover" priority />
+      </div>
+
+      {/* Logo - 20% bigger */}
+      <div className="mb-12">
+        <Image src="/xkreen-logo.svg" alt="Xkreen" width={480} height={96} className="w-auto h-24" priority />
+      </div>
+
+      {/* Instructional Text */}
+      <p className="text-cyan-400 text-xl mb-12 font-light tracking-wide">
+        Enter this code in your dashboard to pair this device
+      </p>
+
+      {/* Device Code Display */}
+      {!isRegistering && !error && (
+        <div className="text-center mb-16">
+          <div className={`text-8xl tracking-[0.3em] text-white mb-4 ${inter.className}`} style={{ fontWeight: 200 }}>
+            {deviceCode}
           </div>
         </div>
+      )}
 
-        {/* Device Code Display */}
-        {!isRegistering && !error && (
-          <Card className="border-border">
-            <CardHeader className="text-center">
-              <CardTitle className="flex items-center justify-center gap-2">
-                <Wifi className="h-5 w-5" />
-                Device Code
-              </CardTitle>
-              <CardDescription>Enter this code in your dashboard to pair this device</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="text-center space-y-4">
-                <div className="p-4 bg-muted rounded-lg border-2 border-dashed border-border">
-                  <div className="text-3xl font-mono font-bold text-primary tracking-wider">{deviceCode}</div>
-                </div>
+      {/* Loading State */}
+      {isRegistering && (
+        <div className="text-8xl font-thin tracking-[0.3em] text-white/50 mb-16 animate-pulse">••••••</div>
+      )}
 
-                <Button onClick={copyToClipboard} variant="outline" className="w-full bg-transparent" disabled={copied}>
-                  {copied ? (
-                    <>
-                      <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
-                      Copied!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="mr-2 h-4 w-4" />
-                      Copy Code
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+      {/* Error State */}
+      {error && (
+        <div className="text-center mb-16">
+          <p className="text-red-400 text-xl mb-4">Error: {error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="text-cyan-400 underline hover:text-cyan-300 transition"
+          >
+            Try Again
+          </button>
+        </div>
+      )}
 
-        {/* Loading State */}
-        {isRegistering && (
-          <Card className="border-border">
-            <CardContent className="pt-6 text-center space-y-4">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-              <p className="text-muted-foreground">Generating device code...</p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Error State */}
-        {error && (
-          <Card className="border-destructive bg-destructive/5">
-            <CardContent className="pt-6 text-center space-y-4">
-              <p className="text-destructive font-medium">Error: {error}</p>
-              <Button onClick={() => window.location.reload()} variant="outline">
-                Try Again
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Instructions */}
-        {!isRegistering && !error && (
-          <Card className="border-border bg-muted/50">
-            <CardContent className="pt-6">
-              <div className="space-y-3 text-sm text-muted-foreground">
-                <h3 className="font-semibold text-foreground">How to pair:</h3>
-                <ol className="space-y-2 list-decimal list-inside">
-                  <li>Copy the device code shown above</li>
-                  <li>Go to your dashboard and create a new screen</li>
-                  <li>Enter this device code when prompted</li>
-                  <li>Your content will start displaying automatically</li>
-                </ol>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+      {/* Instructions */}
+      <div className="text-center space-y-3 max-w-xl">
+        <h3 className="text-white text-lg font-normal mb-4">How to pair:</h3>
+        <ol className="text-white text-base font-light space-y-2 text-left list-none">
+          <li className="flex items-start">
+            <span className="mr-3 text-cyan-400">1.</span>
+            <span>Copy the device code shown above</span>
+          </li>
+          <li className="flex items-start">
+            <span className="mr-3 text-cyan-400">2.</span>
+            <span>Go to your dashboard and create a new screen</span>
+          </li>
+          <li className="flex items-start">
+            <span className="mr-3 text-cyan-400">3.</span>
+            <span>Enter this device code when prompted</span>
+          </li>
+          <li className="flex items-start">
+            <span className="mr-3 text-cyan-400">4.</span>
+            <span>Your content will start displaying automatically</span>
+          </li>
+        </ol>
       </div>
     </div>
   )

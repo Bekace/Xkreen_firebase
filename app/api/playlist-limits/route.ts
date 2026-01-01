@@ -56,7 +56,7 @@ export async function GET() {
         .from("user_subscriptions")
         .select("status, plan_id")
         .eq("user_id", user.id)
-        .eq("status", "active")
+        .in("status", ["active", "trialing"])
         .maybeSingle()
 
       console.log("[v0] User subscription query result:", { subscriptionResult, subscriptionError })

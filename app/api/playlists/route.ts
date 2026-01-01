@@ -59,6 +59,75 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    // Get user's current playlist count
+    const { count: currentCount, error: countError } = await supabase
+      .from("playlists")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+
+    if (countError) {
+      console.error("Error counting playlists:", countError)
+      return NextResponse.json({ error: "Failed to check playlist count" }, { status: 500 })
+    }
+
+    // Get user's subscription plan limits
+    const { data: userData, error: userError } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single()
+
+    if (userError) {
+      console.error("Error fetching user data:", userError)
+      return NextResponse.json({ error: "Failed to fetch user data" }, { status: 500 })
+    }
+
+    let maxPlaylists: number
+
+    // Super admins have unlimited playlists
+    if (userData?.role === "super_admin") {
+      maxPlaylists = -1
+    } else {
+      // Get user's active subscription
+      const { data: subscriptionResult, error: subscriptionError } = await supabase
+        .from("user_subscriptions")
+        .select(`
+          status,
+          subscription_plans!inner(
+            max_playlists
+          )
+        `)
+        .eq("user_id", user.id)
+        .in("status", ["active", "trialing"])
+        .maybeSingle()
+
+      if (subscriptionResult && subscriptionResult.subscription_plans) {
+        maxPlaylists = subscriptionResult.subscription_plans.max_playlists
+      } else {
+        // No active subscription, use Free plan
+        const { data: freePlan } = await supabase
+          .from("subscription_plans")
+          .select("max_playlists")
+          .eq("is_active", true)
+          .order("max_playlists", { ascending: true })
+          .limit(1)
+          .maybeSingle()
+
+        maxPlaylists = freePlan?.max_playlists || 2 // Default to 2 if no plan found
+      }
+    }
+
+    // Check if user has reached their playlist limit
+    if (maxPlaylists !== -1 && (currentCount || 0) >= maxPlaylists) {
+      console.log(`[v0] Playlist limit reached: ${currentCount}/${maxPlaylists}`)
+      return NextResponse.json(
+        {
+          error: `Playlist limit reached. You can only create ${maxPlaylists} playlists with your current plan. Please upgrade to create more playlists.`,
+        },
+        { status: 403 },
+      )
+    }
+
     const {
       name,
       description,

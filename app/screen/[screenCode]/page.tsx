@@ -162,7 +162,6 @@ export default function ScreenPlayerPage({ params }: { params: { screenCode: str
   const getMediaUrl = (filePath: string) => {
     if (!filePath) return "/placeholder.svg"
     if (filePath.startsWith("http")) return filePath
-    if (filePath.startsWith("blob/")) return `https://blob.vercel-storage.com/${filePath}`
     return filePath
   }
 

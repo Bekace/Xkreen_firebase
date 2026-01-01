@@ -20,9 +20,9 @@ This document describes the TV navigation system implemented for Fire TV / Fire 
 
 ### Browser Testing
 Add `?tv=true` to the URL to enable TV mode simulation:
-\`\`\`
+```
 http://localhost:3000/player/[deviceCode]?tv=true
-\`\`\`
+```
 
 ### Fire TV Testing
 The app automatically detects Fire TV devices by checking the user agent for:

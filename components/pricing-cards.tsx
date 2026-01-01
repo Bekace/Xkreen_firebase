@@ -110,7 +110,7 @@ export default function PricingCards({ plans }: PricingCardsProps) {
     <div className="space-y-8">
       {/* Billing Toggle */}
       <div className="flex justify-center">
-        <div className="bg-muted p-1 rounded-lg inline-flex">
+        <div className="p-1 rounded-lg inline-flex bg-slate-700">
           <button
             onClick={() => setBillingCycle("monthly")}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -123,7 +123,7 @@ export default function PricingCards({ plans }: PricingCardsProps) {
           </button>
           <button
             onClick={() => setBillingCycle("yearly")}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors text-black ${
               billingCycle === "yearly"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
