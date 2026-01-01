@@ -234,3 +234,102 @@ export async function createUpgradeCheckoutSession(planId: string, priceId: stri
 
   redirect(session.url)
 }
+
+export async function cancelSubscription(reason?: string, feedback?: string) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: "Not authenticated" }
+  }
+
+  // Get Stripe subscription ID
+  const { data: subscription } = await supabase
+    .from("user_subscriptions")
+    .select("stripe_subscription_id, status")
+    .eq("user_id", user.id)
+    .in("status", ["active", "trialing"])
+    .single()
+
+  if (!subscription?.stripe_subscription_id) {
+    return { error: "No active subscription found" }
+  }
+
+  try {
+    // Cancel at period end (recommended)
+    await stripe.subscriptions.update(subscription.stripe_subscription_id, {
+      cancel_at_period_end: true,
+      cancellation_details: {
+        comment: feedback || "User requested cancellation",
+        feedback: reason as any,
+      },
+    })
+
+    // Update local database
+    await supabase
+      .from("user_subscriptions")
+      .update({
+        cancel_at_period_end: true,
+        cancellation_reason: reason,
+      })
+      .eq("user_id", user.id)
+      .eq("stripe_subscription_id", subscription.stripe_subscription_id)
+
+    return { success: true }
+  } catch (error: any) {
+    console.error("[v0] Cancel subscription error:", error)
+    return { error: error.message || "Failed to cancel subscription" }
+  }
+}
+
+export async function reactivateSubscription() {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: "Not authenticated" }
+  }
+
+  // Get Stripe subscription ID
+  const { data: subscription } = await supabase
+    .from("user_subscriptions")
+    .select("stripe_subscription_id, cancel_at_period_end")
+    .eq("user_id", user.id)
+    .single()
+
+  if (!subscription?.stripe_subscription_id) {
+    return { error: "No subscription found" }
+  }
+
+  if (!subscription.cancel_at_period_end) {
+    return { error: "Subscription is not scheduled for cancellation" }
+  }
+
+  try {
+    // Reactivate the subscription
+    await stripe.subscriptions.update(subscription.stripe_subscription_id, {
+      cancel_at_period_end: false,
+    })
+
+    // Update local database
+    await supabase
+      .from("user_subscriptions")
+      .update({
+        cancel_at_period_end: false,
+        cancellation_reason: null,
+      })
+      .eq("user_id", user.id)
+      .eq("stripe_subscription_id", subscription.stripe_subscription_id)
+
+    return { success: true }
+  } catch (error: any) {
+    console.error("[v0] Reactivate subscription error:", error)
+    return { error: error.message || "Failed to reactivate subscription" }
+  }
+}

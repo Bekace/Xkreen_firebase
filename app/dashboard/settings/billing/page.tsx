@@ -1,13 +1,9 @@
-"use client"
-
-import { Button } from "@/components/ui/button"
 export const dynamic = "force-dynamic"
 
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { CreditCard, Package, Receipt } from "lucide-react"
 import BillingClient from "./billing-client"
-import { createCustomerPortalSession } from "@/lib/actions/stripe"
 
 export default async function BillingSettingsPage() {
   const supabase = await createClient()
@@ -121,6 +117,14 @@ export default async function BillingSettingsPage() {
     return "Active subscription"
   }
 
+  const formattedExpiresAt = subscription?.expires_at
+    ? new Date(subscription.expires_at).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : undefined
+
   return (
     <div className="space-y-6">
       {/* Current Plan */}
@@ -154,7 +158,15 @@ export default async function BillingSettingsPage() {
         </div>
         <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/50">
           <p className="text-sm text-muted-foreground">{getSubscriptionStatus()}</p>
-          <BillingClient plans={allPlans} currentPlanId={plan?.id} hasActiveSubscription={hasActiveSubscription} />
+          <BillingClient
+            plans={allPlans}
+            currentPlanId={plan?.id}
+            hasActiveSubscription={hasActiveSubscription}
+            stripeCustomerId={subscription?.stripe_customer_id}
+            cancelAtPeriodEnd={subscription?.cancel_at_period_end}
+            planName={plan?.name}
+            expiresAt={formattedExpiresAt}
+          />
         </div>
       </div>
 
@@ -172,17 +184,13 @@ export default async function BillingSettingsPage() {
           <p className="text-sm text-muted-foreground">
             {hasActiveSubscription ? "Manage in Stripe portal" : "Available after subscribing"}
           </p>
-          <Button
-            size="sm"
-            disabled={!hasActiveSubscription}
-            onClick={async () => {
-              if (hasActiveSubscription) {
-                await createCustomerPortalSession()
-              }
-            }}
-          >
-            {hasActiveSubscription ? "Manage Payment" : "Add Payment Method"}
-          </Button>
+          <BillingClient
+            plans={allPlans}
+            currentPlanId={plan?.id}
+            hasActiveSubscription={hasActiveSubscription}
+            stripeCustomerId={subscription?.stripe_customer_id}
+            showManageButton="payment"
+          />
         </div>
       </div>
 
@@ -200,18 +208,13 @@ export default async function BillingSettingsPage() {
           <p className="text-sm text-muted-foreground">
             {hasActiveSubscription ? "View in Stripe portal" : "Available after subscribing"}
           </p>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={!hasActiveSubscription}
-            onClick={async () => {
-              if (hasActiveSubscription) {
-                await createCustomerPortalSession()
-              }
-            }}
-          >
-            {hasActiveSubscription ? "View Invoices" : "View Invoices"}
-          </Button>
+          <BillingClient
+            plans={allPlans}
+            currentPlanId={plan?.id}
+            hasActiveSubscription={hasActiveSubscription}
+            stripeCustomerId={subscription?.stripe_customer_id}
+            showManageButton="invoices"
+          />
         </div>
       </div>
     </div>
