@@ -88,10 +88,7 @@ export async function createCheckoutSession(planId: string, priceId: string) {
         price_id: priceId,
       },
     },
-    //success_url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://v0-pointer-ai-landing-page-psi-six-73.vercel.app"}/auth/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-success_url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://v0-xkreen-ai.vercel.app"}/auth/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-
-
+    success_url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://v0-xkreen-ai.vercel.app"}/auth/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://v0-xkreen-ai.vercel.app"}/auth/pricing`,
     metadata: {
       user_id: user.id,
@@ -117,7 +114,7 @@ export async function createCustomerPortalSession() {
   // Get Stripe customer ID
   const { data: subscription } = await supabase
     .from("user_subscriptions")
-    .select("stripe_customer_id")
+    .select("stripe_customer_id, stripe_subscription_id")
     .eq("user_id", user.id)
     .single()
 
@@ -125,10 +122,16 @@ export async function createCustomerPortalSession() {
     return { error: "No active subscription found" }
   }
 
-  // Create portal session
   const session = await stripe.billingPortal.sessions.create({
     customer: subscription.stripe_customer_id,
     return_url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://v0-xkreen-ai.vercel.app"}/dashboard/settings/billing`,
+    // Configure what features are available in the portal
+    flow_data: {
+      type: "subscription_cancel",
+      subscription_cancel: {
+        subscription: subscription.stripe_subscription_id,
+      },
+    },
   })
 
   redirect(session.url)

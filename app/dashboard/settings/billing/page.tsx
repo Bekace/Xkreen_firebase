@@ -1,3 +1,5 @@
+"use client"
+
 import { Button } from "@/components/ui/button"
 export const dynamic = "force-dynamic"
 
@@ -5,6 +7,7 @@ import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { CreditCard, Package, Receipt } from "lucide-react"
 import BillingClient from "./billing-client"
+import { createCustomerPortalSession } from "@/lib/actions/stripe"
 
 export default async function BillingSettingsPage() {
   const supabase = await createClient()
@@ -93,6 +96,31 @@ export default async function BillingSettingsPage() {
 
   const storageGB = plan?.max_media_storage ? Math.round(plan.max_media_storage / 1024 / 1024 / 1024) : 0
 
+  const hasActiveSubscription = !!(
+    subscription?.stripe_subscription_id &&
+    (subscription?.status === "active" || subscription?.status === "trialing")
+  )
+
+  const getSubscriptionStatus = () => {
+    if (!subscription || !hasActiveSubscription) {
+      return "No active subscription"
+    }
+
+    if (subscription.cancel_at_period_end) {
+      const expiresAt = subscription.expires_at
+        ? new Date(subscription.expires_at).toLocaleDateString()
+        : "end of period"
+      return `Cancels on ${expiresAt}`
+    }
+
+    if (subscription.status === "trialing") {
+      const trialEnd = subscription.trial_ends_at ? new Date(subscription.trial_ends_at).toLocaleDateString() : "soon"
+      return `Trial ends ${trialEnd}`
+    }
+
+    return "Active subscription"
+  }
+
   return (
     <div className="space-y-6">
       {/* Current Plan */}
@@ -125,16 +153,11 @@ export default async function BillingSettingsPage() {
           </div>
         </div>
         <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/50">
-          <p className="text-sm text-muted-foreground">
-            {subscription?.status === "active" || subscription?.status === "trialing"
-              ? "Active subscription"
-              : "No active subscription"}
-          </p>
-          <BillingClient plans={allPlans} currentPlanId={plan?.id} />
+          <p className="text-sm text-muted-foreground">{getSubscriptionStatus()}</p>
+          <BillingClient plans={allPlans} currentPlanId={plan?.id} hasActiveSubscription={hasActiveSubscription} />
         </div>
       </div>
 
-      {/* Payment Method */}
       <div className="rounded-lg border border-border/50 p-6">
         <div className="flex items-start gap-4">
           <div className="p-2 bg-muted/50 rounded-lg">
@@ -146,14 +169,23 @@ export default async function BillingSettingsPage() {
           </div>
         </div>
         <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/50">
-          <p className="text-sm text-muted-foreground">Coming soon</p>
-          <Button size="sm" disabled>
-            Add Payment Method
+          <p className="text-sm text-muted-foreground">
+            {hasActiveSubscription ? "Manage in Stripe portal" : "Available after subscribing"}
+          </p>
+          <Button
+            size="sm"
+            disabled={!hasActiveSubscription}
+            onClick={async () => {
+              if (hasActiveSubscription) {
+                await createCustomerPortalSession()
+              }
+            }}
+          >
+            {hasActiveSubscription ? "Manage Payment" : "Add Payment Method"}
           </Button>
         </div>
       </div>
 
-      {/* Invoices */}
       <div className="rounded-lg border border-border/50 p-6">
         <div className="flex items-start gap-4">
           <div className="p-2 bg-muted/50 rounded-lg">
@@ -165,9 +197,20 @@ export default async function BillingSettingsPage() {
           </div>
         </div>
         <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/50">
-          <p className="text-sm text-muted-foreground">Coming soon</p>
-          <Button size="sm" variant="outline" disabled>
-            View Invoices
+          <p className="text-sm text-muted-foreground">
+            {hasActiveSubscription ? "View in Stripe portal" : "Available after subscribing"}
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={!hasActiveSubscription}
+            onClick={async () => {
+              if (hasActiveSubscription) {
+                await createCustomerPortalSession()
+              }
+            }}
+          >
+            {hasActiveSubscription ? "View Invoices" : "View Invoices"}
           </Button>
         </div>
       </div>

@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
 
             if (profile) {
               userId = profile.id
-              console.log("[v0] Found existing user by email:", userId)
+              console.log("[v0] Found user by email:", userId)
 
               if (session.customer) {
                 const { error: updateError } = await supabase
@@ -306,11 +306,16 @@ export async function POST(req: NextRequest) {
           .update({
             status: subscription.status,
             expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
+            cancel_at_period_end: subscription.cancel_at_period_end || false,
+            // Track when subscription was canceled if applicable
+            canceled_at: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null,
           })
           .eq("stripe_subscription_id", subscription.id)
 
         if (error) {
           console.error("[v0] Failed to update subscription:", error)
+        } else {
+          console.log("[v0] Updated subscription status and cancellation tracking for:", subscription.id)
         }
         break
       }

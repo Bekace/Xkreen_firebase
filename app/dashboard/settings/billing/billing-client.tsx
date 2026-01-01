@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import UpgradePlanDialog from "@/components/upgrade-plan-dialog"
 import { useToast } from "@/hooks/use-toast"
 import { useSearchParams, useRouter } from "next/navigation"
+import { createCustomerPortalSession } from "@/lib/actions/stripe"
 
 type Price = {
   id: string
@@ -37,33 +38,54 @@ type Plan = {
 interface BillingClientProps {
   plans: Plan[]
   currentPlanId?: string
+  hasActiveSubscription?: boolean
 }
 
-export default function BillingClient({ plans, currentPlanId }: BillingClientProps) {
+export default function BillingClient({ plans, currentPlanId, hasActiveSubscription }: BillingClientProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isLoadingPortal, setIsLoadingPortal] = useState(false)
   const { toast } = useToast()
   const searchParams = useSearchParams()
   const router = useRouter()
 
-  // Show success toast if user just completed an upgrade
   useEffect(() => {
     if (searchParams.get("upgraded") === "true") {
       toast({
         title: "Success!",
         description: "Your plan has been upgraded successfully.",
       })
-      // Remove the query parameter
       window.history.replaceState({}, "", "/dashboard/settings/billing")
-      // Refresh the page to get updated subscription data
       router.refresh()
     }
   }, [searchParams, toast, router])
 
+  const handleManageSubscription = async () => {
+    try {
+      setIsLoadingPortal(true)
+      await createCustomerPortalSession()
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to open subscription management. Please try again.",
+        variant: "destructive",
+      })
+      setIsLoadingPortal(false)
+    }
+  }
+
   return (
     <>
-      <Button size="sm" variant="outline" onClick={() => setIsDialogOpen(true)}>
-        Upgrade Plan
-      </Button>
+      <div className="flex gap-2">
+        {hasActiveSubscription ? (
+          <Button size="sm" variant="outline" onClick={handleManageSubscription} disabled={isLoadingPortal}>
+            {isLoadingPortal ? "Loading..." : "Manage Subscription"}
+          </Button>
+        ) : (
+          <Button size="sm" variant="outline" onClick={() => setIsDialogOpen(true)}>
+            Upgrade Plan
+          </Button>
+        )}
+      </div>
       <UpgradePlanDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
