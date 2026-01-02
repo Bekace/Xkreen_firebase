@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js"
 import { loadStripe } from "@stripe/stripe-js"
 import { Button } from "@/components/ui/button"
@@ -52,6 +52,7 @@ function PaymentForm({
     e.preventDefault()
 
     if (!stripe || !elements) {
+      console.log("[v0] Stripe or elements not ready", { stripe: !!stripe, elements: !!elements })
       return
     }
 
@@ -67,6 +68,7 @@ function PaymentForm({
     })
 
     if (confirmError) {
+      console.log("[v0] Error confirming setup:", confirmError)
       toast({
         title: "Error",
         description: confirmError.message || "Failed to add new payment method",
@@ -94,12 +96,18 @@ function PaymentForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <Alert>
         <CreditCard className="h-4 w-4" />
         <AlertDescription>Replacing {oldCardInfo}</AlertDescription>
       </Alert>
-      <PaymentElement />
+      <div className="py-4">
+        <PaymentElement
+          options={{
+            layout: "tabs",
+          }}
+        />
+      </div>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
           Cancel
@@ -129,35 +137,48 @@ export function EditPaymentMethodDialog({
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
 
-  const handleOpenChange = async (newOpen: boolean) => {
-    if (newOpen && !clientSecret) {
+  useEffect(() => {
+    if (open && !clientSecret) {
+      console.log("[v0] Creating setup intent for edit...")
       setLoading(true)
-      const result = await createSetupIntent()
-      if (result.error) {
-        toast({
-          title: "Error",
-          description: result.error,
-          variant: "destructive",
+      createSetupIntent()
+        .then((result) => {
+          console.log("[v0] Setup intent result:", { hasError: !!result.error, hasSecret: !!result.clientSecret })
+          if (result.error) {
+            toast({
+              title: "Error",
+              description: result.error,
+              variant: "destructive",
+            })
+            onOpenChange(false)
+          } else if (result.clientSecret) {
+            setClientSecret(result.clientSecret)
+          }
         })
-        setLoading(false)
-        return
-      }
-      setClientSecret(result.clientSecret!)
-      setLoading(false)
+        .catch((err) => {
+          console.log("[v0] Setup intent error:", err)
+          toast({
+            title: "Error",
+            description: "Failed to initialize payment form",
+            variant: "destructive",
+          })
+          onOpenChange(false)
+        })
+        .finally(() => {
+          setLoading(false)
+        })
     }
 
     // Reset clientSecret when closing
-    if (!newOpen) {
+    if (!open) {
       setClientSecret(null)
     }
-
-    onOpenChange(newOpen)
-  }
+  }, [open, clientSecret, toast, onOpenChange])
 
   const cardInfo = `${paymentMethod.brand?.charAt(0).toUpperCase()}${paymentMethod.brand?.slice(1)} •••• ${paymentMethod.last4}`
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Update Payment Method</DialogTitle>
@@ -176,6 +197,9 @@ export function EditPaymentMethodDialog({
               clientSecret,
               appearance: {
                 theme: "stripe",
+                variables: {
+                  colorPrimary: "#000000",
+                },
               },
             }}
           >
@@ -186,7 +210,11 @@ export function EditPaymentMethodDialog({
               oldCardInfo={cardInfo}
             />
           </Elements>
-        ) : null}
+        ) : (
+          <div className="py-4 text-center text-muted-foreground">
+            <p>Unable to load payment form. Please try again.</p>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )

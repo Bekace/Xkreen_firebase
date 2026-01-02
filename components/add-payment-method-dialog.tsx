@@ -36,6 +36,7 @@ function PaymentForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
     e.preventDefault()
 
     if (!stripe || !elements) {
+      console.log("[v0] Stripe or elements not ready", { stripe: !!stripe, elements: !!elements })
       return
     }
 
@@ -50,6 +51,7 @@ function PaymentForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
     })
 
     if (error) {
+      console.log("[v0] Error confirming setup:", error)
       toast({
         title: "Error",
         description: error.message || "Failed to add payment method",
@@ -66,8 +68,14 @@ function PaymentForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <PaymentElement />
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="py-4">
+        <PaymentElement
+          options={{
+            layout: "tabs",
+          }}
+        />
+      </div>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
           Cancel
@@ -94,9 +102,11 @@ export function AddPaymentMethodDialog({ open, onOpenChange, onSuccess }: AddPay
 
   useEffect(() => {
     if (open && !clientSecret) {
+      console.log("[v0] Creating setup intent...")
       setLoading(true)
       createSetupIntent()
         .then((result) => {
+          console.log("[v0] Setup intent result:", { hasError: !!result.error, hasSecret: !!result.clientSecret })
           if (result.error) {
             toast({
               title: "Error",
@@ -104,9 +114,18 @@ export function AddPaymentMethodDialog({ open, onOpenChange, onSuccess }: AddPay
               variant: "destructive",
             })
             onOpenChange(false)
-          } else {
-            setClientSecret(result.clientSecret!)
+          } else if (result.clientSecret) {
+            setClientSecret(result.clientSecret)
           }
+        })
+        .catch((err) => {
+          console.log("[v0] Setup intent error:", err)
+          toast({
+            title: "Error",
+            description: "Failed to initialize payment form",
+            variant: "destructive",
+          })
+          onOpenChange(false)
         })
         .finally(() => {
           setLoading(false)
@@ -136,12 +155,19 @@ export function AddPaymentMethodDialog({ open, onOpenChange, onSuccess }: AddPay
               clientSecret,
               appearance: {
                 theme: "stripe",
+                variables: {
+                  colorPrimary: "#000000",
+                },
               },
             }}
           >
             <PaymentForm onSuccess={onSuccess} onCancel={() => onOpenChange(false)} />
           </Elements>
-        ) : null}
+        ) : (
+          <div className="py-4 text-center text-muted-foreground">
+            <p>Unable to load payment form. Please try again.</p>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )
