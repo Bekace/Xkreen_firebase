@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js"
 import { loadStripe } from "@stripe/stripe-js"
 import { Button } from "@/components/ui/button"
@@ -92,27 +92,34 @@ export function AddPaymentMethodDialog({ open, onOpenChange, onSuccess }: AddPay
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
 
-  const handleOpenChange = async (newOpen: boolean) => {
-    if (newOpen && !clientSecret) {
+  useEffect(() => {
+    if (open && !clientSecret) {
       setLoading(true)
-      const result = await createSetupIntent()
-      if (result.error) {
-        toast({
-          title: "Error",
-          description: result.error,
-          variant: "destructive",
+      createSetupIntent()
+        .then((result) => {
+          if (result.error) {
+            toast({
+              title: "Error",
+              description: result.error,
+              variant: "destructive",
+            })
+            onOpenChange(false)
+          } else {
+            setClientSecret(result.clientSecret!)
+          }
         })
-        setLoading(false)
-        return
-      }
-      setClientSecret(result.clientSecret!)
-      setLoading(false)
+        .finally(() => {
+          setLoading(false)
+        })
     }
-    onOpenChange(newOpen)
-  }
+
+    if (!open) {
+      setClientSecret(null)
+    }
+  }, [open, clientSecret, toast, onOpenChange])
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add Payment Method</DialogTitle>
