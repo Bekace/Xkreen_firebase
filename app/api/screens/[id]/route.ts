@@ -114,17 +114,21 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       updateData.content_type = "asset"
       updateData.media_id = null
 
+      console.log(`[v0] - Received ${selectedContentIds.length} media IDs:`, selectedContentIds)
+
       const mediaAssignments = selectedContentIds.map((mediaId: string) => ({
         screen_id: params.id,
         media_id: mediaId,
       }))
+
+      console.log(`[v0] - Created ${mediaAssignments.length} media assignments to insert:`, mediaAssignments)
 
       const { data: insertedMedia, error: mediaInsertError } = await supabase
         .from("screen_media")
         .insert(mediaAssignments)
         .select()
 
-      console.log(`[v0] - Inserted ${insertedMedia?.length || 0} media assignments`)
+      console.log(`[v0] - Inserted ${insertedMedia?.length || 0} media assignments, data:`, insertedMedia)
       if (mediaInsertError) {
         console.error("[v0] - Error inserting media:", mediaInsertError)
         return NextResponse.json({ error: "Failed to assign media: " + mediaInsertError.message }, { status: 500 })
