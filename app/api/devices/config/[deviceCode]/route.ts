@@ -33,7 +33,7 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
 
     const { data: screen, error: screenError } = await supabase
       .from("screens")
-      .select("id, name, orientation, status, media_id, content_type")
+      .select("id, name, orientation, status, media_id, content_type, enable_audio_management")
       .eq("id", device.screen_id)
       .single()
 
@@ -236,6 +236,7 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
         name: screen.name,
         orientation: screen.orientation,
         status: screen.status,
+        enable_audio_management: screen.enable_audio_management ?? false,
         playlist: activePlaylist,
         content: playlistContent,
       },

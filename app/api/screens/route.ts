@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const { name, location, resolution, orientation, content_type } = await request.json()
+    const { name, location, resolution, orientation, content_type, enable_audio_management } = await request.json()
 
     if (!name) {
       return NextResponse.json({ error: "Screen name is required" }, { status: 400 })
@@ -163,6 +163,7 @@ export async function POST(request: NextRequest) {
         screen_code: screenCode,
         status: "offline",
         content_type: content_type || "none",
+        enable_audio_management: enable_audio_management ?? false,
       })
       .select()
       .single()

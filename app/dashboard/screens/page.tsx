@@ -29,36 +29,6 @@ import { ScreenPreviewModal } from "@/components/screen-preview-modal" // Import
 import { useRouter } from "next/navigation" // Import useRouter
 // import { DashboardLayout } from "@/components/dashboard/layout" // Import DashboardLayout - REMOVED AS PER UPDATES
 
-// Placeholder for the ScreenPreviewModal component
-// In a real application, this would be imported from a separate file
-// const ScreenPreviewModal = ({
-//   screen,
-//   isOpen,
-//   onClose,
-// }: { screen: Screen | null; isOpen: boolean; onClose: () => void }) => {
-//   if (!isOpen || !screen) return null
-
-//   return (
-//     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-//       <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-//         <CardContent className="p-6">
-//           <div className="flex justify-between items-center mb-6">
-//             <h2 className="text-2xl font-bold">Preview: {screen.name}</h2>
-//             <Button variant="ghost" onClick={onClose}>
-//               Close
-//             </Button>
-//           </div>
-//           {/* Placeholder for actual preview content */}
-//           <div className="text-center py-20">
-//             <p className="text-gray-600">This is a preview of screen '{screen.name}'.</p>
-//             <p className="text-gray-600">Content and layout would be rendered here.</p>
-//           </div>
-//         </CardContent>
-//       </Card>
-//     </div>
-//   )
-// }
-
 interface Screen {
   id: string
   name: string
@@ -75,6 +45,7 @@ interface Screen {
   screen_playlists?: { playlist_id: string; is_active: boolean; playlists?: { id: string; name: string } }[] // Added playlists relation
   screen_media?: { media_id: string; media?: { id: string; name: string } }[] // Added screen_media
   content_type?: "playlist" | "asset" | "none" // Added content_type
+  enable_audio_management?: boolean
 }
 
 interface Playlist {
@@ -366,7 +337,9 @@ export default function ScreensPage() {
           description: wizardState.description,
           location: wizardState.location,
           orientation: wizardState.orientation,
+          resolution: wizardState.resolution,
           content_type: wizardState.selectedContentIds.length > 0 ? "playlist" : "none",
+          enable_audio_management: wizardState.advancedOptions.mute,
         }),
       })
 
@@ -981,6 +954,7 @@ export default function ScreensPage() {
           ...editingScreen,
           content_type: editingContentType,
           selectedContentIds: editingSelectedContentIds,
+          enable_audio_management: editingScreen.enable_audio_management,
         }),
       })
 
@@ -1429,6 +1403,23 @@ export default function ScreensPage() {
                       <SelectItem value="rotate-270">Rotate 270°</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-4 border-t pt-4">
+                  <Label className="text-base font-semibold">Advanced Options</Label>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Mute</Label>
+                      <p className="text-sm text-gray-600">Disable audio playback</p>
+                    </div>
+                    <Switch
+                      checked={editingScreen.enable_audio_management || false}
+                      onCheckedChange={(checked) =>
+                        setEditingScreen({ ...editingScreen, enable_audio_management: checked })
+                      }
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-4 border-t pt-4">
