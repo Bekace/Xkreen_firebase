@@ -112,7 +112,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       }
     } else if (content_type === "asset" && selectedContentIds && selectedContentIds.length > 0) {
       updateData.content_type = "asset"
-      updateData.media_id = selectedContentIds[0]
+      updateData.media_id = null
 
       const mediaAssignments = selectedContentIds.map((mediaId: string) => ({
         screen_id: params.id,
