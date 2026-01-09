@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { PlayerSplash } from "@/components/player-splash"
 import Image from "next/image"
@@ -19,6 +19,67 @@ export default function PlayerSetupPage() {
   const [error, setError] = useState("")
   const [copied, setCopied] = useState(false)
   const router = useRouter()
+
+  useEffect(() => {
+    window.displayPairingCode = (code: string) => {
+      console.log("[v0] Received pairing code from Android:", code)
+      if (code && typeof code === "string" && code.length > 0) {
+        setDeviceCode(code)
+        localStorage.setItem("xkreen_device_code", code)
+        setIsRegistering(false)
+        registerDeviceWithCode(code)
+      }
+    }
+
+    return () => {
+      delete window.displayPairingCode
+    }
+  }, [])
+
+  const signalAndroidPairingComplete = useCallback(() => {
+    if (window.AndroidInterface && typeof window.AndroidInterface.onPairingComplete === "function") {
+      window.AndroidInterface.onPairingComplete()
+      console.log("[v0] Signaled native Android app: onPairingComplete()")
+    } else {
+      console.warn("[v0] AndroidInterface.onPairingComplete() not found. Running in non-native environment.")
+    }
+  }, [])
+
+  const registerDeviceWithCode = async (code: string) => {
+    try {
+      const response = await fetch("/api/devices/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          device_code: code,
+          device_info: {
+            userAgent: navigator.userAgent,
+            timestamp: new Date().toISOString(),
+            url: window.location.href,
+          },
+        }),
+      })
+
+      const data = await response.json()
+      console.log("[v0] Device registration response:", data)
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to register device")
+      }
+
+      setIsRegistering(false)
+      console.log("[v0] Device registered successfully, starting pairing poll")
+
+      // Start polling for pairing status
+      startPairingPoll(code)
+    } catch (err) {
+      console.log("[v0] Device registration error:", err)
+      setError(err instanceof Error ? err.message : "Failed to register device")
+      setIsRegistering(false)
+    }
+  }
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -44,6 +105,7 @@ export default function PlayerSetupPage() {
 
           if (statusResponse.ok && statusData.device?.is_paired && statusData.device?.screen_id) {
             console.log("[v0] Device already paired, redirecting to player")
+            signalAndroidPairingComplete()
             router.push(`/player/${storedCode}`)
             return
           }
@@ -74,45 +136,11 @@ export default function PlayerSetupPage() {
       console.log("[v0] Stored device code in localStorage:", code)
 
       setDeviceCode(code)
-
-      try {
-        // Register device with API
-        const response = await fetch("/api/devices/register", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            device_code: code,
-            device_info: {
-              userAgent: navigator.userAgent,
-              timestamp: new Date().toISOString(),
-              url: window.location.href,
-            },
-          }),
-        })
-
-        const data = await response.json()
-        console.log("[v0] Device registration response:", data)
-
-        if (!response.ok) {
-          throw new Error(data.error || "Failed to register device")
-        }
-
-        setIsRegistering(false)
-        console.log("[v0] Device registered successfully, starting pairing poll")
-
-        // Start polling for pairing status
-        startPairingPoll(code)
-      } catch (err) {
-        console.log("[v0] Device registration error:", err)
-        setError(err instanceof Error ? err.message : "Failed to register device")
-        setIsRegistering(false)
-      }
+      registerDeviceWithCode(code)
     }
 
     generateAndRegisterDevice()
-  }, [showSplash])
+  }, [showSplash, signalAndroidPairingComplete, router])
 
   const startPairingPoll = (code: string) => {
     let pollCount = 0
@@ -156,7 +184,7 @@ export default function PlayerSetupPage() {
 
           setIsPaired(true)
           clearInterval(pollInterval)
-
+          signalAndroidPairingComplete()
           router.push(`/player/${code}`)
         } else {
           console.log("[v0] Device not yet paired:", {
