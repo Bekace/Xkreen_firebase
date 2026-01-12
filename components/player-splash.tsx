@@ -2,7 +2,16 @@
 
 export function PlayerSplash() {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+
+      {/* Background Image */}
+      <div className="absolute inset-0 -z-10">
+        <Image src="/images/desktop-20-204.png" alt="Background" fill className="object-cover" priority />
+      </div>
+
+
+
+
       <div className="flex flex-col items-center space-y-6 text-center">
         {/* Logo */}
         <div className="relative">
