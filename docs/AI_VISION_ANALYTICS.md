@@ -14,7 +14,7 @@ The system uses **TensorFlow.js** running entirely in the browser to analyze vid
 
 ## Architecture
 
-```
+\`\`\`
 ┌─────────────────┐
 │  Camera Device  │
 └────────┬────────┘
@@ -46,7 +46,7 @@ The system uses **TensorFlow.js** running entirely in the browser to analyze vid
 │  Supabase Database          │
 │  (analytics table)          │
 └─────────────────────────────┘
-```
+\`\`\`
 
 ## Components
 
@@ -89,7 +89,7 @@ Server endpoint that:
 - Returns success confirmation
 
 **Data Stored:**
-```json
+\`\`\`json
 {
   "screen_id": "uuid",
   "event_type": "audience_analytics",
@@ -103,7 +103,7 @@ Server endpoint that:
   },
   "created_at": "2025-01-15T10:30:00Z"
 }
-```
+\`\`\`
 
 ## AI Models Used
 
@@ -123,32 +123,32 @@ For production, consider adding:
 ## Usage
 
 ### 1. Setup Camera
-```typescript
+\`\`\`typescript
 // Navigate to Camera Setup page
 /dashboard/screens/camera-setup
 
 // Select camera device
 // Configure resolution and frame rate
 // Save configuration
-```
+\`\`\`
 
 ### 2. Enable Analytics
-```typescript
+\`\`\`typescript
 // In player page or dashboard
 <CameraAnalytics 
   screenId="screen-uuid"
   enabled={true}
   onToggle={(enabled) => console.log('Analytics:', enabled)}
 />
-```
+\`\`\`
 
 ### 3. View Analytics
-```typescript
+\`\`\`typescript
 // Real-time: Camera Analytics component shows live data
 // Historical: Analytics dashboard shows aggregated metrics
 /dashboard/analytics
 /dashboard/screens/[id]/analytics
-```
+\`\`\`
 
 ## Performance Considerations
 
@@ -194,36 +194,36 @@ For production, consider adding:
 ## Troubleshooting
 
 ### Camera Not Working
-```
+\`\`\`
 Error: "Camera access denied"
 Solution: Check browser permissions, configure camera in Camera Setup
-```
+\`\`\`
 
 ### AI Models Not Loading
-```
+\`\`\`
 Error: "Failed to initialize AI models"
 Solution: Check browser WebGL support, clear cache, refresh page
-```
+\`\`\`
 
 ### Poor Detection Accuracy
-```
+\`\`\`
 Issue: Not detecting faces or wrong demographics
 Solution: 
 - Ensure good lighting conditions
 - Position camera at eye level
 - Use higher resolution camera
 - Consider upgrading to production-grade models
-```
+\`\`\`
 
 ### High CPU Usage
-```
+\`\`\`
 Issue: Browser slowing down during analytics
 Solution:
 - Reduce frame capture frequency (10s instead of 5s)
 - Lower camera resolution
 - Close other browser tabs
 - Use device with better GPU
-```
+\`\`\`
 
 ## Future Roadmap
 
@@ -256,7 +256,7 @@ Analyzes a video frame and returns demographics, emotions, and attention metrics
 - `imageData`: string | HTMLImageElement | HTMLVideoElement | HTMLCanvasElement
 
 **Returns:**
-```typescript
+\`\`\`typescript
 {
   personCount: number
   demographics: { male: number, female: number, unknown: number }
@@ -266,7 +266,7 @@ Analyzes a video frame and returns demographics, emotions, and attention metrics
   timestamp: string
   faces: FaceAnalysis[]
 }
-```
+\`\`\`
 
 ### `initializeModels()`
 Loads TensorFlow.js models. Call once on app startup.

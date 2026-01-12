@@ -13,7 +13,7 @@ The digital signage platform consists of three main components:
 
 ### 1. Device Registration Flow
 
-```
+\`\`\`
 Android TV App Launches
 ↓
 Loads: https://v0-xkreen-ai.vercel.app/player?tv=true
@@ -29,11 +29,11 @@ Device registered in database (unpaired state)
 Displays pairing screen with Device Code
 ↓
 Polls every 2 seconds: GET /api/devices/status/[deviceCode]
-```
+\`\`\`
 
 ### 2. User Pairing Flow (Dashboard)
 
-```
+\`\`\`
 User logs into dashboard
 ↓
 Creates new Screen
@@ -50,11 +50,11 @@ Database Updates:
 Status poll on TV detects pairing
 ↓
 TV redirects to: /player/[deviceCode]
-```
+\`\`\`
 
 ### 3. Player Operation Flow
 
-```
+\`\`\`
 Player page loads: /player/[deviceCode]
 ↓
 Fetches config: GET /api/devices/config/[deviceCode]
@@ -69,7 +69,7 @@ Starts media playback rotation
 Sends heartbeat every 30s: PUT /api/devices/heartbeat/[deviceCode]
 ↓
 Polls for config updates every 30s
-```
+\`\`\`
 
 ---
 
@@ -81,7 +81,7 @@ Polls for config updates every 30s
 **Purpose:** Register a new device in the system
 
 **Request Body:**
-```json
+\`\`\`json
 {
   "device_code": "A3K7M",
   "device_info": {
@@ -90,10 +90,10 @@ Polls for config updates every 30s
     "url": "https://v0-xkreen-ai.vercel.app/player"
   }
 }
-```
+\`\`\`
 
 **Response (201):**
-```json
+\`\`\`json
 {
   "device": {
     "id": "uuid",
@@ -104,7 +104,7 @@ Polls for config updates every 30s
     "last_heartbeat": "2024-01-15T10:30:00.000Z"
   }
 }
-```
+\`\`\`
 
 **Logic:**
 - Checks if device with code already exists
@@ -113,7 +113,7 @@ Polls for config updates every 30s
 - Device code must be unique across the system
 
 **Database Fields:**
-```sql
+\`\`\`sql
 devices (
   id UUID PRIMARY KEY,
   device_code VARCHAR UNIQUE,
@@ -125,7 +125,7 @@ devices (
   created_at TIMESTAMP,
   updated_at TIMESTAMP
 )
-```
+\`\`\`
 
 ---
 
@@ -135,15 +135,15 @@ devices (
 **Authentication:** Required (Supabase Auth)
 
 **Request Body:**
-```json
+\`\`\`json
 {
   "deviceCode": "A3K7M",
   "screenId": "uuid-of-screen"
 }
-```
+\`\`\`
 
 **Response (200):**
-```json
+\`\`\`json
 {
   "success": true,
   "screen": {
@@ -152,21 +152,21 @@ devices (
     "orientation": "landscape"
   }
 }
-```
+\`\`\`
 
 **Logic:**
 1. Validates user authentication
 2. Checks device exists and is not already claimed by another user
 3. Validates screen belongs to authenticated user
 4. Updates device record:
-   ```sql
+   \`\`\`sql
    UPDATE devices SET
      is_paired = true,
      screen_id = '[screenId]',
      user_id = '[userId]',
      last_heartbeat = NOW()
    WHERE device_code = '[deviceCode]'
-   ```
+   \`\`\`
 5. Updates screen status to "online"
 
 **Error Responses:**
@@ -182,7 +182,7 @@ devices (
 **Authentication:** Not required (anonymous access)
 
 **Response (200):**
-```json
+\`\`\`json
 {
   "device": {
     "id": "uuid",
@@ -192,14 +192,14 @@ devices (
     "last_heartbeat": "2024-01-15T10:35:00.000Z"
   }
 }
-```
+\`\`\`
 
 **Headers:**
-```
+\`\`\`
 Cache-Control: no-cache, no-store, must-revalidate
 Pragma: no-cache
 Expires: 0
-```
+\`\`\`
 
 **Logic:**
 - Queries `devices` table by `device_code`
@@ -215,7 +215,7 @@ Expires: 0
 **Authentication:** Not required (uses service role key)
 
 **Response (200):**
-```json
+\`\`\`json
 {
   "device": {
     "id": "uuid",
@@ -258,7 +258,7 @@ Expires: 0
     ]
   }
 }
-```
+\`\`\`
 
 **Content Types Supported:**
 - **Images:** `image/jpeg`, `image/png`, `image/gif`, `image/webp`
@@ -296,23 +296,23 @@ The playlist contains scale settings for each media type:
 **Request:** No body required
 
 **Response (200):**
-```json
+\`\`\`json
 {
   "success": true,
   "timestamp": "2024-01-15T10:40:00.000Z"
 }
-```
+\`\`\`
 
 **Logic:**
 1. Find paired device by `device_code`
 2. Update `devices.last_heartbeat = NOW()`
 3. If device has `screen_id`:
-   ```sql
+   \`\`\`sql
    UPDATE screens SET
      last_seen = NOW(),
      status = 'online'
    WHERE id = '[screen_id]'
-   ```
+   \`\`\`
 
 **Polling Frequency:** Every 30 seconds from player
 
@@ -326,7 +326,7 @@ The playlist contains scale settings for each media type:
 
 **Implementation** (`app/player/page.tsx`):
 
-```typescript
+\`\`\`typescript
 // Generate 5-character alphanumeric code
 const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 let code = ""
@@ -341,7 +341,7 @@ const timestamp = Date.now().toString(36).toUpperCase()
 code = (code + timestamp).substring(0, 5)
 
 // Result: "A3K7M", "B9Q2X", etc.
-```
+\`\`\`
 
 **Characteristics:**
 - **Length:** Exactly 5 characters
@@ -356,7 +356,7 @@ code = (code + timestamp).substring(0, 5)
 
 ### Initial Load
 
-```typescript
+\`\`\`typescript
 // 1. Player page component mounts
 useEffect(() => {
   fetchConfig()
@@ -380,11 +380,11 @@ const fetchConfig = async () => {
   setCurrentIndex(0)
   startRotation()
 }
-```
+\`\`\`
 
 ### Polling for Updates
 
-```typescript
+\`\`\`typescript
 // Poll every 30 seconds for config changes
 useEffect(() => {
   const interval = setInterval(() => {
@@ -393,7 +393,7 @@ useEffect(() => {
   
   return () => clearInterval(interval)
 }, [deviceCode])
-```
+\`\`\`
 
 **Why Polling:**
 - Simple implementation
@@ -407,7 +407,7 @@ useEffect(() => {
 
 ## Database Relationships
 
-```
+\`\`\`
 users (auth.users)
   ↓ (one-to-many)
 profiles
@@ -421,7 +421,7 @@ playlists
 playlist_items
   ↓
 media (files in Vercel Blob Storage)
-```
+\`\`\`
 
 **Key Relationships:**
 
@@ -447,7 +447,7 @@ media (files in Vercel Blob Storage)
 
 ### Devices Table RLS
 
-```sql
+\`\`\`sql
 -- Anonymous devices can self-register
 CREATE POLICY "devices_insert_anonymous" ON devices
 FOR INSERT TO anon
@@ -467,7 +467,7 @@ USING (user_id IS NULL OR user_id = auth.uid());
 CREATE POLICY "Users can view their own devices" ON devices
 FOR SELECT TO authenticated
 USING (user_id = auth.uid());
-```
+\`\`\`
 
 **Key Points:**
 - Anonymous (TV) access allowed for registration and heartbeat
@@ -482,7 +482,7 @@ USING (user_id = auth.uid());
 
 **Location:** `app/player/page.tsx`
 
-```typescript
+\`\`\`typescript
 const startPairingPoll = (code: string) => {
   const pollInterval = setInterval(async () => {
     const response = await fetch(`/api/devices/status/${code}`, {
@@ -503,7 +503,7 @@ const startPairingPoll = (code: string) => {
   // Timeout after 10 minutes
   setTimeout(() => clearInterval(pollInterval), 10 * 60 * 1000)
 }
-```
+\`\`\`
 
 **Characteristics:**
 - **Frequency:** Every 2 seconds (fast detection)
@@ -515,7 +515,7 @@ const startPairingPoll = (code: string) => {
 
 **Location:** `app/player/[deviceCode]/page.tsx`
 
-```typescript
+\`\`\`typescript
 useEffect(() => {
   // Initial fetch
   fetchConfig()
@@ -525,7 +525,7 @@ useEffect(() => {
   
   return () => clearInterval(configPoll)
 }, [deviceCode])
-```
+\`\`\`
 
 **Characteristics:**
 - **Frequency:** Every 30 seconds (balance freshness vs. load)
@@ -539,51 +539,51 @@ useEffect(() => {
 ### Vercel Blob Storage
 
 **Format:**
-```
+\`\`\`
 https://[account].public.blob.vercel-storage.com/[filename]-[hash].[ext]
-```
+\`\`\`
 
 **Example:**
-```
+\`\`\`
 https://xkreen.public.blob.vercel-storage.com/welcome-banner-a8f3d2c1.png
-```
+\`\`\`
 
 **Database Storage:**
-```sql
+\`\`\`sql
 media.file_path = 'https://xkreen.public.blob.vercel-storage.com/...'
-```
+\`\`\`
 
 ### Google Slides
 
 **Format:**
-```
+\`\`\`
 https://docs.google.com/presentation/d/[presentationId]/embed
-```
+\`\`\`
 
 **Player Rendering:**
-```tsx
+\`\`\`tsx
 <iframe
   src={media.file_path}
   className="w-full h-full"
   allow="autoplay"
 />
-```
+\`\`\`
 
 ### YouTube Videos
 
 **Format:**
-```
+\`\`\`
 https://www.youtube.com/embed/[videoId]?autoplay=1
-```
+\`\`\`
 
 **Player Rendering:**
-```tsx
+\`\`\`tsx
 <iframe
   src={media.file_path}
   className="w-full h-full"
   allow="autoplay; encrypted-media"
 />
-```
+\`\`\`
 
 ---
 
@@ -592,11 +592,11 @@ https://www.youtube.com/embed/[videoId]?autoplay=1
 ### Device Not Found (404)
 
 **Response:**
-```json
+\`\`\`json
 {
   "error": "Device not found"
 }
-```
+\`\`\`
 
 **Player Behavior:**
 - Show error screen: "Device not registered"
@@ -606,11 +606,11 @@ https://www.youtube.com/embed/[videoId]?autoplay=1
 ### Device Not Paired (404)
 
 **Response:**
-```json
+\`\`\`json
 {
   "error": "Device not paired to screen"
 }
-```
+\`\`\`
 
 **Player Behavior:**
 - Continue showing pairing screen
@@ -632,19 +632,19 @@ https://www.youtube.com/embed/[videoId]?autoplay=1
 ### API Response Caching
 
 **Config Endpoint:**
-```typescript
+\`\`\`typescript
 const response = NextResponse.json(data)
 response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
 response.headers.set('Pragma', 'no-cache')
 response.headers.set('Expires', '0')
 return response
-```
+\`\`\`
 
 **Reason:** Ensures TV always gets fresh playlist data
 
 ### Database Query Optimization
 
-```typescript
+\`\`\`typescript
 // Single query with joins for efficiency
 const { data } = await supabase
   .from('playlist_items')
@@ -661,7 +661,7 @@ const { data } = await supabase
   `)
   .eq('playlist_id', playlistId)
   .order('position')
-```
+\`\`\`
 
 **Benefits:**
 - Reduces round trips
@@ -674,7 +674,7 @@ const { data } = await supabase
 
 ### Adding a New Device
 
-```typescript
+\`\`\`typescript
 // Client-side (Android TV WebView)
 const registerDevice = async (deviceCode: string) => {
   const response = await fetch('/api/devices/register', {
@@ -691,11 +691,11 @@ const registerDevice = async (deviceCode: string) => {
   
   return await response.json()
 }
-```
+\`\`\`
 
 ### Pairing from Dashboard
 
-```typescript
+\`\`\`typescript
 // Dashboard (authenticated)
 const pairDevice = async (deviceCode: string, screenId: string) => {
   const response = await fetch('/api/devices/pair', {
@@ -710,11 +710,11 @@ const pairDevice = async (deviceCode: string, screenId: string) => {
   
   return await response.json()
 }
-```
+\`\`\`
 
 ### Fetching Player Config
 
-```typescript
+\`\`\`typescript
 // Player (no auth required)
 const getPlayerConfig = async (deviceCode: string) => {
   const response = await fetch(`/api/devices/config/${deviceCode}`)
@@ -729,7 +729,7 @@ const getPlayerConfig = async (deviceCode: string) => {
     content: data.screen.content
   }
 }
-```
+\`\`\`
 
 ---
 
@@ -737,7 +737,7 @@ const getPlayerConfig = async (deviceCode: string) => {
 
 ### 1. Register a Device
 
-```bash
+\`\`\`bash
 curl -X POST https://v0-xkreen-ai.vercel.app/api/devices/register \
   -H "Content-Type: application/json" \
   -d '{
@@ -747,17 +747,17 @@ curl -X POST https://v0-xkreen-ai.vercel.app/api/devices/register \
       "timestamp": "2024-01-15T10:00:00.000Z"
     }
   }'
-```
+\`\`\`
 
 ### 2. Check Device Status
 
-```bash
+\`\`\`bash
 curl https://v0-xkreen-ai.vercel.app/api/devices/status/TEST1
-```
+\`\`\`
 
 ### 3. Pair Device (requires auth token)
 
-```bash
+\`\`\`bash
 curl -X POST https://v0-xkreen-ai.vercel.app/api/devices/pair \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_SUPABASE_TOKEN" \
@@ -765,13 +765,13 @@ curl -X POST https://v0-xkreen-ai.vercel.app/api/devices/pair \
     "deviceCode": "TEST1",
     "screenId": "your-screen-uuid"
   }'
-```
+\`\`\`
 
 ### 4. Fetch Config
 
-```bash
+\`\`\`bash
 curl https://v0-xkreen-ai.vercel.app/api/devices/config/TEST1
-```
+\`\`\`
 
 ---
 
@@ -868,7 +868,7 @@ The player uses a dual-element approach for seamless transitions:
 ### Key Implementation Details
 
 **Timer Dependency Bug Prevention:**
-```typescript
+\`\`\`typescript
 // CORRECT: Stable callback reference
 const handleAdvance = useCallback(() => {
   setCurrentIndex(prev => (prev + 1) % content.length)
@@ -878,7 +878,7 @@ const handleAdvance = useCallback(() => {
 const handleAdvance = () => {
   setCurrentIndex((currentIndex + 1) % content.length)
 }
-```
+\`\`\`
 
 **Android WebView Optimizations:**
 - Preload elements attached to DOM (not detached)

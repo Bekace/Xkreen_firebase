@@ -28,9 +28,9 @@ The web app should already be deployed. Ensure it's accessible at your Vercel UR
 
 Edit `android/app/src/main/java/com/pointertv/app/MainActivity.java`:
 
-```java
+\`\`\`java
 private static final String APP_URL = "https://your-deployment.vercel.app/player/DEVICE001?tv=true";
-```
+\`\`\`
 
 Replace with your actual:
 - Vercel deployment URL
@@ -38,17 +38,17 @@ Replace with your actual:
 
 ### 4. Build APK
 
-```bash
+\`\`\`bash
 chmod +x scripts/build-android.sh
 ./scripts/build-android.sh
-```
+\`\`\`
 
 ### 5. Install on Fire TV
 
-```bash
+\`\`\`bash
 chmod +x scripts/install-to-firetv.sh
 ./scripts/install-to-firetv.sh 192.168.1.100  # Your Fire TV IP
-```
+\`\`\`
 
 ## Architecture Details
 
@@ -99,9 +99,9 @@ chmod +x scripts/install-to-firetv.sh
 ### Test TV Mode in Browser
 
 Add `?tv=true` to any player URL:
-```
+\`\`\`
 http://localhost:3000/player/DEVICE001?tv=true
-```
+\`\`\`
 
 Test with keyboard:
 - Arrow keys = D-Pad
@@ -118,14 +118,14 @@ Test with keyboard:
    - Enable "ADB Debugging" and "Apps from Unknown Sources"
 
 2. **Connect via ADB**:
-```bash
+\`\`\`bash
 adb connect [FIRE_TV_IP]:5555
-```
+\`\`\`
 
 3. **View Logs**:
-```bash
+\`\`\`bash
 adb logcat -s PointerTV:* chromium:*
-```
+\`\`\`
 
 4. **Inspect WebView** (Chrome DevTools):
    - Open Chrome on your computer
@@ -170,15 +170,15 @@ adb logcat -s PointerTV:* chromium:*
 ### 1. Web App
 
 Deploy to Vercel (already configured):
-```bash
+\`\`\`bash
 vercel --prod
-```
+\`\`\`
 
 ### 2. Android APK
 
 Create signed release APK:
 
-```bash
+\`\`\`bash
 # Generate keystore (first time only)
 keytool -genkey -v -keystore pointer-tv.keystore \
   -alias pointer-tv -keyalg RSA -keysize 2048 -validity 10000
@@ -203,7 +203,7 @@ android {
 # Build release APK
 cd android
 ./gradlew assembleRelease
-```
+\`\`\`
 
 ### 3. Amazon Appstore Submission
 

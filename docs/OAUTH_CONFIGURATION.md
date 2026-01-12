@@ -9,14 +9,14 @@ This document explains how to configure OAuth (Google, Apple) authentication for
 The application uses the following redirect URLs for OAuth:
 
 **Production:**
-```
+\`\`\`
 https://v0-xkreen-ai.vercel.app/auth/callback
-```
+\`\`\`
 
 **Development:**
-```
+\`\`\`
 http://localhost:3000/auth/callback
-```
+\`\`\`
 
 ### Environment Variables
 
@@ -34,10 +34,10 @@ The OAuth system uses these environment variables:
 Go to your Supabase Dashboard:
 1. Navigate to **Authentication** → **URL Configuration**
 2. Add the following to **Redirect URLs**:
-   ```
+   \`\`\`
    https://v0-xkreen-ai.vercel.app/auth/callback
    http://localhost:3000/auth/callback
-   ```
+   \`\`\`
 
 ### 2. Configure Google OAuth
 
@@ -51,9 +51,9 @@ Go to your Supabase Dashboard:
    - Go to **APIs & Services** → **Credentials**
    - Select your OAuth 2.0 Client ID
    - Add to **Authorized redirect URIs**:
-     ```
+     \`\`\`
      https://YOUR_SUPABASE_PROJECT.supabase.co/auth/v1/callback
-     ```
+     \`\`\`
 
 ### 3. Configure Apple OAuth (Optional)
 
@@ -67,14 +67,14 @@ Go to your Supabase Dashboard:
 
 4. In Apple Developer Console:
    - Configure Return URLs:
-     ```
+     \`\`\`
      https://YOUR_SUPABASE_PROJECT.supabase.co/auth/v1/callback
-     ```
+     \`\`\`
 
 ## How OAuth Flow Works
 
 ### Sign Up Flow
-```
+\`\`\`
 User clicks "Continue with Google"
   ↓
 components/oauth-buttons.tsx initiates OAuth
@@ -90,10 +90,10 @@ Creates user profile if doesn't exist
 Assigns Free plan subscription
   ↓
 Redirects to /dashboard?welcome=true
-```
+\`\`\`
 
 ### Login Flow
-```
+\`\`\`
 User clicks "Continue with Google" on login page
   ↓
 components/oauth-buttons.tsx initiates OAuth with mode=login
@@ -108,7 +108,7 @@ Checks if profile exists
   ↓
 If profile doesn't exist: signs out user and shows error
 If profile exists: redirects to /dashboard
-```
+\`\`\`
 
 ## Troubleshooting
 
@@ -131,9 +131,9 @@ If profile exists: redirects to /dashboard
 **Solution:** 
 1. Add `http://localhost:3000/auth/callback` to Supabase redirect URLs
 2. Set environment variable:
-   ```bash
+   \`\`\`bash
    NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL=http://localhost:3000/auth/callback
-   ```
+   \`\`\`
 
 ## Code References
 
@@ -152,10 +152,10 @@ Location: `app/auth/callback/route.ts`
 
 ### Redirect URL Configuration
 Location: `components/oauth-buttons.tsx:23`
-```typescript
+\`\`\`typescript
 const redirectUrl = process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || 
                     `${window.location.origin}/auth/callback`
-```
+\`\`\`
 
 ## Production Checklist
 
@@ -173,13 +173,13 @@ Before deploying to production:
 ## Environment Variables Reference
 
 Required in Vercel/Production:
-```bash
+\`\`\`bash
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 NEXT_PUBLIC_SITE_URL=https://v0-xkreen-ai.vercel.app
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-```
+\`\`\`
 
 Optional for Development:
-```bash
+\`\`\`bash
 NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL=http://localhost:3000/auth/callback

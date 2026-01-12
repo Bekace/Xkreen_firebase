@@ -18,7 +18,7 @@ This directory contains the native Android application that wraps the Xkreen Pla
 
 ## Project Structure
 
-```
+\`\`\`
 android/
 ├── app/
 │   ├── src/main/
@@ -33,7 +33,7 @@ android/
 scripts/
 ├── build-android.sh                        # Build APK script
 └── install-to-firetv.sh                    # Install to device script
-```
+\`\`\`
 
 ## Configuration
 
@@ -41,9 +41,9 @@ scripts/
 
 Edit `android/app/src/main/java/com/pointertv/app/MainActivity.java`:
 
-```java
+\`\`\`java
 private static final String APP_URL = "https://your-app.vercel.app/player/[deviceCode]?tv=true";
-```
+\`\`\`
 
 Replace with your actual Vercel deployment URL.
 
@@ -57,20 +57,20 @@ Replace with your actual Vercel deployment URL.
 
 ### Option 1: Using Build Script (Recommended)
 
-```bash
+\`\`\`bash
 # Make script executable (first time only)
 chmod +x scripts/build-android.sh
 
 # Build the APK
 ./scripts/build-android.sh
-```
+\`\`\`
 
 ### Option 2: Using Gradle Directly
 
-```bash
+\`\`\`bash
 cd android
 ./gradlew assembleDebug
-```
+\`\`\`
 
 The APK will be generated at:
 `android/app/build/outputs/apk/debug/app-debug.apk`
@@ -91,17 +91,17 @@ Settings > My Fire TV > About > Network
 
 ### Step 3: Install the APK
 
-```bash
+\`\`\`bash
 # Make script executable (first time only)
 chmod +x scripts/install-to-firetv.sh
 
 # Install to Fire TV (replace with your IP)
 ./scripts/install-to-firetv.sh 192.168.1.100
-```
+\`\`\`
 
 ### Manual Installation (Alternative)
 
-```bash
+\`\`\`bash
 # Connect to Fire TV
 adb connect [FIRE_TV_IP]:5555
 
@@ -110,25 +110,25 @@ adb install -r android/app/build/outputs/apk/debug/app-debug.apk
 
 # Launch app
 adb shell am start -n com.pointertv.app/.MainActivity
-```
+\`\`\`
 
 ## Testing
 
 ### View Logs
 
-```bash
+\`\`\`bash
 # Connect to Fire TV
 adb connect [FIRE_TV_IP]:5555
 
 # View app logs
 adb logcat -s XkreenPlayer:* chromium:* WebView:*
-```
+\`\`\`
 
 ### Uninstall App
 
-```bash
+\`\`\`bash
 adb -s [FIRE_TV_IP]:5555 uninstall com.pointertv.app
-```
+\`\`\`
 
 ## Troubleshooting
 
@@ -155,17 +155,17 @@ adb -s [FIRE_TV_IP]:5555 uninstall com.pointertv.app
 For Amazon Appstore submission:
 
 1. Create a keystore:
-```bash
+\`\`\`bash
 keytool -genkey -v -keystore xkreen-player.keystore -alias xkreen-player -keyalg RSA -keysize 2048 -validity 10000
-```
+\`\`\`
 
 2. Update `android/app/build.gradle` with signing config
 
 3. Build release APK:
-```bash
+\`\`\`bash
 cd android
 ./gradlew assembleRelease
-```
+\`\`\`
 
 4. Submit to Amazon Appstore Developer Console
 

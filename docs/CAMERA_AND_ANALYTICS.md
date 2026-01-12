@@ -35,7 +35,7 @@ The Digital Signage platform includes a sophisticated AI-powered audience analyt
 
 ### **Component Diagram**
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────┐
 │                     USER DASHBOARD                          │
 │  - Enable/Disable Analytics                                 │
@@ -77,7 +77,7 @@ The Digital Signage platform includes a sophisticated AI-powered audience analyt
 │   PHYSICAL CAMERA          │
 │   (USB/Built-in Webcam)    │
 └────────────────────────────┘
-```
+\`\`\`
 
 ---
 
@@ -90,7 +90,7 @@ The Digital Signage platform includes a sophisticated AI-powered audience analyt
 
 #### **User Workflow:**
 
-```
+\`\`\`
 1. User navigates to Camera Setup page
    ↓
 2. Clicks "Discover Available Cameras"
@@ -110,11 +110,11 @@ The Digital Signage platform includes a sophisticated AI-powered audience analyt
 9. Configuration saved to localStorage
    ↓
 10. Analytics component can now access camera
-```
+\`\`\`
 
 #### **Technical Implementation:**
 
-```typescript
+\`\`\`typescript
 // Camera Discovery
 const discoverCameras = async () => {
   // 1. Request initial permission
@@ -159,11 +159,11 @@ const confirmSetup = () => {
   localStorage.setItem('cameraConfig', JSON.stringify(config))
   onCameraConfigured(config.deviceId, config.settings)
 }
-```
+\`\`\`
 
 #### **localStorage Structure:**
 
-```json
+\`\`\`json
 {
   "cameraConfig": {
     "deviceId": "1234567890abcdef",
@@ -177,7 +177,7 @@ const confirmSetup = () => {
     }
   }
 }
-```
+\`\`\`
 
 ---
 
@@ -192,7 +192,7 @@ The system tracks camera permission using the Permissions API:
 - `"unknown"` - Permission API not supported (fallback to try/catch)
 
 **Permission Checking:**
-```typescript
+\`\`\`typescript
 const checkPermissions = async () => {
   try {
     const result = await navigator.permissions.query({ name: 'camera' })
@@ -206,7 +206,7 @@ const checkPermissions = async () => {
     // Permission API not supported, check during camera access
   }
 }
-```
+\`\`\`
 
 ---
 
@@ -214,7 +214,7 @@ const checkPermissions = async () => {
 
 ### **Complete Data Flow:**
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────┐
 │  STEP 1: Frame Capture (Player - Client Side)              │
 │  Every 30 seconds, capture current video frame             │
@@ -252,7 +252,7 @@ const checkPermissions = async () => {
 │  STEP 5: Store in Database (Supabase)                      │
 │  Insert into `analytics` table with JSONB event_data       │
 └─────────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 ---
 
@@ -262,7 +262,7 @@ const checkPermissions = async () => {
 
 **Location**: `components/camera-analytics.tsx`
 
-```typescript
+\`\`\`typescript
 const captureAndAnalyze = async () => {
   const video = videoRef.current
   const canvas = canvasRef.current
@@ -288,7 +288,7 @@ useEffect(() => {
     return () => clearInterval(interval)
   }
 }, [isActive])
-```
+\`\`\`
 
 ---
 
@@ -302,7 +302,7 @@ useEffect(() => {
 - Runs entirely client-side in the browser
 - ~400KB model size, fast inference (~20-30ms)
 
-```typescript
+\`\`\`typescript
 import * as tf from '@tensorflow/tfjs'
 import * as blazeface from '@tensorflow-models/blazeface'
 
@@ -340,10 +340,10 @@ export async function analyzeFrame(canvas: HTMLCanvasElement) {
   
   // Proceed to AI analysis...
 }
-```
+\`\`\`
 
 **BlazeFace Output Example:**
-```json
+\`\`\`json
 [
   {
     "topLeft": [120, 80],
@@ -358,7 +358,7 @@ export async function analyzeFrame(canvas: HTMLCanvasElement) {
     ]
   }
 ]
-```
+\`\`\`
 
 ---
 
@@ -375,7 +375,7 @@ export async function analyzeFrame(canvas: HTMLCanvasElement) {
 
 **API Implementation:**
 
-```typescript
+\`\`\`typescript
 import { generateObject } from 'ai'
 import { z } from 'zod'
 
@@ -432,11 +432,11 @@ export async function POST(request: NextRequest) {
     }))
   })
 }
-```
+\`\`\`
 
 **GPT-4o Vision Prompt (Complete):**
 
-```
+\`\`\`
 You are an expert in facial analysis and computer vision. Analyze this image with MAXIMUM ACCURACY and provide detailed information about each person visible. I detected 3 face(s) using face detection.
 
 CRITICAL: Be as accurate as possible. This is for real-world analytics, not entertainment.
@@ -476,11 +476,11 @@ For EACH person in the image, analyze carefully and provide:
    - Low confidence (0.0-0.4): poor lighting, obscured features, significant uncertainty
 
 Analyze ALL 3 faces detected. Be thorough, accurate, and analytical.
-```
+\`\`\`
 
 **Response Example:**
 
-```json
+\`\`\`json
 {
   "faces": [
     {
@@ -506,7 +506,7 @@ Analyze ALL 3 faces detected. Be thorough, accurate, and analytical.
     }
   ]
 }
-```
+\`\`\`
 
 ---
 
@@ -516,7 +516,7 @@ Analyze ALL 3 faces detected. Be thorough, accurate, and analytical.
 
 After receiving AI analysis, combine with BlazeFace bounding boxes and aggregate:
 
-```typescript
+\`\`\`typescript
 export async function analyzeFrame(canvas: HTMLCanvasElement) {
   // ... BlazeFace detection ...
   
@@ -573,11 +573,11 @@ export async function analyzeFrame(canvas: HTMLCanvasElement) {
     faces
   }
 }
-```
+\`\`\`
 
 **Aggregated Analytics Example:**
 
-```json
+\`\`\`json
 {
   "personCount": 3,
   "demographics": {
@@ -602,7 +602,7 @@ export async function analyzeFrame(canvas: HTMLCanvasElement) {
   "lookingAtScreen": 2,
   "timestamp": "2024-01-15T14:30:00.000Z"
 }
-```
+\`\`\`
 
 ---
 
@@ -611,7 +611,7 @@ export async function analyzeFrame(canvas: HTMLCanvasElement) {
 **API**: `POST /api/analytics/process-frame`  
 **Location**: `app/api/analytics/process-frame/route.ts`
 
-```typescript
+\`\`\`typescript
 export async function POST(request: NextRequest) {
   const { screenId, analytics, timestamp } = await request.json()
   
@@ -649,11 +649,11 @@ export async function POST(request: NextRequest) {
     insertedData: data
   })
 }
-```
+\`\`\`
 
 **Database Record:**
 
-```json
+\`\`\`json
 {
   "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "screen_id": "screen-uuid-here",
@@ -669,7 +669,7 @@ export async function POST(request: NextRequest) {
   },
   "created_at": "2024-01-15T14:30:00.000Z"
 }
-```
+\`\`\`
 
 ---
 
@@ -685,7 +685,7 @@ export async function POST(request: NextRequest) {
 - `screenId` (required) - Screen UUID
 
 **Response:**
-```json
+\`\`\`json
 {
   "enabled": true,
   "retention_days": 30,
@@ -693,7 +693,7 @@ export async function POST(request: NextRequest) {
   "sampling_rate": 5,
   "privacy_mode": true
 }
-```
+\`\`\`
 
 **Default Values:**
 - `enabled`: `false` (analytics disabled by default)
@@ -704,7 +704,7 @@ export async function POST(request: NextRequest) {
 
 **Usage Example:**
 
-```typescript
+\`\`\`typescript
 // Player fetches settings on mount
 const fetchAnalyticsSettings = async (screenId: string) => {
   const response = await fetch(`/api/analytics/settings?screenId=${screenId}`)
@@ -714,7 +714,7 @@ const fetchAnalyticsSettings = async (screenId: string) => {
     startAnalytics()
   }
 }
-```
+\`\`\`
 
 ---
 
@@ -725,7 +725,7 @@ const fetchAnalyticsSettings = async (screenId: string) => {
 **Authentication:** Required (user must own the screen)
 
 **Request Body:**
-```json
+\`\`\`json
 {
   "screenId": "uuid",
   "enabled": true,
@@ -734,10 +734,10 @@ const fetchAnalyticsSettings = async (screenId: string) => {
   "sampling_rate": 5,
   "privacy_mode": true
 }
-```
+\`\`\`
 
 **Response:**
-```json
+\`\`\`json
 {
   "success": true,
   "settings": {
@@ -748,7 +748,7 @@ const fetchAnalyticsSettings = async (screenId: string) => {
     "privacy_mode": true
   }
 }
-```
+\`\`\`
 
 **RLS Policy:**
 - User can only update settings for screens they own
@@ -756,7 +756,7 @@ const fetchAnalyticsSettings = async (screenId: string) => {
 
 **Usage Example:**
 
-```typescript
+\`\`\`typescript
 // Dashboard enables analytics
 const enableAnalytics = async (screenId: string) => {
   const response = await fetch('/api/analytics/settings', {
@@ -771,7 +771,7 @@ const enableAnalytics = async (screenId: string) => {
   const result = await response.json()
   console.log('Analytics enabled:', result)
 }
-```
+\`\`\`
 
 ---
 
@@ -782,15 +782,15 @@ const enableAnalytics = async (screenId: string) => {
 **Authentication:** Not required (called from player)
 
 **Request Body:**
-```json
+\`\`\`json
 {
   "imageData": "data:image/jpeg;base64,/9j/4AAQSkZJRg...",
   "faceCount": 3
 }
-```
+\`\`\`
 
 **Response:**
-```json
+\`\`\`json
 {
   "faces": [
     {
@@ -803,17 +803,17 @@ const enableAnalytics = async (screenId: string) => {
     }
   ]
 }
-```
+\`\`\`
 
 **Error Response:**
-```json
+\`\`\`json
 {
   "error": "AI analysis failed after retries",
   "details": "Rate limit exceeded",
   "errorName": "APIError",
   "errorCode": "rate_limit_exceeded"
 }
-```
+\`\`\`
 
 **Retry Logic:**
 - Attempts analysis up to 3 times (initial + 2 retries)
@@ -822,7 +822,7 @@ const enableAnalytics = async (screenId: string) => {
 
 **Usage Example:**
 
-```typescript
+\`\`\`typescript
 // Internal API call from analyzeFrame()
 const analyzeFaceWithAI = async (canvas: HTMLCanvasElement, faceCount: number) => {
   const imageData = canvas.toDataURL('image/jpeg', 0.9)
@@ -835,7 +835,7 @@ const analyzeFaceWithAI = async (canvas: HTMLCanvasElement, faceCount: number) =
   
   return await response.json()
 }
-```
+\`\`\`
 
 ---
 
@@ -846,7 +846,7 @@ const analyzeFaceWithAI = async (canvas: HTMLCanvasElement, faceCount: number) =
 **Authentication:** Service Role Key (bypasses RLS)
 
 **Request Body:**
-```json
+\`\`\`json
 {
   "screenId": "uuid",
   "analytics": {
@@ -859,10 +859,10 @@ const analyzeFaceWithAI = async (canvas: HTMLCanvasElement, faceCount: number) =
   },
   "timestamp": "2024-01-15T14:30:00.000Z"
 }
-```
+\`\`\`
 
 **Response:**
-```json
+\`\`\`json
 {
   "success": true,
   "analytics": { /* ... */ },
@@ -875,11 +875,11 @@ const analyzeFaceWithAI = async (canvas: HTMLCanvasElement, faceCount: number) =
   }],
   "message": "Analytics processed successfully"
 }
-```
+\`\`\`
 
 **Usage Example:**
 
-```typescript
+\`\`\`typescript
 // Player stores analytics after AI analysis
 const storeAnalytics = async (screenId: string, analytics: any) => {
   const response = await fetch('/api/analytics/process-frame', {
@@ -895,7 +895,7 @@ const storeAnalytics = async (screenId: string, analytics: any) => {
   const result = await response.json()
   console.log('[v0] Analytics stored:', result)
 }
-```
+\`\`\`
 
 ---
 
@@ -911,7 +911,7 @@ const storeAnalytics = async (screenId: string, analytics: any) => {
 - `limit` (optional) - Max records to return (default: `100`)
 
 **Response:**
-```json
+\`\`\`json
 {
   "totalRecords": 48,
   "timeRange": "24h",
@@ -933,10 +933,10 @@ const storeAnalytics = async (screenId: string, analytics: any) => {
     "emotions": { "happy": 64, "neutral": 128, "sad": 12, "angry": 4, "surprised": 8, "unknown": 0 }
   }
 }
-```
+\`\`\`
 
 **Time Range Calculation:**
-```typescript
+\`\`\`typescript
 const getTimeRange = (range: string) => {
   const now = new Date()
   const start = new Date()
@@ -950,10 +950,10 @@ const getTimeRange = (range: string) => {
   
   return start.toISOString()
 }
-```
+\`\`\`
 
 **Aggregation Logic:**
-```typescript
+\`\`\`typescript
 function aggregateAnalytics(data: any[]) {
   const totals = data.reduce((acc, record) => {
     acc.personCount += record.event_data.personCount || 0
@@ -972,11 +972,11 @@ function aggregateAnalytics(data: any[]) {
     emotions: totals.emotions
   }
 }
-```
+\`\`\`
 
 **Usage Example:**
 
-```typescript
+\`\`\`typescript
 // Dashboard fetches analytics for a screen
 const fetchAnalytics = async (screenId: string) => {
   const response = await fetch(
@@ -987,7 +987,7 @@ const fetchAnalytics = async (screenId: string) => {
   setAnalytics(data.summary)
   setChartData(data.data)
 }
-```
+\`\`\`
 
 ---
 
@@ -997,7 +997,7 @@ const fetchAnalytics = async (screenId: string) => {
 
 Stores all analytics events with JSONB data for flexibility.
 
-```sql
+\`\`\`sql
 CREATE TABLE analytics (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   screen_id UUID REFERENCES screens(id) ON DELETE CASCADE,
@@ -1012,11 +1012,11 @@ CREATE INDEX idx_analytics_screen_id ON analytics(screen_id);
 CREATE INDEX idx_analytics_event_type ON analytics(event_type);
 CREATE INDEX idx_analytics_created_at ON analytics(created_at DESC);
 CREATE INDEX idx_analytics_event_data_gin ON analytics USING GIN (event_data);
-```
+\`\`\`
 
 **RLS Policies:**
 
-```sql
+\`\`\`sql
 -- Users can only view their own analytics
 CREATE POLICY "Users can view own analytics" ON analytics
 FOR SELECT USING (
@@ -1028,11 +1028,11 @@ FOR SELECT USING (
 -- System (service role) can insert analytics without auth
 CREATE POLICY "System can insert analytics" ON analytics
 FOR INSERT WITH CHECK (true);
-```
+\`\`\`
 
 **JSONB event_data Structure:**
 
-```json
+\`\`\`json
 {
   "personCount": 3,
   "demographics": {
@@ -1068,11 +1068,11 @@ FOR INSERT WITH CHECK (true);
     }
   ]
 }
-```
+\`\`\`
 
 **JSONB Queries:**
 
-```sql
+\`\`\`sql
 -- Get total people count for a screen
 SELECT SUM((event_data->>'personCount')::int) as total_people
 FROM analytics
@@ -1095,7 +1095,7 @@ WHERE screen_id = 'uuid' AND event_type = 'audience_analytics'
 GROUP BY emotion
 ORDER BY count DESC
 LIMIT 1;
-```
+\`\`\`
 
 ---
 
@@ -1103,7 +1103,7 @@ LIMIT 1;
 
 Stores per-screen analytics configuration.
 
-```sql
+\`\`\`sql
 CREATE TABLE analytics_settings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   screen_id UUID UNIQUE NOT NULL REFERENCES screens(id) ON DELETE CASCADE,
@@ -1119,26 +1119,26 @@ CREATE TABLE analytics_settings (
 
 -- One setting per screen
 CREATE UNIQUE INDEX idx_analytics_settings_screen_id ON analytics_settings(screen_id);
-```
+\`\`\`
 
 **RLS Policies:**
 
-```sql
+\`\`\`sql
 -- Users can manage settings for their own screens
 CREATE POLICY "Users can manage own analytics settings" ON analytics_settings
 FOR ALL USING (user_id = auth.uid());
-```
+\`\`\`
 
 **Upsert Logic:**
 
-```sql
+\`\`\`sql
 -- Update or insert settings
 INSERT INTO analytics_settings (screen_id, user_id, enabled)
 VALUES ('screen-uuid', 'user-uuid', true)
 ON CONFLICT (screen_id) DO UPDATE SET
   enabled = EXCLUDED.enabled,
   updated_at = NOW();
-```
+\`\`\`
 
 ---
 
@@ -1146,7 +1146,7 @@ ON CONFLICT (screen_id) DO UPDATE SET
 
 ### **Camera Setup Flow**
 
-```
+\`\`\`
 ┌──────────────┐
 │   User       │
 │   Dashboard  │
@@ -1225,13 +1225,13 @@ ON CONFLICT (screen_id) DO UPDATE SET
 │  Camera Available for Analytics              │
 │  CameraAnalytics component can now use it    │
 └──────────────────────────────────────────────┘
-```
+\`\`\`
 
 ---
 
 ### **Analytics Capture Flow (Every 30 Seconds)**
 
-```
+\`\`\`
 ┌──────────────────────────────────────────────┐
 │  Player Running (Android TV)                 │
 │  Analytics Enabled in Settings               │
@@ -1298,7 +1298,7 @@ ON CONFLICT (screen_id) DO UPDATE SET
        │ Wait 30 seconds
        │
        └──────> Repeat
-```
+\`\`\`
 
 ---
 
@@ -1313,7 +1313,7 @@ The camera analytics system runs within the player that displays digital signage
 
 ### **Lifecycle:**
 
-```
+\`\`\`
 1. Player loads → /player/[deviceCode]
    ↓
 2. Fetch analytics settings → GET /api/analytics/settings?screenId=xxx
@@ -1331,11 +1331,11 @@ The camera analytics system runs within the player that displays digital signage
    ├─ Analyze faces (GPT-4o Vision API)
    ├─ Store analytics (POST /api/analytics/process-frame)
    └─ Update UI with latest data
-```
+\`\`\`
 
 ### **Player Integration Code:**
 
-```typescript
+\`\`\`typescript
 // app/player/[deviceCode]/page.tsx
 
 import { CameraAnalytics } from '@/components/camera-analytics'
@@ -1379,11 +1379,11 @@ export default function PlayerPage({ params }: { params: { deviceCode: string } 
     </div>
   )
 }
-```
+\`\`\`
 
 ### **Initialization Sequence:**
 
-```typescript
+\`\`\`typescript
 // components/camera-analytics.tsx
 
 export function CameraAnalytics({ screenId, enabled }: Props) {
@@ -1426,7 +1426,7 @@ export function CameraAnalytics({ screenId, enabled }: Props) {
     }
   }
 }
-```
+\`\`\`
 
 ---
 
@@ -1446,7 +1446,7 @@ The analytics system is designed with privacy as a core principle:
 
 **Implementation:**
 
-```typescript
+\`\`\`typescript
 // Frame is analyzed and immediately discarded
 const captureAndAnalyze = async () => {
   const canvas = captureFrame() // Temporary canvas
@@ -1460,7 +1460,7 @@ const captureAndAnalyze = async () => {
   // Canvas is automatically garbage collected
   // No reference to image data is kept
 }
-```
+\`\`\`
 
 #### **2. Anonymized Data**
 
@@ -1482,17 +1482,17 @@ All stored analytics are **aggregate counts**, not individual identities:
 
 Users control how long analytics data is kept:
 
-```typescript
+\`\`\`typescript
 // analytics_settings table
 {
   retention_days: 30, // Delete data after 30 days
   enabled: true
 }
-```
+\`\`\`
 
 **Automatic Cleanup:**
 
-```sql
+\`\`\`sql
 -- Scheduled job (runs daily)
 DELETE FROM analytics
 WHERE created_at < NOW() - INTERVAL '30 days'
@@ -1500,17 +1500,17 @@ WHERE created_at < NOW() - INTERVAL '30 days'
     SELECT screen_id FROM analytics_settings
     WHERE retention_days = 30
   );
-```
+\`\`\`
 
 #### **4. Consent Management**
 
-```typescript
+\`\`\`typescript
 // analytics_settings table
 {
   consent_required: true, // Require viewer consent
   enabled: false // Disabled by default
 }
-```
+\`\`\`
 
 **Consent Flow:**
 1. User enables analytics in dashboard
@@ -1530,7 +1530,7 @@ The system supports GDPR requirements:
 
 **Data Export API:**
 
-```typescript
+\`\`\`typescript
 // GET /api/analytics/export?screenId=xxx
 export async function GET(request: NextRequest) {
   const { screenId } = request.query
@@ -1549,11 +1549,11 @@ export async function GET(request: NextRequest) {
     }
   })
 }
-```
+\`\`\`
 
 **Data Deletion API:**
 
-```typescript
+\`\`\`typescript
 // DELETE /api/analytics/data?screenId=xxx
 export async function DELETE(request: NextRequest) {
   const { screenId } = request.query
@@ -1566,7 +1566,7 @@ export async function DELETE(request: NextRequest) {
   
   return NextResponse.json({ success: true })
 }
-```
+\`\`\`
 
 ---
 
@@ -1576,7 +1576,7 @@ export async function DELETE(request: NextRequest) {
 
 Supabase RLS ensures users can only access their own analytics:
 
-```sql
+\`\`\`sql
 -- Users can only view analytics for their own screens
 CREATE POLICY "Users can view own analytics" ON analytics
 FOR SELECT USING (
@@ -1588,7 +1588,7 @@ FOR SELECT USING (
 -- System (service role) can insert without auth
 CREATE POLICY "System can insert analytics" ON analytics
 FOR INSERT WITH CHECK (true);
-```
+\`\`\`
 
 #### **2. API Authentication**
 
@@ -1596,7 +1596,7 @@ FOR INSERT WITH CHECK (true);
 - **Player APIs**: Use service role key (read-only config access)
 - **Analytics Write**: Service role only (no user auth needed)
 
-```typescript
+\`\`\`typescript
 // Dashboard: User must be authenticated
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -1619,13 +1619,13 @@ export async function POST(request: NextRequest) {
   
   // Can insert analytics without user auth
 }
-```
+\`\`\`
 
 #### **3. Rate Limiting**
 
 Protect against abuse:
 
-```typescript
+\`\`\`typescript
 // Example: Limit analytics submissions
 const rateLimiter = new Map()
 
@@ -1647,13 +1647,13 @@ export async function POST(request: NextRequest) {
   
   // Proceed with analytics processing...
 }
-```
+\`\`\`
 
 #### **4. Input Validation**
 
 Validate all incoming data:
 
-```typescript
+\`\`\`typescript
 import { z } from 'zod'
 
 const AnalyticsSchema = z.object({
@@ -1684,7 +1684,7 @@ export async function POST(request: NextRequest) {
   
   // Proceed with validated data...
 }
-```
+\`\`\`
 
 ---
 
@@ -1694,7 +1694,7 @@ export async function POST(request: NextRequest) {
 
 #### **1. Test Camera Setup**
 
-```bash
+\`\`\`bash
 # Navigate to camera setup page
 https://your-domain.com/dashboard/screens/camera-setup?screenId=xxx
 
@@ -1707,11 +1707,11 @@ https://your-domain.com/dashboard/screens/camera-setup?screenId=xxx
 6. See live preview
 7. Confirm setup
 8. Check localStorage for 'cameraConfig'
-```
+\`\`\`
 
 **Verify Camera Config:**
 
-```javascript
+\`\`\`javascript
 // Browser console
 const config = localStorage.getItem('cameraConfig')
 console.log(JSON.parse(config))
@@ -1726,11 +1726,11 @@ console.log(JSON.parse(config))
     deviceId: "abc123..."
   }
 }
-```
+\`\`\`
 
 #### **2. Test Analytics Settings**
 
-```bash
+\`\`\`bash
 # Enable analytics for a screen
 curl -X POST https://your-domain.com/api/analytics/settings \
   -H "Content-Type: application/json" \
@@ -1742,11 +1742,11 @@ curl -X POST https://your-domain.com/api/analytics/settings \
 
 # Verify settings
 curl "https://your-domain.com/api/analytics/settings?screenId=screen-uuid"
-```
+\`\`\`
 
 #### **3. Test Face Detection**
 
-```javascript
+\`\`\`javascript
 // In browser console (after camera started)
 import { initializeModels, analyzeFrame } from '@/lib/ai/vision-analytics'
 
@@ -1772,11 +1772,11 @@ console.log(result)
   lookingAtScreen: 2,
   timestamp: "2024-01-15T14:30:00.000Z"
 }
-```
+\`\`\`
 
 #### **4. Test End-to-End**
 
-```bash
+\`\`\`bash
 # 1. Set up camera (manual - use UI)
 # 2. Enable analytics (API)
 curl -X POST https://your-domain.com/api/analytics/settings \
@@ -1803,7 +1803,7 @@ psql $DATABASE_URL -c "
 
 # 6. View in dashboard
 # Navigate to: https://your-domain.com/dashboard/analytics
-```
+\`\`\`
 
 ---
 
@@ -1821,7 +1821,7 @@ psql $DATABASE_URL -c "
 - Camera in use by another app
 
 **Solutions:**
-```bash
+\`\`\`bash
 # 1. Check browser permissions
 # Chrome: Settings → Privacy → Site Settings → Camera
 # Ensure site has camera access
@@ -1834,7 +1834,7 @@ psql $DATABASE_URL -c "
 
 # 4. Try different browser
 # Some browsers have better WebRTC support
-```
+\`\`\`
 
 #### **Issue 2: Face Detection Not Working**
 
@@ -1848,7 +1848,7 @@ psql $DATABASE_URL -c "
 - TensorFlow.js models failed to load
 
 **Solutions:**
-```javascript
+\`\`\`javascript
 // 1. Check model initialization
 const checkModels = async () => {
   try {
@@ -1878,7 +1878,7 @@ testImage.onload = async () => {
 // 4. Check lighting
 // Ensure adequate lighting on subjects
 // BlazeFace performs best with front-facing, well-lit faces
-```
+\`\`\`
 
 #### **Issue 3: AI Analysis Failing**
 
@@ -1892,7 +1892,7 @@ testImage.onload = async () => {
 - Network connectivity issues
 
 **Solutions:**
-```bash
+\`\`\`bash
 # 1. Check OpenAI API key
 curl https://api.openai.com/v1/models \
   -H "Authorization: Bearer $OPENAI_API_KEY"
@@ -1907,7 +1907,7 @@ curl https://api.openai.com/v1/models \
 # 4. Fallback to client-side heuristics
 # System automatically falls back if AI fails
 # Uses simple heuristics based on face size/position
-```
+\`\`\`
 
 #### **Issue 4: Analytics Not Saving**
 
@@ -1921,7 +1921,7 @@ curl https://api.openai.com/v1/models \
 - Database connection issues
 
 **Solutions:**
-```sql
+\`\`\`sql
 -- 1. Check RLS policies
 SELECT * FROM pg_policies WHERE tablename = 'analytics';
 
@@ -1940,7 +1940,7 @@ VALUES (
 
 -- 4. Check screen exists
 SELECT id, name FROM screens WHERE id = 'screen-uuid';
-```
+\`\`\`
 
 #### **Issue 5: High API Costs**
 
@@ -1953,7 +1953,7 @@ SELECT id, name FROM screens WHERE id = 'screen-uuid';
 - Too many screens with analytics enabled
 
 **Solutions:**
-```typescript
+\`\`\`typescript
 // 1. Increase sampling rate (reduce frequency)
 // In analytics_settings:
 {
@@ -1987,7 +1987,7 @@ const isBusinessHours = () => {
 if (isBusinessHours()) {
   captureAndAnalyze()
 }
-```
+\`\`\`
 
 ---
 
@@ -1995,7 +1995,7 @@ if (isBusinessHours()) {
 
 Enable verbose logging for troubleshooting:
 
-```typescript
+\`\`\`typescript
 // Set in localStorage
 localStorage.setItem('DEBUG_ANALYTICS', 'true')
 
@@ -2010,7 +2010,7 @@ if (DEBUG) {
   console.log('[v0] 🧠 AI analysis:', aiResult)
   console.log('[v0] 💾 Saving to database...')
 }
-```
+\`\`\`
 
 ---
 
@@ -2018,7 +2018,7 @@ if (DEBUG) {
 
 Track analytics performance:
 
-```typescript
+\`\`\`typescript
 const performanceMonitor = {
   frameCaptureDuration: 0,
   faceDetectionDuration: 0,
@@ -2066,7 +2066,7 @@ const captureAndAnalyze = async () => {
 // aiAnalysisDuration: ~2000ms (depends on API latency)
 // databaseWriteDuration: ~100ms
 // Total: ~2250ms per cycle
-```
+\`\`\`
 
 ---
 

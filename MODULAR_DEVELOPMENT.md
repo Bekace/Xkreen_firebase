@@ -13,7 +13,7 @@
 
 ## File Structure
 
-```
+\`\`\`
 /hooks/
   ├── use-[feature-name].ts  (all new complex logic goes here)
   
@@ -23,19 +23,19 @@
 /app/[page]/
   ├── page.tsx               (stable, imports hooks)
   ├── page.backup.tsx        (last working version)
-```
+\`\`\`
 
 ## Feature Flag Pattern
 
 Every experimental feature gets a flag at the top of the file:
 
-```tsx
+\`\`\`tsx
 // Feature flags for testing new functionality
 const FEATURE_FLAGS = {
   USE_SMART_PRELOADER: false,  // Set to true to enable multi-item preloading
   USE_NEW_ADVANCEMENT: false,   // Set to true to enable enhanced rotation
 }
-```
+\`\`\`
 
 ## Testing Workflow
 

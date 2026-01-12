@@ -24,7 +24,7 @@ The preview functionality allows users to preview playlists and screens in the d
 
 Google Slides content is identified through three methods:
 
-```typescript
+\`\`\`typescript
 const isGoogleSlides = (media: { mime_type?: string; file_path?: string }) => {
   return (
     media.mime_type === "application/vnd.google-apps.presentation" ||
@@ -32,7 +32,7 @@ const isGoogleSlides = (media: { mime_type?: string; file_path?: string }) => {
     media.file_path?.includes("slides.google")
   )
 }
-```
+\`\`\`
 
 **Detection Methods:**
 1. **MIME Type Check:** `application/vnd.google-apps.presentation`
@@ -45,7 +45,7 @@ const isGoogleSlides = (media: { mime_type?: string; file_path?: string }) => {
 
 Google Slides URLs must be converted to embed format for iframe rendering:
 
-```typescript
+\`\`\`typescript
 const getGoogleSlidesEmbedUrl = (url: string) => {
   // If already in embed format, return as-is
   if (url.includes("/embed")) {
@@ -57,29 +57,29 @@ const getGoogleSlidesEmbedUrl = (url: string) => {
     .replace("/edit", "/embed")
     .replace("/view", "/embed")
 }
-```
+\`\`\`
 
 **URL Formats Supported:**
 
 **Input (Edit URL):**
-```
+\`\`\`
 https://docs.google.com/presentation/d/[PRESENTATION_ID]/edit
-```
+\`\`\`
 
 **Input (View URL):**
-```
+\`\`\`
 https://docs.google.com/presentation/d/[PRESENTATION_ID]/view
-```
+\`\`\`
 
 **Output (Embed URL):**
-```
+\`\`\`
 https://docs.google.com/presentation/d/[PRESENTATION_ID]/embed
-```
+\`\`\`
 
 **Additional Parameters (from API route):**
-```
+\`\`\`
 /embed?start=false&loop=false&delayms=3000
-```
+\`\`\`
 
 - `start=false`: Don't auto-start slideshow
 - `loop=false`: Don't loop presentation
@@ -91,7 +91,7 @@ https://docs.google.com/presentation/d/[PRESENTATION_ID]/embed
 
 Google Slides are rendered using an iframe element:
 
-```tsx
+\`\`\`tsx
 if (isGoogleSlides(item.media)) {
   const embedUrl = getGoogleSlidesEmbedUrl(item.media.file_path)
   
@@ -107,7 +107,7 @@ if (isGoogleSlides(item.media)) {
     </div>
   )
 }
-```
+\`\`\`
 
 **Key Attributes:**
 - **`src`**: Embed URL with presentation ID
@@ -122,7 +122,7 @@ if (isGoogleSlides(item.media)) {
 
 ### State Variables
 
-```typescript
+\`\`\`typescript
 const [items, setItems] = useState<PlaylistItem[]>([])           // Playlist media items
 const [currentIndex, setCurrentIndex] = useState(0)              // Current item index
 const [isPlaying, setIsPlaying] = useState(false)                // Auto-play state
@@ -133,7 +133,7 @@ const [playbackSpeed, setPlaybackSpeed] = useState(1)            // Video speed 
 const [isFullscreen, setIsFullscreen] = useState(false)          // Fullscreen mode
 const [autoLoop, setAutoLoop] = useState(true)                   // Loop playlist
 const [isTransitioning, setIsTransitioning] = useState(false)    // Transition in progress
-```
+\`\`\`
 
 ---
 
@@ -141,7 +141,7 @@ const [isTransitioning, setIsTransitioning] = useState(false)    // Transition i
 
 ### 1. Modal Opens
 
-```typescript
+\`\`\`typescript
 useEffect(() => {
   if (isOpen && playlist) {
     console.log("[v0] Fetching items for playlist:", playlist.name)
@@ -155,7 +155,7 @@ useEffect(() => {
     setIsFullscreen(false)
   }
 }, [isOpen, playlist])
-```
+\`\`\`
 
 **Trigger:** Modal `isOpen` prop changes to `true`
 
@@ -167,7 +167,7 @@ useEffect(() => {
 
 ### 2. Fetch Playlist Items
 
-```typescript
+\`\`\`typescript
 const fetchPlaylistItems = async () => {
   if (!playlist) {
     console.log("[v0] Cannot fetch items: playlist is null")
@@ -201,12 +201,12 @@ const fetchPlaylistItems = async () => {
     setLoading(false)
   }
 }
-```
+\`\`\`
 
 **API Endpoint:** `GET /api/playlists/[playlistId]`
 
 **Response Structure:**
-```json
+\`\`\`json
 {
   "playlist": {
     "id": "uuid",
@@ -228,7 +228,7 @@ const fetchPlaylistItems = async () => {
     ]
   }
 }
-```
+\`\`\`
 
 **Key Fields:**
 - **`position`**: Determines display order (critical for sorting)
@@ -241,14 +241,14 @@ const fetchPlaylistItems = async () => {
 
 ### 3. Auto-Start Playback
 
-```typescript
+\`\`\`typescript
 useEffect(() => {
   if (items.length > 0 && !isPlaying) {
     console.log("[v0] Auto-starting playlist playback")
     setIsPlaying(true)
   }
 }, [items, isPlaying])
-```
+\`\`\`
 
 **Trigger:** Items loaded successfully
 
@@ -262,7 +262,7 @@ useEffect(() => {
 
 ### Simple Countdown Implementation
 
-```typescript
+\`\`\`typescript
 useEffect(() => {
   // Only run if playing and time remaining
   if (isPlaying && timeRemaining > 0) {
@@ -283,7 +283,7 @@ useEffect(() => {
     goToNext()
   }
 }, [isPlaying, timeRemaining, goToNext])
-```
+\`\`\`
 
 **Timer Behavior:**
 
@@ -300,7 +300,7 @@ useEffect(() => {
 
 ### goToNext Function
 
-```typescript
+\`\`\`typescript
 const goToNext = useCallback(() => {
   console.log("[v0] goToNext called, currentIndex:", currentIndex, "total items:", items.length)
 
@@ -341,11 +341,11 @@ const goToNext = useCallback(() => {
   }, transitionDuration * 1000)
   
 }, [currentIndex, items, autoLoop])
-```
+\`\`\`
 
 **Flow Diagram:**
 
-```
+\`\`\`
 Timer reaches 0
 ↓
 goToNext() called
@@ -364,7 +364,7 @@ setTimeout callback fires:
   - setIsTransitioning(false)
 ↓
 Timer restarts with new duration
-```
+\`\`\`
 
 ---
 
@@ -374,9 +374,9 @@ Timer restarts with new duration
 
 **For Google Slides:** Uses `duration_override` from playlist item
 
-```typescript
+\`\`\`typescript
 setTimeRemaining(nextItem?.duration_override || 10)
-```
+\`\`\`
 
 **Default:** 10 seconds if no override specified
 
@@ -392,9 +392,9 @@ setTimeRemaining(nextItem?.duration_override || 10)
 Users can set custom durations per playlist item:
 
 **Database Field:**
-```sql
+\`\`\`sql
 playlist_items.duration_override INT -- Seconds to display item
-```
+\`\`\`
 
 **Example Values:**
 - `15`: Display Google Slides for 15 seconds
@@ -412,9 +412,9 @@ playlist_items.duration_override INT -- Seconds to display item
 
 ### Transition State
 
-```typescript
+\`\`\`typescript
 const [isTransitioning, setIsTransitioning] = useState(false)
-```
+\`\`\`
 
 **Purpose:** Signals when media is changing (applies CSS animations)
 
@@ -422,7 +422,7 @@ const [isTransitioning, setIsTransitioning] = useState(false)
 
 ### Transition Styles
 
-```typescript
+\`\`\`typescript
 const getTransitionStyles = (isTransitioning: boolean) => {
   return {
     opacity: isTransitioning ? 0 : 1,
@@ -430,7 +430,7 @@ const getTransitionStyles = (isTransitioning: boolean) => {
     transition: "opacity 0.8s ease, transform 0.8s ease",
   }
 }
-```
+\`\`\`
 
 **Applied Styles:**
 - **Opacity:** Fades out (0) during transition, fades in (1) when stable
@@ -444,10 +444,10 @@ const getTransitionStyles = (isTransitioning: boolean) => {
 ### Transition Types Supported
 
 **Database Field:**
-```sql
+\`\`\`sql
 playlist_items.transition_type VARCHAR -- Animation name
 playlist_items.transition_duration FLOAT -- Seconds for transition
-```
+\`\`\`
 
 **Supported Types:**
 - `fade`: Opacity transition (default)
@@ -465,12 +465,12 @@ The preview checks media types in this order:
 
 ### 1. YouTube Videos
 
-```typescript
+\`\`\`typescript
 if (isYouTubeVideo(item.media)) {
   const embedUrl = getYouTubeUrlWithAutoplay(item.media.file_path)
   return <iframe src={embedUrl} ... />
 }
-```
+\`\`\`
 
 **Detection:** URL contains `youtube.com` or `youtu.be`
 
@@ -478,12 +478,12 @@ if (isYouTubeVideo(item.media)) {
 
 ### 2. Google Slides
 
-```typescript
+\`\`\`typescript
 if (isGoogleSlides(item.media)) {
   const embedUrl = getGoogleSlidesEmbedUrl(item.media.file_path)
   return <iframe src={embedUrl} ... />
 }
-```
+\`\`\`
 
 **Detection:** URL contains `docs.google.com/presentation` OR mime type is `application/vnd.google-apps.presentation`
 
@@ -491,11 +491,11 @@ if (isGoogleSlides(item.media)) {
 
 ### 3. Images
 
-```typescript
+\`\`\`typescript
 if (item.media.mime_type?.startsWith("image/")) {
   return <img src={item.media.file_path || "/placeholder.svg"} style={mediaStyle} alt={item.media.name} />
 }
-```
+\`\`\`
 
 **MIME Types:** `image/jpeg`, `image/png`, `image/gif`, `image/webp`
 
@@ -503,7 +503,7 @@ if (item.media.mime_type?.startsWith("image/")) {
 
 ### 4. Videos
 
-```typescript
+\`\`\`typescript
 if (item.media.mime_type?.startsWith("video/")) {
   return (
     <video 
@@ -515,7 +515,7 @@ if (item.media.mime_type?.startsWith("video/")) {
     />
   )
 }
-```
+\`\`\`
 
 **MIME Types:** `video/mp4`, `video/webm`, `video/quicktime`
 
@@ -525,13 +525,13 @@ if (item.media.mime_type?.startsWith("video/")) {
 
 ### 5. Unsupported Types
 
-```typescript
+\`\`\`typescript
 return (
   <div style={mediaStyle} className="flex items-center justify-center bg-gray-100 text-gray-500">
     <p>Unsupported media type</p>
   </div>
 )
-```
+\`\`\`
 
 ---
 
@@ -543,38 +543,38 @@ return (
 
 ### Detection
 
-```typescript
+\`\`\`typescript
 function isGoogleSlidesUrl(url: string): boolean {
   return url.includes("docs.google.com/presentation")
 }
-```
+\`\`\`
 
 ### ID Extraction
 
-```typescript
+\`\`\`typescript
 function extractGoogleSlidesId(url: string): string | null {
   const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/)
   return match ? match[1] : null
 }
-```
+\`\`\`
 
 **Example:**
-```
+\`\`\`
 URL: https://docs.google.com/presentation/d/1abc-XYZ_123/edit
 ID: 1abc-XYZ_123
-```
+\`\`\`
 
 ### Embed URL Generation
 
-```typescript
+\`\`\`typescript
 function getGoogleSlidesEmbedUrl(id: string): string {
   return `https://docs.google.com/presentation/d/${id}/embed?start=false&loop=false&delayms=3000`
 }
-```
+\`\`\`
 
 ### Database Storage
 
-```sql
+\`\`\`sql
 INSERT INTO media (
   name,
   file_path,
@@ -588,7 +588,7 @@ INSERT INTO media (
   0, -- No file size (external URL)
   'user-uuid'
 )
-```
+\`\`\`
 
 **Key Points:**
 - `file_path`: Stores full embed URL (not edit URL)
@@ -626,7 +626,7 @@ Both preview and player share:
 
 ### 1. Simple Timer Implementation
 
-```typescript
+\`\`\`typescript
 useEffect(() => {
   if (isPlaying && timeRemaining > 0) {
     const timer = setTimeout(() => {
@@ -637,7 +637,7 @@ useEffect(() => {
     goToNext()
   }
 }, [isPlaying, timeRemaining, goToNext])
-```
+\`\`\`
 
 **Why it works:**
 - **Single dependency:** Only `goToNext` function in deps (wrapped in `useCallback`)
@@ -649,11 +649,11 @@ useEffect(() => {
 
 ### 2. Stable goToNext Function
 
-```typescript
+\`\`\`typescript
 const goToNext = useCallback(() => {
   // Advancement logic
 }, [currentIndex, items, autoLoop])
-```
+\`\`\`
 
 **Dependencies:**
 - `currentIndex`: Changes only when advancing
@@ -707,7 +707,7 @@ const goToNext = useCallback(() => {
 - **Independent of playlist timer**
 
 **Conflict Scenario:**
-```
+\`\`\`
 Playlist duration: 15 seconds
 Google Slides auto-advance: 3 seconds per slide
 
@@ -715,7 +715,7 @@ Result:
 - Slides change at 3s, 6s, 9s, 12s (internal to iframe)
 - Playlist advances at 15s (controlled by timer)
 - User sees 5 slides before next playlist item
-```
+\`\`\`
 
 **Recommendation:** Disable auto-advance in Google Slides for predictable timing
 
@@ -744,12 +744,12 @@ Result:
 **Google Slides Default:** 16:9 or 4:3 (user-configured)
 
 **Preview/Player Handling:**
-```css
+\`\`\`css
 iframe {
   width: 100%;
   height: 100%;
 }
-```
+\`\`\`
 
 **Behavior:**
 - iframe fills entire preview window
@@ -769,12 +769,12 @@ iframe {
 4. Check browser console for CSP (Content Security Policy) errors
 
 **Fix:**
-```typescript
+\`\`\`typescript
 // Verify URL transformation
 console.log("[v0] Original URL:", item.media.file_path)
 const embedUrl = getGoogleSlidesEmbedUrl(item.media.file_path)
 console.log("[v0] Embed URL:", embedUrl)
-```
+\`\`\`
 
 ---
 
@@ -785,12 +785,12 @@ console.log("[v0] Embed URL:", embedUrl)
 2. Google Slides auto-advance setting
 
 **Fix:**
-```sql
+\`\`\`sql
 -- Update duration for specific item
 UPDATE playlist_items 
 SET duration_override = 30 
 WHERE id = 'item-uuid';
-```
+\`\`\`
 
 ---
 
@@ -827,7 +827,7 @@ WHERE id = 'item-uuid';
 ### Network Requests
 
 **Initial Load:**
-```
+\`\`\`
 User opens preview
 ↓
 Fetch /api/playlists/[id] (gets playlist items)
@@ -836,7 +836,7 @@ For each Google Slides item:
   - Browser requests https://docs.google.com/presentation/...
   - Google serves slides app + presentation data
   - Additional requests for images/fonts in slides
-```
+\`\`\`
 
 **Subsequent Items:**
 - iframe `src` changes

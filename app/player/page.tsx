@@ -320,14 +320,18 @@ export default function PlayerSetupPage() {
         <ol className="text-white text-base font-light space-y-2 text-left list-none">
           <li className="flex items-start">
             <span className="mr-3 text-cyan-400">1.</span>
-            <span>Go to your dashboard and create a new screen</span>
+            <span>Copy the device code shown above</span>
           </li>
           <li className="flex items-start">
             <span className="mr-3 text-cyan-400">2.</span>
-            <span>Enter this device code when prompted</span>
+            <span>Go to your dashboard and create a new screen</span>
           </li>
           <li className="flex items-start">
             <span className="mr-3 text-cyan-400">3.</span>
+            <span>Enter this device code when prompted</span>
+          </li>
+          <li className="flex items-start">
+            <span className="mr-3 text-cyan-400">4.</span>
             <span>Your content will start displaying automatically</span>
           </li>
         </ol>
