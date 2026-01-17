@@ -157,6 +157,9 @@ export default function ScreenContentPlayer({
                       ? "none"
                       : "contain",
             }}
+            onEnded={() => {
+              setCurrentIndex((prev) => (prev + 1) % config.content.length)
+            }}
           />
         )}
 
