@@ -67,10 +67,15 @@ export function PlaylistPlayer({
     if (!isPlaying || !currentMedia) return
 
     const duration = currentMedia.duration * 1000 // Convert to milliseconds
-    const timer = setTimeout(nextMedia, duration)
+    const timer = setTimeout(() => {
+      const nextIndex = (currentIndex + 1) % media.length
+      setCurrentIndex(nextIndex)
+      onMediaChange?.(nextIndex)
+      preloadNextMedia(nextIndex)
+    }, duration)
 
     return () => clearTimeout(timer)
-  }, [currentIndex, currentMedia, isPlaying, nextMedia])
+  }, [currentIndex, currentMedia, isPlaying, media.length, onMediaChange, preloadNextMedia])
 
   // Preload initial media
   useEffect(() => {
