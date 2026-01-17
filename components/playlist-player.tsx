@@ -64,18 +64,24 @@ export function PlaylistPlayer({
 
   // Auto-advance timer
   useEffect(() => {
-    if (!isPlaying || !currentMedia) return
+    if (!isPlaying || !currentMedia || !currentMedia.duration) return
 
     const duration = currentMedia.duration * 1000 // Convert to milliseconds
     const timer = setTimeout(() => {
-      const nextIndex = (currentIndex + 1) % media.length
-      setCurrentIndex(nextIndex)
-      onMediaChange?.(nextIndex)
-      preloadNextMedia(nextIndex)
+      setCurrentIndex((prevIndex) => {
+        const nextIndex = (prevIndex + 1) % media.length
+        onMediaChange?.(nextIndex)
+        setPreloadedIndices((prev) => {
+          const nextNextIndex = (nextIndex + 1) % media.length
+          const prevIndex2 = (nextIndex - 1 + media.length) % media.length
+          return new Set([...prev, nextIndex, nextNextIndex, prevIndex2])
+        })
+        return nextIndex
+      })
     }, duration)
 
     return () => clearTimeout(timer)
-  }, [currentIndex, currentMedia, isPlaying, media.length, onMediaChange, preloadNextMedia])
+  }, [currentIndex, currentMedia, isPlaying, media.length, onMediaChange])
 
   // Preload initial media
   useEffect(() => {
