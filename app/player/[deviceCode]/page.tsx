@@ -163,7 +163,7 @@ export default function PlayerPage({ params }: PlayerPageProps) {
     iframeBRef,
     getInactiveVideoRef,
     getInactiveIframeRef,
-  } = useMediaSwitcher()
+  } = useMediaSwitcher(currentIndex)
 
   const contentToDisplay = shuffledContent.length > 0 ? shuffledContent : config?.screen.content || []
   const currentMedia = contentToDisplay[currentIndex]

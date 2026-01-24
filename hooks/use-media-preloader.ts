@@ -165,8 +165,17 @@ export function useMediaPreloader(
     if (currentIndex === 0 && preloadedIndices.current.size > 0) {
       console.log("[v0] Playlist looped, clearing preload cache")
       preloadedIndices.current.clear()
+      
+      // Clear inactive refs to prevent stale content
+      if (videoRef.current) {
+        videoRef.current.src = ""
+        videoRef.current.load()
+      }
+      if (iframeRef.current) {
+        iframeRef.current.src = ""
+      }
     }
-  }, [currentIndex])
+  }, [currentIndex, videoRef, iframeRef])
 
   return { preloadStatus }
 }
