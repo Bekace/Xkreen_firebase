@@ -183,8 +183,10 @@ export default function PlayerPage({ params }: PlayerPageProps) {
   const { preloadStatus } = useMediaPreloader(
     contentToDisplay,
     currentIndex,
-    getInactiveVideoRef(),
-    getInactiveIframeRef(),
+    videoARef,
+    videoBRef,
+    iframeARef,
+    iframeBRef,
   )
 
   const { timeRemaining } = usePlaylistTimer(contentToDisplay, currentIndex, advanceToNext)

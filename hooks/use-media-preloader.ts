@@ -23,8 +23,10 @@ interface PreloadResult {
 export function useMediaPreloader(
   contentList: MediaItem[],
   currentIndex: number,
-  videoRef: React.RefObject<HTMLVideoElement>,
-  iframeRef: React.RefObject<HTMLIFrameElement>,
+  videoARef: React.RefObject<HTMLVideoElement>,
+  videoBRef: React.RefObject<HTMLVideoElement>,
+  iframeARef: React.RefObject<HTMLIFrameElement>,
+  iframeBRef: React.RefObject<HTMLIFrameElement>,
 ) {
   const [preloadStatus, setPreloadStatus] = useState<string>("")
   const preloadedIndices = useRef<Set<number>>(new Set())
@@ -140,12 +142,12 @@ export function useMediaPreloader(
 
       let result: PreloadResult
 
-      if (isVideo(nextMedia.media) && videoRef.current) {
-        result = await preloadVideo(nextMedia.media, videoRef.current)
+      if (isVideo(nextMedia.media) && videoBRef.current) {
+        result = await preloadVideo(nextMedia.media, videoBRef.current)
       } else if (isImage(nextMedia.media)) {
         result = await preloadImage(nextMedia.media)
-      } else if ((isGoogleSlides(nextMedia.media) || isYouTube(nextMedia.media)) && iframeRef.current) {
-        result = await preloadIframe(nextMedia.media, iframeRef.current)
+      } else if ((isGoogleSlides(nextMedia.media) || isYouTube(nextMedia.media)) && iframeBRef.current) {
+        result = await preloadIframe(nextMedia.media, iframeBRef.current)
       } else {
         result = { success: true, message: `Ready: ${nextMedia.media.name}` }
       }
@@ -158,24 +160,31 @@ export function useMediaPreloader(
     }
 
     preloadNext()
-  }, [currentIndex, contentList, videoRef, iframeRef])
+  }, [currentIndex, contentList, videoARef, videoBRef, iframeARef, iframeBRef])
 
   // Clear preloaded indices when playlist loops back to start
   useEffect(() => {
     if (currentIndex === 0 && preloadedIndices.current.size > 0) {
-      console.log("[v0] Playlist looped, clearing preload cache")
+      console.log("[v0] Playlist looped, clearing preload cache and all refs")
       preloadedIndices.current.clear()
       
-      // Clear inactive refs to prevent stale content
-      if (videoRef.current) {
-        videoRef.current.src = ""
-        videoRef.current.load()
+      // Clear ALL refs to ensure clean state when looping
+      if (videoARef.current) {
+        videoARef.current.src = ""
+        videoARef.current.load()
       }
-      if (iframeRef.current) {
-        iframeRef.current.src = ""
+      if (videoBRef.current) {
+        videoBRef.current.src = ""
+        videoBRef.current.load()
+      }
+      if (iframeARef.current) {
+        iframeARef.current.src = ""
+      }
+      if (iframeBRef.current) {
+        iframeBRef.current.src = ""
       }
     }
-  }, [currentIndex, videoRef, iframeRef])
+  }, [currentIndex, videoARef, videoBRef, iframeARef, iframeBRef])
 
   return { preloadStatus }
 }
