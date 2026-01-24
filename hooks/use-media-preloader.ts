@@ -32,6 +32,13 @@ export function useMediaPreloader(
   const preloadedIndices = useRef<Set<number>>(new Set())
   const isPreloading = useRef(false)
 
+  console.log("[v0] useMediaPreloader called with:", {
+    contentListLength: contentList.length,
+    currentIndex,
+    videoARref: !!videoARef.current,
+    videoBRef: !!videoBRef.current,
+  })
+
   const isVideo = (media: MediaItem["media"]) => {
     return (
       media.mime_type.startsWith("video/") &&
@@ -165,22 +172,30 @@ export function useMediaPreloader(
   // Clear preloaded indices when playlist loops back to start
   useEffect(() => {
     if (currentIndex === 0 && preloadedIndices.current.size > 0) {
-      console.log("[v0] Playlist looped, clearing preload cache and all refs")
+      console.log("[v0] ⚠️  PLAYLIST LOOPED DETECTED - Clearing cache and refs", {
+        preloadedCount: preloadedIndices.current.size,
+        videoAHasContent: !!videoARef.current?.src,
+        videoBHasContent: !!videoBRef.current?.src,
+      })
       preloadedIndices.current.clear()
       
       // Clear ALL refs to ensure clean state when looping
       if (videoARef.current) {
+        console.log("[v0] Clearing videoARef")
         videoARef.current.src = ""
         videoARef.current.load()
       }
       if (videoBRef.current) {
+        console.log("[v0] Clearing videoBRef")
         videoBRef.current.src = ""
         videoBRef.current.load()
       }
       if (iframeARef.current) {
+        console.log("[v0] Clearing iframeARef")
         iframeARef.current.src = ""
       }
       if (iframeBRef.current) {
+        console.log("[v0] Clearing iframeBRef")
         iframeBRef.current.src = ""
       }
     }
