@@ -169,14 +169,17 @@ export default function PlayerPage({ params }: PlayerPageProps) {
   const currentMedia = contentToDisplay[currentIndex]
 
   const advanceToNext = useCallback(() => {
-    console.log("[v0] advanceToNext called, currentIndex:", currentIndex, "contentLength:", contentToDisplay.length)
-    if (contentToDisplay.length === 0) return
-
-    const nextIndex = currentIndex + 1 < contentToDisplay.length ? currentIndex + 1 : 0
-    console.log("[v0] Advancing from", currentIndex, "to", nextIndex)
-    setCurrentIndex(nextIndex)
-    switchToNext()
-  }, [currentIndex, contentToDisplay.length, switchToNext])
+    setCurrentIndex((prevIndex) => {
+      // Use the current state value, not closure
+      const content = shuffledContent.length > 0 ? shuffledContent : config?.screen.content || []
+      if (content.length === 0) return prevIndex
+      
+      const nextIndex = (prevIndex + 1) % content.length
+      console.log("[v0] Advancing from", prevIndex, "to", nextIndex, "total:", content.length)
+      switchToNext()
+      return nextIndex
+    })
+  }, [shuffledContent, config, switchToNext])
 
   const { preloadStatus } = useMediaPreloader(
     contentToDisplay,
@@ -246,7 +249,6 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                     autoPlay
                     muted
                     playsInline
-                    onEnded={advanceToNext}
                   />
                   <video
                     ref={videoBRef}
@@ -256,7 +258,6 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                     autoPlay
                     muted
                     playsInline
-                    onEnded={advanceToNext}
                   />
                 </>
               )}
