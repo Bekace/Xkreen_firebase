@@ -5,35 +5,55 @@ export async function GET() {
   try {
     const supabase = await createClient()
 
+    if (!supabase) {
+      console.error("[v0] Failed to create Supabase client")
+      return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
+    }
+
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
+      console.error("[v0] Auth error:", authError)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    console.log("[v0] Fetching locations for user:", user.id)
+
     // Check if user has access to location management feature
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("id, role, subscription_id")
+      .select("id, role")
       .eq("id", user.id)
       .single()
 
-    if (!profile) {
+    if (profileError || !profile) {
+      console.error("[v0] Profile error:", profileError)
       return NextResponse.json({ error: "Profile not found" }, { status: 404 })
     }
 
-    // Free users cannot access locations
-    const { data: subscription } = await supabase
+    console.log("[v0] User profile role:", profile.role)
+
+    // Check subscription - Free users cannot access locations
+    const { data: subscription, error: subError } = await supabase
       .from("user_subscriptions")
-      .select("plan_id, subscription_plans(name)")
+      .select(`
+        plan_id,
+        subscription_plans!inner(name)
+      `)
       .eq("user_id", user.id)
       .eq("status", "active")
-      .single()
+      .maybeSingle()
 
-    if (subscription?.subscription_plans?.name === "Free") {
+    console.log("[v0] Subscription data:", subscription)
+    console.log("[v0] Subscription error:", subError)
+
+    // Allow if no subscription (for testing) or if not Free plan
+    const planName = subscription?.subscription_plans?.name
+    if (planName === "Free") {
+      console.log("[v0] Free user blocked from locations")
       return NextResponse.json(
         { error: "Location management is not available on the Free plan. Please upgrade." },
         { status: 403 }
@@ -56,9 +76,11 @@ export async function GET() {
       .order("created_at", { ascending: false })
 
     if (error) {
-      console.error("Error fetching locations:", error)
-      return NextResponse.json({ error: "Failed to fetch locations" }, { status: 500 })
+      console.error("[v0] Error fetching locations:", error)
+      return NextResponse.json({ error: "Failed to fetch locations", details: error.message }, { status: 500 })
     }
+
+    console.log("[v0] Fetched locations count:", locations?.length || 0)
 
     // Transform data to include screen count
     const transformedLocations = locations.map((location) => ({
@@ -69,7 +91,7 @@ export async function GET() {
 
     return NextResponse.json({ locations: transformedLocations })
   } catch (error) {
-    console.error("Error in locations GET:", error)
+    console.error("[v0] Error in locations GET:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -78,24 +100,37 @@ export async function POST(request: Request) {
   try {
     const supabase = await createClient()
 
+    if (!supabase) {
+      console.error("[v0] Failed to create Supabase client")
+      return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
+    }
+
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
+      console.error("[v0] Auth error:", authError)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Check if user has access to location management feature
+    console.log("[v0] Creating location for user:", user.id)
+
+    // Check subscription - Free users cannot access locations
     const { data: subscription } = await supabase
       .from("user_subscriptions")
-      .select("plan_id, subscription_plans(name)")
+      .select(`
+        plan_id,
+        subscription_plans!inner(name)
+      `)
       .eq("user_id", user.id)
       .eq("status", "active")
-      .single()
+      .maybeSingle()
 
-    if (subscription?.subscription_plans?.name === "Free") {
+    const planName = subscription?.subscription_plans?.name
+    if (planName === "Free") {
+      console.log("[v0] Free user blocked from creating location")
       return NextResponse.json(
         { error: "Location management is not available on the Free plan. Please upgrade." },
         { status: 403 }
@@ -124,8 +159,11 @@ export async function POST(request: Request) {
     } = body
 
     if (!name || name.trim() === "") {
+      console.log("[v0] Location name missing")
       return NextResponse.json({ error: "Location name is required" }, { status: 400 })
     }
+
+    console.log("[v0] Inserting location:", name)
 
     const { data: location, error } = await supabase
       .from("locations")
@@ -152,13 +190,15 @@ export async function POST(request: Request) {
       .single()
 
     if (error) {
-      console.error("Error creating location:", error)
-      return NextResponse.json({ error: "Failed to create location" }, { status: 500 })
+      console.error("[v0] Error creating location:", error)
+      return NextResponse.json({ error: "Failed to create location", details: error.message }, { status: 500 })
     }
+
+    console.log("[v0] Location created successfully:", location.id)
 
     return NextResponse.json({ location }, { status: 201 })
   } catch (error) {
-    console.error("Error in locations POST:", error)
+    console.error("[v0] Error in locations POST:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
