@@ -162,7 +162,11 @@ export default function LocationsPage() {
   }
 
   const handleCreate = async () => {
+    console.log("[v0] handleCreate called")
+    console.log("[v0] formData:", formData)
+    
     if (!formData.name.trim()) {
+      console.log("[v0] Name validation failed")
       toast({
         title: "Error",
         description: "Location name is required",
@@ -172,19 +176,27 @@ export default function LocationsPage() {
     }
 
     setSubmitting(true)
+    console.log("[v0] Starting location creation...")
 
     try {
+      const payload = {
+        ...formData,
+        tags: formData.tags ? formData.tags.split(",").map((t) => t.trim()) : [],
+      }
+      console.log("[v0] Request payload:", payload)
+
       const response = await fetch("/api/locations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formData,
-          tags: formData.tags ? formData.tags.split(",").map((t) => t.trim()) : [],
-        }),
+        body: JSON.stringify(payload),
       })
 
+      console.log("[v0] Response status:", response.status)
+      const responseData = await response.json()
+      console.log("[v0] Response data:", responseData)
+
       if (!response.ok) {
-        throw new Error("Failed to create location")
+        throw new Error(responseData.error || "Failed to create location")
       }
 
       toast({
@@ -196,13 +208,15 @@ export default function LocationsPage() {
       resetForm()
       fetchLocations()
     } catch (error) {
+      console.error("[v0] Error creating location:", error)
       toast({
         title: "Error",
-        description: "Failed to create location",
+        description: error instanceof Error ? error.message : "Failed to create location",
         variant: "destructive",
       })
     } finally {
       setSubmitting(false)
+      console.log("[v0] handleCreate finished")
     }
   }
 
