@@ -11,7 +11,7 @@ export function HeroSection() {
     >
       {/* SVG Background */}
       <div className="absolute inset-0 z-0">
-        <svg
+        <svg className="bg-teal-950"
           width="100%"
           height="100%"
           viewBox="0 0 1220 810"
