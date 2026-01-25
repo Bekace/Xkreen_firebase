@@ -12,14 +12,9 @@ function getCredentials(): GCSCredentials {
   const clientEmail = process.env.GCP_SERVICE_ACCOUNT_EMAIL
   const privateKey = process.env.GCP_PRIVATE_KEY
 
-  if (!projectId) {
-    throw new Error("GCS_PROJECT_ID or GCP_PROJECT_ID environment variable is not set")
-  }
-  if (!clientEmail) {
-    throw new Error("GCP_SERVICE_ACCOUNT_EMAIL environment variable is not set")
-  }
-  if (!privateKey) {
-    throw new Error("GCP_PRIVATE_KEY environment variable is not set")
+  if (!projectId || !clientEmail || !privateKey) {
+    console.warn("[v0] GCS credentials not configured - GCS functionality will be disabled")
+    throw new Error("GCS credentials not configured. Set GCS_PROJECT_ID, GCP_SERVICE_ACCOUNT_EMAIL, and GCP_PRIVATE_KEY environment variables.")
   }
 
   return {

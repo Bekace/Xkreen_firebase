@@ -1,10 +1,6 @@
 import { redirect } from "next/navigation"
 import { createClient, createAdminClient } from "@/lib/supabase/server"
-import Stripe from "stripe"
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-05-28.basil",
-})
+import { getStripe } from "@/lib/stripe"
 
 export default async function CheckoutSuccessPage({
   searchParams,
@@ -19,6 +15,7 @@ export default async function CheckoutSuccessPage({
   }
 
   // Get the Stripe checkout session to find the user
+  const stripe = getStripe()
   let stripeSession
   try {
     stripeSession = await stripe.checkout.sessions.retrieve(sessionId)
