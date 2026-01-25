@@ -176,6 +176,17 @@ export default function PlayerPage({ params }: PlayerPageProps) {
     })
   }, [shuffledContent, config, switchToNext])
 
+  // Hook calls
+  const { preloadStatus } = useMediaPreloader(
+    contentToDisplay,
+    currentIndex,
+    videoARef,
+    videoBRef,
+    iframeARef,
+    iframeBRef,
+  )
+  const { timeRemaining } = usePlaylistTimer(contentToDisplay, currentIndex, advanceToNext)
+
   useEffect(() => {
     const fetchConfig = async () => {
       try {
@@ -211,6 +222,26 @@ export default function PlayerPage({ params }: PlayerPageProps) {
     const interval = setInterval(fetchConfig, 30000)
     return () => clearInterval(interval)
   }, [params.deviceCode, router])
+
+  // Load media into inactive ref when currentIndex changes
+  useEffect(() => {
+    if (!currentMedia) return
+
+    const inactiveVideoRef = getInactiveVideoRef()
+    const inactiveIframeRef = getInactiveIframeRef()
+
+    if (isRegularVideo(currentMedia.media) && inactiveVideoRef?.current) {
+      inactiveVideoRef.current.src = getMediaUrl(currentMedia.media.file_path)
+    }
+
+    if (isYouTubeVideo(currentMedia.media) && inactiveIframeRef?.current) {
+      inactiveIframeRef.current.src = getYouTubeUrlWithAutoplay(currentMedia.media.file_path)
+    }
+
+    if (isGoogleSlides(currentMedia.media) && inactiveIframeRef?.current) {
+      inactiveIframeRef.current.src = currentMedia.media.file_path
+    }
+  }, [currentIndex, currentMedia, getInactiveVideoRef, getInactiveIframeRef])
 
   return (
     <div
@@ -303,6 +334,14 @@ export default function PlayerPage({ params }: PlayerPageProps) {
           </div>
         </div>
       )}
+
+      {/* Preload Status */}
+      {preloadStatus && (
+        <div className="fixed bottom-4 left-4 bg-black/50 text-white px-4 py-2 rounded text-sm">{preloadStatus}</div>
+      )}
+
+      {/* Timer Counter */}
+      <div className="fixed top-4 right-4 bg-black/50 text-white px-4 py-2 rounded text-sm">{timeRemaining}s</div>
     </div>
   )
 }
