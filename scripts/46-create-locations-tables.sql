@@ -152,19 +152,18 @@ CREATE POLICY "Admins can manage all screen locations"
     );
 
 -- Add location management feature to subscription plans
-INSERT INTO public.feature_permissions (plan_id, feature_key, feature_name, is_enabled, limit_value)
+INSERT INTO public.feature_permissions (plan_id, feature_key, is_enabled, limit_value)
 SELECT 
     sp.id,
     'location_management',
-    'Location Management',
     CASE 
         WHEN sp.name = 'Free' THEN false
         ELSE true
     END,
     CASE 
         WHEN sp.name = 'Free' THEN 0
-        WHEN sp.name LIKE 'Pro%' THEN 25
-        WHEN sp.name LIKE 'Ultra%' THEN NULL  -- Unlimited
+        WHEN sp.name IN ('Pro', 'Pro Monthly', 'Pro Yearly') THEN 25
+        WHEN sp.name IN ('Enterprise', 'Enterprise Monthly', 'Enterprise Yearly', 'Ultra', 'Ultra Monthly', 'Ultra Yearly') THEN NULL  -- Unlimited
     END
 FROM public.subscription_plans sp
 WHERE NOT EXISTS (
