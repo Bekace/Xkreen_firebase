@@ -1,20 +1,12 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef } from "react"
 
 type MediaType = "video" | "image" | "googleSlides" | "youtube"
 type ActiveElement = "A" | "B"
 
-export function useMediaSwitcher(currentIndex?: number) {
+export function useMediaSwitcher() {
   const [activeElement, setActiveElement] = useState<ActiveElement>("A")
-  
-  // Reset activeElement to "A" when playlist loops back to start
-  useEffect(() => {
-    if (currentIndex === 0 && activeElement === "B") {
-      console.log("[v0] Resetting activeElement to A on loop")
-      setActiveElement("A")
-    }
-  }, [currentIndex, activeElement])
 
   // Refs for dual video elements
   const videoARef = useRef<HTMLVideoElement>(null)

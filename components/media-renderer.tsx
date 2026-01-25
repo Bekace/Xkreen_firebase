@@ -133,6 +133,7 @@ export function MediaRenderer({ media, isActive, onLoadComplete, onError }: Medi
           src={media.fileUrl}
           className="max-w-full max-h-full object-contain"
           muted
+          loop
           playsInline
           onLoadedData={handleVideoLoad}
           onError={handleVideoError}

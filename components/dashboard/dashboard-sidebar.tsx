@@ -19,6 +19,7 @@ import {
   Users,
   CreditCard,
   Zap,
+  MapPin,
 } from "lucide-react"
 
 const navigation = [
@@ -31,6 +32,11 @@ const navigation = [
     name: "Screens",
     href: "/dashboard/screens",
     icon: Monitor,
+  },
+  {
+    name: "Locations",
+    href: "/dashboard/locations",
+    icon: MapPin,
   },
   {
     name: "Media Library",
