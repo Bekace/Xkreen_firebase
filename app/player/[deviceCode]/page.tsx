@@ -4,8 +4,8 @@ import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { useMediaSwitcher } from "@/hooks/use-media-switcher"
-import { useMediaPreloader } from "@/hooks/use-media-preloader"
-import { usePlaylistTimer } from "@/hooks/use-playlist-timer"
+import { useMediaPreloader } from "@/hooks/use-media-preloader" // Added import
+import { usePlaylistTimer } from "@/hooks/use-playlist-timer" // Added import
 
 interface MediaItem {
   id: string
@@ -152,8 +152,6 @@ export default function PlayerPage({ params }: PlayerPageProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [shuffledContent, setShuffledContent] = useState<MediaItem[]>([])
   const router = useRouter()
-  const { preloadStatus } = useMediaPreloader(config?.screen.content || [])
-  const { timeRemaining } = usePlaylistTimer(config?.screen.content || [])
   const {
     activeElement,
     switchToNext,
