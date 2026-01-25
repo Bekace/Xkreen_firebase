@@ -439,7 +439,7 @@ export function HeroSection() {
 
       <div className="relative z-10 space-y-4 md:space-y-5 lg:space-y-6 mb-6 md:mb-7 lg:mb-9 max-w-md md:max-w-[700px] lg:max-w-[988px] mt-16 md:mt-[120px] lg:mt-[160px] px-4">
         <h1 className="text-foreground text-3xl md:text-4xl lg:text-6xl font-semibold leading-tight">
-          {"AI-Powered Audience Analytics\nSmart Programmatic Digital Signage"} 
+          {"AI-Powered Audience Analytics\nSmart Programmatic Digital Signage."} 
         </h1>
         <p className="text-muted-foreground text-base md:text-base lg:text-lg font-medium leading-relaxed max-w-lg mx-auto">
           We use AI with Media Intelligence &amp; Audience Analytics to analyze visitor insights, captivate audiences with digital signage, and maximize revenue from your prime spaces.
