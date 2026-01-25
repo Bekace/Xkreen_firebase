@@ -6,7 +6,6 @@ import Image from "next/image"
 import { useMediaSwitcher } from "@/hooks/use-media-switcher"
 import { useMediaPreloader } from "@/hooks/use-media-preloader"
 import { usePlaylistTimer } from "@/hooks/use-playlist-timer"
-import "@/components/ui/spinner.css"
 
 interface MediaItem {
   id: string
@@ -73,7 +72,7 @@ const isGoogleSlides = (media: MediaItem["media"]) => {
 const isYouTubeVideo = (media: MediaItem["media"]) => {
   return (
     media.mime_type === "video/youtube" ||
-    media.file_path.includes("youtube.com") ||
+    media.media_path.includes("youtube.com") ||
     media.file_path.includes("youtu.be") ||
     media.file_path.includes("youtube-nocookie.com")
   )
@@ -153,7 +152,8 @@ export default function PlayerPage({ params }: PlayerPageProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [shuffledContent, setShuffledContent] = useState<MediaItem[]>([])
   const router = useRouter()
-
+  const { preloadStatus } = useMediaPreloader(config?.screen.content || [])
+  const { timeRemaining } = usePlaylistTimer(config?.screen.content || [])
   const {
     activeElement,
     switchToNext,
@@ -170,27 +170,13 @@ export default function PlayerPage({ params }: PlayerPageProps) {
 
   const advanceToNext = useCallback(() => {
     setCurrentIndex((prevIndex) => {
-      // Use the current state value, not closure
       const content = shuffledContent.length > 0 ? shuffledContent : config?.screen.content || []
       if (content.length === 0) return prevIndex
-      
       const nextIndex = (prevIndex + 1) % content.length
-      console.log("[v0] Advancing from", prevIndex, "to", nextIndex, "total:", content.length)
       switchToNext()
       return nextIndex
     })
   }, [shuffledContent, config, switchToNext])
-
-  const { preloadStatus } = useMediaPreloader(
-    contentToDisplay,
-    currentIndex,
-    videoARef,
-    videoBRef,
-    iframeARef,
-    iframeBRef,
-  )
-
-  const { timeRemaining } = usePlaylistTimer(contentToDisplay, currentIndex, advanceToNext)
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -319,13 +305,6 @@ export default function PlayerPage({ params }: PlayerPageProps) {
           </div>
         </div>
       )}
-
-      {preloadStatus && (
-        <div className="fixed bottom-4 left-4 bg-black/50 text-white px-4 py-2 rounded text-sm">{preloadStatus}</div>
-      )}
-
-      {/* Debug timer */}
-      <div className="fixed top-4 right-4 bg-black/50 text-white px-4 py-2 rounded text-sm">{timeRemaining}s</div>
     </div>
   )
 }
