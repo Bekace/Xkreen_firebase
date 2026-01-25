@@ -441,7 +441,7 @@ export function HeroSection() {
         <h1 className="text-foreground text-3xl md:text-4xl lg:text-6xl font-semibold leading-tight">
           {"Smart Programmatic \nDigital Signage for Retail"} 
         </h1>
-        <p className="text-muted-foreground text-base md:text-base lg:text-lg font-medium leading-relaxed max-w-lg mx-auto">
+        <p className="text-muted-foreground text-base md:text-base lg:text-lg font-medium leading-relaxed mx-auto">
           {"Xkreen helps retailers manage and scale digital signage across one or hundreds of locations, from promotions and brand content to in-store advertising, using a single, centralized platform.\nAI-powered audience analytics enhance performance when needed, but the core value is simple:\n smarter retail signage that drives results."}
         </p>
       </div>
