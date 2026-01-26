@@ -74,25 +74,26 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       notes,
     } = body
 
+    // Convert empty strings to null for UUID fields
     const { data: location, error } = await supabase
       .from("locations")
       .update({
         name,
-        description,
-        parent_location_id,
-        address,
-        city,
-        state,
-        zip_code,
-        country,
-        latitude,
-        longitude,
-        contact_person,
-        phone_number,
-        operating_hours,
+        description: description || null,
+        parent_location_id: parent_location_id || null,
+        address: address || null,
+        city: city || null,
+        state: state || null,
+        zip_code: zip_code || null,
+        country: country || null,
+        latitude: latitude || null,
+        longitude: longitude || null,
+        contact_person: contact_person || null,
+        phone_number: phone_number || null,
+        operating_hours: operating_hours || null,
         status,
-        tags,
-        notes,
+        tags: tags || null,
+        notes: notes || null,
       })
       .eq("id", params.id)
       .eq("user_id", user.id)
