@@ -49,12 +49,15 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null)
   const [center, setCenter] = useState(defaultCenter)
   const [zoom, setZoom] = useState(4)
+  const [localLocations, setLocalLocations] = useState<Location[]>(locations)
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''
 
   useEffect(() => {
-    // Set initial center and zoom based on locations
+    setLocalLocations(locations)
+    
     const locationsWithCoords = locations.filter((loc) => loc.latitude && loc.longitude)
+    
     if (locationsWithCoords.length > 0) {
       const firstLocation = locationsWithCoords[0]
       setCenter({
@@ -73,7 +76,9 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
     const locationsWithoutCoords = locs.filter((loc) => !loc.latitude || !loc.longitude)
 
     for (const location of locationsWithoutCoords) {
-      if (!location.address || !location.city || !location.state) continue
+      if (!location.address || !location.city || !location.state) {
+        continue
+      }
 
       try {
         const address = `${location.address}, ${location.city}, ${location.state} ${location.zip_code || ''}`
@@ -91,10 +96,19 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
             .update({ latitude: lat, longitude: lng })
             .eq('id', location.id)
 
-          console.log(`[v0] Geocoded ${location.name}:`, lat, lng)
+          // Update local state to show marker immediately
+          setLocalLocations((prev) =>
+            prev.map((loc) =>
+              loc.id === location.id ? { ...loc, latitude: lat, longitude: lng } : loc
+            )
+          )
+          
+          // Update center to show the newly geocoded location
+          setCenter({ lat, lng })
+          setZoom(12)
         }
       } catch (error) {
-        console.error(`[v0] Failed to geocode ${location.name}:`, error)
+        console.error(`Failed to geocode ${location.name}:`, error)
       }
     }
   }
@@ -124,11 +138,7 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
   }
 
   // Filter locations that have coordinates
-  const mappableLocations = locations.filter((loc) => loc.latitude && loc.longitude)
-  
-  console.log('[v0] Total locations:', locations.length)
-  console.log('[v0] Mappable locations (with coordinates):', mappableLocations.length)
-  console.log('[v0] Locations data:', locations)
+  const mappableLocations = localLocations.filter((loc) => loc.latitude && loc.longitude)
 
   if (!apiKey) {
     return (
