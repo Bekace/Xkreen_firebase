@@ -286,7 +286,7 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
               scaleControl: true,
             }}
           >
-            {mappableLocations.map((location) => (
+            {typeof google !== 'undefined' && mappableLocations.map((location) => (
               <Marker
                 key={location.id}
                 position={{
