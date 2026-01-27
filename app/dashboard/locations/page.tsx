@@ -562,7 +562,8 @@ export default function LocationsPage() {
         {/* Map View */}
         <TabsContent value="map">
           <LocationsMap 
-            locations={locations} 
+            locations={locations}
+            isActive={activeTab === 'map'}
             onLocationClick={(location) => {
               setCurrentLocation(location)
               setIsEditDialogOpen(true)

@@ -22,10 +22,11 @@ interface Location {
 
 interface LocationsMapProps {
   locations: Location[]
+  isActive: boolean
   onLocationClick?: (location: Location) => void
 }
 
-export function LocationsMap({ locations, onLocationClick }: LocationsMapProps) {
+export function LocationsMap({ locations, isActive, onLocationClick }: LocationsMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const [map, setMap] = useState<google.maps.Map | null>(null)
   const [markers, setMarkers] = useState<any[]>([])
@@ -36,6 +37,11 @@ export function LocationsMap({ locations, onLocationClick }: LocationsMapProps) 
   const maxRetries = 10
 
   useEffect(() => {
+    if (!isActive) {
+      console.log('[v0] Map tab not active, skipping initialization')
+      return
+    }
+
     const initMap = async () => {
       try {
         console.log('[v0] Starting map initialization...')
@@ -126,7 +132,7 @@ export function LocationsMap({ locations, onLocationClick }: LocationsMapProps) 
       initMap()
     }, 300)
     return () => clearTimeout(timer)
-  }, [])
+  }, [isActive])
 
   useEffect(() => {
     if (!map || !window.google) return
