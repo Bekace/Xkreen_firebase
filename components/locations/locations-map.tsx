@@ -44,16 +44,22 @@ const defaultCenter = {
   lng: -98.5795,
 }
 
+// Static libraries array to prevent re-renders
+const libraries: ('places')[] = ['places']
+
 export function LocationsMap({ locations, isActive, onLocationClick }: LocationsMapProps) {
   const [map, setMap] = useState<google.maps.Map | null>(null)
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null)
   const [center, setCenter] = useState(defaultCenter)
   const [zoom, setZoom] = useState(4)
   const [localLocations, setLocalLocations] = useState<Location[]>(locations)
+  const [isGeocoding, setIsGeocoding] = useState(false)
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''
 
   useEffect(() => {
+    if (!isActive) return
+    
     setLocalLocations(locations)
     
     const locationsWithCoords = locations.filter((loc) => loc.latitude && loc.longitude)
@@ -65,23 +71,33 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
         lng: firstLocation.longitude!,
       })
       setZoom(locationsWithCoords.length === 1 ? 12 : 8)
+    } else {
+      // If no locations have coords, trigger geocoding
+      geocodeLocations(locations)
     }
-
-    // Geocode locations without coordinates
-    geocodeLocations(locations)
-  }, [locations])
+  }, [locations, isActive])
 
   const geocodeLocations = async (locs: Location[]) => {
+    if (isGeocoding) return
+    
     const supabase = createClient()
     const locationsWithoutCoords = locs.filter((loc) => !loc.latitude || !loc.longitude)
 
+    if (locationsWithoutCoords.length === 0) return
+
+    setIsGeocoding(true)
+    console.log(`[v0] Geocoding ${locationsWithoutCoords.length} locations...`)
+
     for (const location of locationsWithoutCoords) {
       if (!location.address || !location.city || !location.state) {
+        console.log(`[v0] Skipping ${location.name} - missing address fields`)
         continue
       }
 
       try {
         const address = `${location.address}, ${location.city}, ${location.state} ${location.zip_code || ''}`
+        console.log(`[v0] Geocoding: ${address}`)
+        
         const response = await fetch(
           `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`
         )
@@ -89,12 +105,18 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
 
         if (data.results && data.results[0]) {
           const { lat, lng } = data.results[0].geometry.location
+          console.log(`[v0] Geocoded ${location.name}: ${lat}, ${lng}`)
 
           // Update the location in the database
-          await supabase
+          const { error } = await supabase
             .from('locations')
             .update({ latitude: lat, longitude: lng })
             .eq('id', location.id)
+
+          if (error) {
+            console.error(`[v0] Database update error:`, error)
+            continue
+          }
 
           // Update local state to show marker immediately
           setLocalLocations((prev) =>
@@ -103,14 +125,20 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
             )
           )
           
-          // Update center to show the newly geocoded location
-          setCenter({ lat, lng })
-          setZoom(12)
+          // Update center to show the first geocoded location
+          if (locationsWithoutCoords[0].id === location.id) {
+            setCenter({ lat, lng })
+            setZoom(12)
+          }
+        } else {
+          console.log(`[v0] No results for ${location.name}`)
         }
       } catch (error) {
-        console.error(`Failed to geocode ${location.name}:`, error)
+        console.error(`[v0] Failed to geocode ${location.name}:`, error)
       }
     }
+    
+    setIsGeocoding(false)
   }
 
   const onLoad = useCallback((map: google.maps.Map) => {
@@ -157,7 +185,7 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
   return (
     <Card>
       <CardContent className="p-0">
-        <LoadScript googleMapsApiKey={apiKey} libraries={['places']}>
+        <LoadScript googleMapsApiKey={apiKey} libraries={libraries}>
           <GoogleMap
             mapContainerStyle={containerStyle}
             center={center}
