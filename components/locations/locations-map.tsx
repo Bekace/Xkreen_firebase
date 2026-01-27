@@ -1,11 +1,9 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useCallback, useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Loader2, MapPin } from 'lucide-react'
 
-// Google Maps integration for displaying location markers with clustering and geocoding
-// Features: Interactive map, custom markers, info windows, auto-geocoding addresses
 interface Location {
   id: string
   name: string
@@ -27,201 +25,159 @@ interface LocationsMapProps {
 }
 
 export function LocationsMap({ locations, isActive, onLocationClick }: LocationsMapProps) {
-  const mapRef = useRef<HTMLDivElement>(null)
   const [map, setMap] = useState<google.maps.Map | null>(null)
   const [markers, setMarkers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const markerClustererRef = useRef<any>(null)
-  const retryCountRef = useRef(0)
-  const maxRetries = 10
 
+  // Load Google Maps script
   useEffect(() => {
-    if (!isActive) {
-      console.log('[v0] Map tab not active, skipping initialization')
+    const loadGoogleMaps = async () => {
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+      
+      if (!apiKey) {
+        setError('Google Maps API key is missing')
+        setLoading(false)
+        return
+      }
+
+      if (window.google?.maps) {
+        console.log('[v0] Google Maps already loaded')
+        return
+      }
+
+      console.log('[v0] Loading Google Maps script...')
+      const script = document.createElement('script')
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&v=weekly`
+      script.async = true
+      script.defer = true
+      
+      script.onload = () => {
+        console.log('[v0] Google Maps script loaded successfully')
+      }
+      
+      script.onerror = () => {
+        console.error('[v0] Failed to load Google Maps script')
+        setError('Failed to load Google Maps')
+        setLoading(false)
+      }
+      
+      document.head.appendChild(script)
+    }
+
+    loadGoogleMaps()
+  }, [])
+
+  // Callback ref that initializes map when div is actually mounted
+  const mapContainerRef = useCallback((node: HTMLDivElement | null) => {
+    if (!node || !isActive || !window.google?.maps) {
+      console.log('[v0] Map container callback - not ready:', {
+        hasNode: !!node,
+        isActive,
+        hasGoogle: !!window.google?.maps
+      })
       return
     }
 
-    const initMap = async () => {
-      try {
-        console.log('[v0] Starting map initialization...')
-        const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-        console.log('[v0] Google Maps API Key exists:', !!apiKey)
-        console.log('[v0] API Key length:', apiKey?.length || 0)
+    console.log('[v0] Map container is ready, initializing map...')
 
-        if (!apiKey) {
-          throw new Error('Google Maps API key is missing')
-        }
+    try {
+      // Create map centered on first location with coordinates or US center
+      const firstLocationWithCoords = locations.find((loc) => loc.latitude && loc.longitude)
+      const center = firstLocationWithCoords
+        ? { lat: firstLocationWithCoords.latitude, lng: firstLocationWithCoords.longitude }
+        : { lat: 39.8283, lng: -98.5795 }
 
-        // Load the Google Maps script dynamically
-        if (!window.google) {
-          console.log('[v0] Loading Google Maps script...')
-          const script = document.createElement('script')
-          script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=marker,places&v=weekly`
-          script.async = true
-          script.defer = true
-          document.head.appendChild(script)
+      const mapInstance = new google.maps.Map(node, {
+        center,
+        zoom: firstLocationWithCoords ? 12 : 4,
+        mapTypeControl: true,
+        streetViewControl: false,
+        fullscreenControl: true,
+      })
 
-          await new Promise<void>((resolve, reject) => {
-            script.onload = () => {
-              console.log('[v0] Google Maps script loaded successfully')
-              resolve()
-            }
-            script.onerror = (err) => {
-              console.error('[v0] Failed to load Google Maps script:', err)
-              reject(new Error('Failed to load Google Maps script'))
-            }
-            
-            // Add timeout
-            setTimeout(() => {
-              if (!window.google) {
-                reject(new Error('Google Maps script load timeout'))
-              }
-            }, 10000)
-          })
-        } else {
-          console.log('[v0] Google Maps already loaded')
-        }
+      console.log('[v0] Map instance created successfully')
+      setMap(mapInstance)
+      setLoading(false)
 
-        // Wait for the ref to be available
-        if (!mapRef.current) {
-          console.log('[v0] Map ref not available, retries:', retryCountRef.current)
-          retryCountRef.current++
-          
-          if (retryCountRef.current < maxRetries) {
-            setTimeout(() => initMap(), 200)
-            return
-          } else {
-            throw new Error('Map container not found after maximum retries')
-          }
-        }
-
-        console.log('[v0] Creating map instance...')
-        // Create map centered on US (or first location with coordinates)
-        const firstLocationWithCoords = locations.find((loc) => loc.latitude && loc.longitude)
-        const center = firstLocationWithCoords
-          ? { lat: firstLocationWithCoords.latitude, lng: firstLocationWithCoords.longitude }
-          : { lat: 39.8283, lng: -98.5795 } // Center of US
-
-        const mapInstance = new google.maps.Map(mapRef.current, {
-          center,
-          zoom: firstLocationWithCoords ? 12 : 4,
-          mapTypeControl: true,
-          streetViewControl: false,
-          fullscreenControl: true,
-        })
-
-        console.log('[v0] Map instance created successfully')
-        setMap(mapInstance)
-
-        // Geocode locations without coordinates
-        await geocodeLocations(locations)
-
-        console.log('[v0] Map initialization complete')
-        setLoading(false)
-      } catch (err) {
-        console.error('[v0] Error initializing map:', err)
-        setError('Failed to load map. Please check your Google Maps API key.')
-        setLoading(false)
-      }
+      // Geocode locations without coordinates
+      geocodeLocations(locations)
+    } catch (err) {
+      console.error('[v0] Error creating map:', err)
+      setError('Failed to initialize map')
+      setLoading(false)
     }
+  }, [isActive, locations])
 
-    // Wait for component to be fully mounted and visible
-    const timer = setTimeout(() => {
-      retryCountRef.current = 0
-      initMap()
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [isActive])
-
+  // Create markers when map or locations change
   useEffect(() => {
     if (!map || !window.google) return
 
+    console.log('[v0] Creating markers for', locations.length, 'locations')
+
     // Clear existing markers
     markers.forEach((marker) => marker.setMap(null))
-    setMarkers([])
 
-    // Clear existing clusterer
-    if (markerClustererRef.current) {
-      markerClustererRef.current.clearMarkers()
-    }
+    const newMarkers: any[] = []
+    const bounds = new google.maps.LatLngBounds()
 
-    const createMarkers = async () => {
-      const newMarkers: any[] = []
-      const bounds = new google.maps.LatLngBounds()
-
-      for (const location of locations) {
-        if (!location.latitude || !location.longitude) continue
-
-        const position = { lat: location.latitude, lng: location.longitude }
-        bounds.extend(position)
-
-        // Custom marker icon based on status
-        const markerColor = location.status === 'active' ? '#10b981' : '#6b7280'
-
-        const marker = new google.maps.Marker({
-          map,
-          position,
-          title: location.name,
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 10,
-            fillColor: markerColor,
-            fillOpacity: 1,
-            strokeColor: '#ffffff',
-            strokeWeight: 2,
-          },
-        })
-
-        // Create info window
-        const infoWindow = new google.maps.InfoWindow({
-          content: createInfoWindowContent(location),
-        })
-
-        marker.addListener('click', () => {
-          // Close all other info windows
-          newMarkers.forEach((m: any) => {
-            if (m.infoWindow) m.infoWindow.close()
-          })
-          infoWindow.open(map, marker)
-          if (onLocationClick) {
-            onLocationClick(location)
-          }
-        })
-
-        // Store info window reference on marker
-        ;(marker as any).infoWindow = infoWindow
-
-        newMarkers.push(marker)
+    for (const location of locations) {
+      if (!location.latitude || !location.longitude) {
+        console.log('[v0] Skipping location without coordinates:', location.name)
+        continue
       }
 
-      setMarkers(newMarkers)
+      const position = { lat: location.latitude, lng: location.longitude }
+      bounds.extend(position)
 
-      // Add marker clustering if library is available
-      if (newMarkers.length > 0 && (window as any).markerClusterer) {
-        try {
-          const { MarkerClusterer } = (window as any).markerClusterer
-          markerClustererRef.current = new MarkerClusterer({
-            map,
-            markers: newMarkers,
-          })
-        } catch (err) {
-          console.log('[v0] MarkerClusterer not available, showing markers without clustering')
-        }
+      const markerColor = location.status === 'active' ? '#10b981' : '#6b7280'
 
-        // Fit map to show all markers
-        if (newMarkers.length > 1) {
-          map.fitBounds(bounds)
-        }
-      }
+      const marker = new google.maps.Marker({
+        map,
+        position,
+        title: location.name,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 10,
+          fillColor: markerColor,
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 2,
+        },
+      })
+
+      const infoWindow = new google.maps.InfoWindow({
+        content: createInfoWindowContent(location),
+      })
+
+      marker.addListener('click', () => {
+        newMarkers.forEach((m: any) => m.infoWindow?.close())
+        infoWindow.open(map, marker)
+        onLocationClick?.(location)
+      })
+
+      ;(marker as any).infoWindow = infoWindow
+      newMarkers.push(marker)
     }
 
-    createMarkers()
+    setMarkers(newMarkers)
+
+    // Fit map to show all markers
+    if (newMarkers.length > 1) {
+      map.fitBounds(bounds)
+    } else if (newMarkers.length === 1) {
+      map.setCenter(newMarkers[0].getPosition()!)
+      map.setZoom(12)
+    }
+
+    console.log('[v0] Created', newMarkers.length, 'markers')
   }, [map, locations, onLocationClick])
 
   const geocodeLocations = async (locs: Location[]) => {
     const locationsToGeocode = locs.filter((loc) => !loc.latitude || !loc.longitude)
     if (locationsToGeocode.length === 0) return
+
+    console.log('[v0] Geocoding', locationsToGeocode.length, 'locations')
 
     try {
       const geocoder = new google.maps.Geocoder()
@@ -240,7 +196,6 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
             const lng = result.results[0].geometry.location.lng()
             console.log(`[v0] Geocoded ${location.name}: ${lat}, ${lng}`)
 
-            // Update location in database
             await fetch(`/api/locations/${location.id}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
@@ -337,7 +292,7 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
   return (
     <Card>
       <CardContent className="p-0">
-        <div ref={mapRef} className="w-full h-[calc(100vh-280px)] min-h-[500px] rounded-lg" />
+        <div ref={mapContainerRef} className="w-full h-[calc(100vh-280px)] min-h-[500px] rounded-lg" />
       </CardContent>
     </Card>
   )
