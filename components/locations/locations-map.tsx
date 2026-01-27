@@ -36,7 +36,7 @@ interface LocationsMapProps {
 }
 
 const containerStyle = {
-  width: '100%',
+  width: '80%',
   height: '600px',
 }
 
