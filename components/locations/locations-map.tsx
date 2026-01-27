@@ -47,6 +47,80 @@ const defaultCenter = {
 // Static libraries array to prevent re-renders
 const libraries: ('places')[] = ['places']
 
+// Custom dark map styling
+const mapStyles = [
+  {
+    featureType: 'all',
+    elementType: 'geometry',
+    stylers: [{ color: '#242f3e' }],
+  },
+  {
+    featureType: 'all',
+    elementType: 'labels.text.stroke',
+    stylers: [{ color: '#242f3e' }],
+  },
+  {
+    featureType: 'all',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#746855' }],
+  },
+  {
+    featureType: 'water',
+    elementType: 'geometry',
+    stylers: [{ color: '#17263c' }],
+  },
+  {
+    featureType: 'road',
+    elementType: 'geometry',
+    stylers: [{ color: '#38414e' }],
+  },
+  {
+    featureType: 'road',
+    elementType: 'geometry.stroke',
+    stylers: [{ color: '#212a37' }],
+  },
+  {
+    featureType: 'road',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#9ca5b3' }],
+  },
+  {
+    featureType: 'road.highway',
+    elementType: 'geometry',
+    stylers: [{ color: '#746855' }],
+  },
+  {
+    featureType: 'road.highway',
+    elementType: 'geometry.stroke',
+    stylers: [{ color: '#1f2835' }],
+  },
+  {
+    featureType: 'road.highway',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#f3d19c' }],
+  },
+  {
+    featureType: 'poi',
+    elementType: 'geometry',
+    stylers: [{ color: '#283d6a' }],
+  },
+  {
+    featureType: 'poi',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#6f9ba5' }],
+  },
+  {
+    featureType: 'poi.park',
+    elementType: 'geometry',
+    stylers: [{ color: '#263c3f' }],
+  },
+  {
+    featureType: 'poi.park',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#6b9a76' }],
+  },
+]
+
 export function LocationsMap({ locations, isActive, onLocationClick }: LocationsMapProps) {
   const [map, setMap] = useState<google.maps.Map | null>(null)
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null)
@@ -86,28 +160,22 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
     if (locationsWithoutCoords.length === 0) return
 
     setIsGeocoding(true)
-    console.log(`[v0] Geocoding ${locationsWithoutCoords.length} locations...`)
 
     for (const location of locationsWithoutCoords) {
       if (!location.address || !location.city || !location.state) {
-        console.log(`[v0] Skipping ${location.name} - missing address fields`)
         continue
       }
 
       try {
         const address = `${location.address}, ${location.city}, ${location.state} ${location.zip_code || ''}`
-        console.log(`[v0] Geocoding: ${address}`)
         
         const response = await fetch(
           `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`
         )
         const data = await response.json()
-        
-        console.log(`[v0] API Response for ${location.name}:`, data)
 
         if (data.status === 'OK' && data.results && data.results.length > 0) {
           const { lat, lng } = data.results[0].geometry.location
-          console.log(`[v0] Geocoded ${location.name}: ${lat}, ${lng}`)
 
           // Update the location in the database
           const { error } = await supabase
@@ -116,29 +184,24 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
             .eq('id', location.id)
 
           if (error) {
-            console.error(`[v0] Database update error:`, error)
             continue
           }
 
           // Update local state to show marker immediately
-          setLocalLocations((prev) => {
-            const updated = prev.map((loc) =>
+          setLocalLocations((prev) =>
+            prev.map((loc) =>
               loc.id === location.id ? { ...loc, latitude: lat, longitude: lng } : loc
             )
-            console.log(`[v0] Updated local locations:`, updated)
-            return updated
-          })
+          )
           
           // Update center to show the first geocoded location
           if (locationsWithoutCoords[0].id === location.id) {
             setCenter({ lat, lng })
             setZoom(12)
           }
-        } else {
-          console.log(`[v0] No results for ${location.name}. Status: ${data.status}, Error: ${data.error_message || 'None'}`)
         }
       } catch (error) {
-        console.error(`[v0] Failed to geocode ${location.name}:`, error)
+        console.error(`Failed to geocode ${location.name}:`, error)
       }
     }
     
@@ -147,8 +210,22 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
 
   const onLoad = useCallback((map: google.maps.Map) => {
     setMap(map)
-    console.log('[v0] Map loaded successfully')
-  }, [])
+    
+    // Auto-fit bounds to show all markers
+    const locationsWithCoords = localLocations.filter((loc) => loc.latitude && loc.longitude)
+    if (locationsWithCoords.length > 0) {
+      const bounds = new google.maps.LatLngBounds()
+      locationsWithCoords.forEach((loc) => {
+        bounds.extend(new google.maps.LatLng(loc.latitude!, loc.longitude!))
+      })
+      map.fitBounds(bounds)
+      
+      // Adjust zoom for single location
+      if (locationsWithCoords.length === 1) {
+        setTimeout(() => map.setZoom(14), 100)
+      }
+    }
+  }, [localLocations])
 
   const onUnmount = useCallback(() => {
     setMap(null)
@@ -171,8 +248,6 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
 
   // Filter locations that have coordinates
   const mappableLocations = localLocations.filter((loc) => loc.latitude && loc.longitude)
-  console.log(`[v0] Rendering - Total locations: ${localLocations.length}, Mappable: ${mappableLocations.length}`)
-  console.log(`[v0] Mappable locations:`, mappableLocations)
 
   if (!apiKey) {
     return (
@@ -202,6 +277,9 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
               streetViewControl: false,
               mapTypeControl: true,
               fullscreenControl: true,
+              styles: mapStyles,
+              zoomControl: true,
+              scaleControl: true,
             }}
           >
             {mappableLocations.map((location) => (
