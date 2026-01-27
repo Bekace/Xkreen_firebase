@@ -121,11 +121,13 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
           }
 
           // Update local state to show marker immediately
-          setLocalLocations((prev) =>
-            prev.map((loc) =>
+          setLocalLocations((prev) => {
+            const updated = prev.map((loc) =>
               loc.id === location.id ? { ...loc, latitude: lat, longitude: lng } : loc
             )
-          )
+            console.log(`[v0] Updated local locations:`, updated)
+            return updated
+          })
           
           // Update center to show the first geocoded location
           if (locationsWithoutCoords[0].id === location.id) {
@@ -169,6 +171,8 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
 
   // Filter locations that have coordinates
   const mappableLocations = localLocations.filter((loc) => loc.latitude && loc.longitude)
+  console.log(`[v0] Rendering - Total locations: ${localLocations.length}, Mappable: ${mappableLocations.length}`)
+  console.log(`[v0] Mappable locations:`, mappableLocations)
 
   if (!apiKey) {
     return (
