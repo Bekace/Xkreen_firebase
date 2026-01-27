@@ -74,8 +74,11 @@ export function LocationsMap({ locations, onLocationClick }: LocationsMapProps) 
           console.log('[v0] Google Maps already loaded')
         }
 
+        // Wait for the ref to be available
         if (!mapRef.current) {
-          console.log('[v0] Map ref not available')
+          console.log('[v0] Map ref not available, waiting...')
+          // Retry after a short delay
+          setTimeout(() => initMap(), 100)
           return
         }
 
@@ -109,7 +112,9 @@ export function LocationsMap({ locations, onLocationClick }: LocationsMapProps) 
       }
     }
 
-    initMap()
+    // Small delay to ensure the component is mounted
+    const timer = setTimeout(() => initMap(), 100)
+    return () => clearTimeout(timer)
   }, [])
 
   useEffect(() => {
