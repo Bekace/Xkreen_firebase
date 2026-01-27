@@ -125,6 +125,10 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
 
   // Filter locations that have coordinates
   const mappableLocations = locations.filter((loc) => loc.latitude && loc.longitude)
+  
+  console.log('[v0] Total locations:', locations.length)
+  console.log('[v0] Mappable locations (with coordinates):', mappableLocations.length)
+  console.log('[v0] Locations data:', locations)
 
   if (!apiKey) {
     return (
