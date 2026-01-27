@@ -210,8 +210,12 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
 
   const onLoad = useCallback((map: google.maps.Map) => {
     setMap(map)
+  }, [])
+
+  // Auto-fit bounds when map or locations change
+  useEffect(() => {
+    if (!map || typeof google === 'undefined') return
     
-    // Auto-fit bounds to show all markers
     const locationsWithCoords = localLocations.filter((loc) => loc.latitude && loc.longitude)
     if (locationsWithCoords.length > 0) {
       const bounds = new google.maps.LatLngBounds()
@@ -225,7 +229,7 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
         setTimeout(() => map.setZoom(14), 100)
       }
     }
-  }, [localLocations])
+  }, [map, localLocations])
 
   const onUnmount = useCallback(() => {
     setMap(null)
