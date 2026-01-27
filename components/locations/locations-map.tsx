@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Loader2, MapPin } from 'lucide-react'
 
+// Google Maps integration for displaying location markers with clustering
 interface Location {
   id: string
   name: string
@@ -34,6 +35,7 @@ export function LocationsMap({ locations, onLocationClick }: LocationsMapProps) 
   useEffect(() => {
     const initMap = async () => {
       try {
+        console.log('[v0] Starting map initialization...')
         const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
         console.log('[v0] Google Maps API Key exists:', !!apiKey)
         console.log('[v0] API Key length:', apiKey?.length || 0)
@@ -44,6 +46,7 @@ export function LocationsMap({ locations, onLocationClick }: LocationsMapProps) 
 
         // Load the Google Maps script dynamically
         if (!window.google) {
+          console.log('[v0] Loading Google Maps script...')
           const script = document.createElement('script')
           script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=marker,places&v=weekly`
           script.async = true
@@ -51,13 +54,32 @@ export function LocationsMap({ locations, onLocationClick }: LocationsMapProps) 
           document.head.appendChild(script)
 
           await new Promise<void>((resolve, reject) => {
-            script.onload = () => resolve()
-            script.onerror = () => reject(new Error('Failed to load Google Maps script'))
+            script.onload = () => {
+              console.log('[v0] Google Maps script loaded successfully')
+              resolve()
+            }
+            script.onerror = (err) => {
+              console.error('[v0] Failed to load Google Maps script:', err)
+              reject(new Error('Failed to load Google Maps script'))
+            }
+            
+            // Add timeout
+            setTimeout(() => {
+              if (!window.google) {
+                reject(new Error('Google Maps script load timeout'))
+              }
+            }, 10000)
           })
+        } else {
+          console.log('[v0] Google Maps already loaded')
         }
 
-        if (!mapRef.current) return
+        if (!mapRef.current) {
+          console.log('[v0] Map ref not available')
+          return
+        }
 
+        console.log('[v0] Creating map instance...')
         // Create map centered on US (or first location with coordinates)
         const firstLocationWithCoords = locations.find((loc) => loc.latitude && loc.longitude)
         const center = firstLocationWithCoords
@@ -72,11 +94,13 @@ export function LocationsMap({ locations, onLocationClick }: LocationsMapProps) 
           fullscreenControl: true,
         })
 
+        console.log('[v0] Map instance created successfully')
         setMap(mapInstance)
 
         // Geocode locations without coordinates
         await geocodeLocations(locations)
 
+        console.log('[v0] Map initialization complete')
         setLoading(false)
       } catch (err) {
         console.error('[v0] Error initializing map:', err)
