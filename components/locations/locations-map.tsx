@@ -1,5 +1,6 @@
 'use client'
 
+// Interactive map component with custom styling and auto-geocoding
 import { useCallback, useState, useEffect } from 'react'
 import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api'
 import { Card, CardContent } from '@/components/ui/card'
@@ -47,77 +48,72 @@ const defaultCenter = {
 // Static libraries array to prevent re-renders
 const libraries: ('places')[] = ['places']
 
-// Custom dark map styling
+// Custom minimal map styling
 const mapStyles = [
+  // Background
   {
     featureType: 'all',
     elementType: 'geometry',
-    stylers: [{ color: '#242f3e' }],
+    stylers: [{ color: '#D9D9D9' }],
   },
   {
     featureType: 'all',
     elementType: 'labels.text.stroke',
-    stylers: [{ color: '#242f3e' }],
+    stylers: [{ color: '#D9D9D9' }],
   },
   {
     featureType: 'all',
     elementType: 'labels.text.fill',
-    stylers: [{ color: '#746855' }],
+    stylers: [{ color: '#666666' }],
   },
+  // Water
   {
     featureType: 'water',
     elementType: 'geometry',
-    stylers: [{ color: '#17263c' }],
+    stylers: [{ color: '#0E3D46' }],
   },
+  {
+    featureType: 'water',
+    elementType: 'labels',
+    stylers: [{ visibility: 'off' }],
+  },
+  // Roads
   {
     featureType: 'road',
     elementType: 'geometry',
-    stylers: [{ color: '#38414e' }],
+    stylers: [{ color: '#EBEEEF' }],
   },
   {
     featureType: 'road',
     elementType: 'geometry.stroke',
-    stylers: [{ color: '#212a37' }],
+    stylers: [{ color: '#CCCCCC' }],
   },
   {
     featureType: 'road',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#9ca5b3' }],
+    elementType: 'labels',
+    stylers: [{ visibility: 'simplified' }],
   },
+  // Hide highway markers/shields
   {
     featureType: 'road.highway',
-    elementType: 'geometry',
-    stylers: [{ color: '#746855' }],
+    elementType: 'labels.icon',
+    stylers: [{ visibility: 'off' }],
   },
-  {
-    featureType: 'road.highway',
-    elementType: 'geometry.stroke',
-    stylers: [{ color: '#1f2835' }],
-  },
-  {
-    featureType: 'road.highway',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#f3d19c' }],
-  },
+  // Hide all POI (Points of Interest)
   {
     featureType: 'poi',
-    elementType: 'geometry',
-    stylers: [{ color: '#283d6a' }],
+    stylers: [{ visibility: 'off' }],
   },
+  // Hide transit stations
   {
-    featureType: 'poi',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#6f9ba5' }],
+    featureType: 'transit',
+    stylers: [{ visibility: 'off' }],
   },
+  // Simplify administrative labels
   {
-    featureType: 'poi.park',
-    elementType: 'geometry',
-    stylers: [{ color: '#263c3f' }],
-  },
-  {
-    featureType: 'poi.park',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#6b9a76' }],
+    featureType: 'administrative',
+    elementType: 'labels',
+    stylers: [{ visibility: 'simplified' }],
   },
 ]
 
@@ -297,7 +293,7 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
                 icon={{
                   path: google.maps.SymbolPath.CIRCLE,
                   scale: 10,
-                  fillColor: location.status === 'active' ? '#10b981' : '#6b7280',
+                  fillColor: '#186670',
                   fillOpacity: 1,
                   strokeColor: '#ffffff',
                   strokeWeight: 2,
