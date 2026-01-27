@@ -38,8 +38,16 @@ export function LocationsMap({ locations, onLocationClick }: LocationsMapProps) 
   useEffect(() => {
     const initMap = async () => {
       try {
+        const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+        console.log('[v0] Google Maps API Key exists:', !!apiKey)
+        console.log('[v0] API Key length:', apiKey?.length || 0)
+        
+        if (!apiKey) {
+          throw new Error('Google Maps API key is missing')
+        }
+        
         const loader = new Loader({
-          apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+          apiKey,
           version: 'weekly',
           libraries: ['marker', 'geocoding'],
         })
