@@ -102,8 +102,10 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
           `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`
         )
         const data = await response.json()
+        
+        console.log(`[v0] API Response for ${location.name}:`, data)
 
-        if (data.results && data.results[0]) {
+        if (data.status === 'OK' && data.results && data.results.length > 0) {
           const { lat, lng } = data.results[0].geometry.location
           console.log(`[v0] Geocoded ${location.name}: ${lat}, ${lng}`)
 
@@ -131,7 +133,7 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
             setZoom(12)
           }
         } else {
-          console.log(`[v0] No results for ${location.name}`)
+          console.log(`[v0] No results for ${location.name}. Status: ${data.status}, Error: ${data.error_message || 'None'}`)
         }
       } catch (error) {
         console.error(`[v0] Failed to geocode ${location.name}:`, error)
