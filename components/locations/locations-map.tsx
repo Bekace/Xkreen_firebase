@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Loader2, MapPin } from 'lucide-react'
 
-// Google Maps integration for displaying location markers with clustering
+// Google Maps integration for displaying location markers with clustering and geocoding
+// Features: Interactive map, custom markers, info windows, auto-geocoding addresses
 interface Location {
   id: string
   name: string
@@ -31,6 +32,8 @@ export function LocationsMap({ locations, onLocationClick }: LocationsMapProps) 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const markerClustererRef = useRef<any>(null)
+  const retryCountRef = useRef(0)
+  const maxRetries = 10
 
   useEffect(() => {
     const initMap = async () => {
@@ -76,10 +79,15 @@ export function LocationsMap({ locations, onLocationClick }: LocationsMapProps) 
 
         // Wait for the ref to be available
         if (!mapRef.current) {
-          console.log('[v0] Map ref not available, waiting...')
-          // Retry after a short delay
-          setTimeout(() => initMap(), 100)
-          return
+          console.log('[v0] Map ref not available, retries:', retryCountRef.current)
+          retryCountRef.current++
+          
+          if (retryCountRef.current < maxRetries) {
+            setTimeout(() => initMap(), 200)
+            return
+          } else {
+            throw new Error('Map container not found after maximum retries')
+          }
         }
 
         console.log('[v0] Creating map instance...')
@@ -112,8 +120,11 @@ export function LocationsMap({ locations, onLocationClick }: LocationsMapProps) 
       }
     }
 
-    // Small delay to ensure the component is mounted
-    const timer = setTimeout(() => initMap(), 100)
+    // Wait for component to be fully mounted and visible
+    const timer = setTimeout(() => {
+      retryCountRef.current = 0
+      initMap()
+    }, 300)
     return () => clearTimeout(timer)
   }, [])
 
