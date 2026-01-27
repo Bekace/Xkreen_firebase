@@ -560,16 +560,13 @@ export default function LocationsPage() {
 
         {/* Map View */}
         <TabsContent value="map">
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-24">
-              <Map className="w-16 h-16 text-muted-foreground mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Map View Coming Soon</h3>
-              <p className="text-muted-foreground text-center max-w-md">
-                Visualize your locations on an interactive map with Google Maps integration. This feature will be
-                available in the next update.
-              </p>
-            </CardContent>
-          </Card>
+          <LocationsMap 
+            locations={locations} 
+            onLocationClick={(location) => {
+              setCurrentLocation(location)
+              setIsEditDialogOpen(true)
+            }}
+          />
         </TabsContent>
       </Tabs>
 
