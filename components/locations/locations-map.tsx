@@ -1,12 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Loader } from '@googlemaps/js-api-loader'
 import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { MapPin, Monitor, ExternalLink, Loader2 } from 'lucide-react'
-import Link from 'next/link'
+import { Loader2, MapPin } from 'lucide-react'
 
 interface Location {
   id: string
@@ -30,7 +26,7 @@ interface LocationsMapProps {
 export function LocationsMap({ locations, onLocationClick }: LocationsMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const [map, setMap] = useState<google.maps.Map | null>(null)
-  const [markers, setMarkers] = useState<google.maps.marker.AdvancedMarkerElement[]>([])
+  const [markers, setMarkers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const markerClustererRef = useRef<any>(null)
@@ -41,19 +37,24 @@ export function LocationsMap({ locations, onLocationClick }: LocationsMapProps) 
         const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
         console.log('[v0] Google Maps API Key exists:', !!apiKey)
         console.log('[v0] API Key length:', apiKey?.length || 0)
-        
+
         if (!apiKey) {
           throw new Error('Google Maps API key is missing')
         }
-        
-        const loader = new Loader({
-          apiKey,
-          version: 'weekly',
-          libraries: ['marker', 'geocoding'],
-        })
 
-        const { Map } = await loader.importLibrary('maps')
-        const { AdvancedMarkerElement } = await loader.importLibrary('marker')
+        // Load the Google Maps script dynamically
+        if (!window.google) {
+          const script = document.createElement('script')
+          script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=marker,places&v=weekly`
+          script.async = true
+          script.defer = true
+          document.head.appendChild(script)
+
+          await new Promise<void>((resolve, reject) => {
+            script.onload = () => resolve()
+            script.onerror = () => reject(new Error('Failed to load Google Maps script'))
+          })
+        }
 
         if (!mapRef.current) return
 
@@ -63,10 +64,9 @@ export function LocationsMap({ locations, onLocationClick }: LocationsMapProps) 
           ? { lat: firstLocationWithCoords.latitude, lng: firstLocationWithCoords.longitude }
           : { lat: 39.8283, lng: -98.5795 } // Center of US
 
-        const mapInstance = new Map(mapRef.current, {
+        const mapInstance = new google.maps.Map(mapRef.current, {
           center,
           zoom: firstLocationWithCoords ? 12 : 4,
-          mapId: 'LOCATIONS_MAP_ID',
           mapTypeControl: true,
           streetViewControl: false,
           fullscreenControl: true,
@@ -89,10 +89,10 @@ export function LocationsMap({ locations, onLocationClick }: LocationsMapProps) 
   }, [])
 
   useEffect(() => {
-    if (!map) return
+    if (!map || !window.google) return
 
     // Clear existing markers
-    markers.forEach((marker) => (marker.map = null))
+    markers.forEach((marker) => marker.setMap(null))
     setMarkers([])
 
     // Clear existing clusterer
@@ -101,10 +101,7 @@ export function LocationsMap({ locations, onLocationClick }: LocationsMapProps) 
     }
 
     const createMarkers = async () => {
-      const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary('marker') as any
-      const { MarkerClusterer } = await google.maps.importLibrary('markerClusterer') as any
-
-      const newMarkers: google.maps.marker.AdvancedMarkerElement[] = []
+      const newMarkers: any[] = []
       const bounds = new google.maps.LatLngBounds()
 
       for (const location of locations) {
@@ -113,19 +110,21 @@ export function LocationsMap({ locations, onLocationClick }: LocationsMapProps) 
         const position = { lat: location.latitude, lng: location.longitude }
         bounds.extend(position)
 
-        // Custom pin color based on status
-        const pinColor = location.status === 'active' ? '#10b981' : '#6b7280'
-        const pinGlyph = new PinElement({
-          background: pinColor,
-          borderColor: '#ffffff',
-          glyphColor: '#ffffff',
-        })
+        // Custom marker icon based on status
+        const markerColor = location.status === 'active' ? '#10b981' : '#6b7280'
 
-        const marker = new AdvancedMarkerElement({
+        const marker = new google.maps.Marker({
           map,
           position,
           title: location.name,
-          content: pinGlyph.element,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 10,
+            fillColor: markerColor,
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 2,
+          },
         })
 
         // Create info window
@@ -152,12 +151,17 @@ export function LocationsMap({ locations, onLocationClick }: LocationsMapProps) 
 
       setMarkers(newMarkers)
 
-      // Add marker clustering
-      if (newMarkers.length > 0) {
-        markerClustererRef.current = new MarkerClusterer({
-          map,
-          markers: newMarkers,
-        })
+      // Add marker clustering if library is available
+      if (newMarkers.length > 0 && (window as any).markerClusterer) {
+        try {
+          const { MarkerClusterer } = (window as any).markerClusterer
+          markerClustererRef.current = new MarkerClusterer({
+            map,
+            markers: newMarkers,
+          })
+        } catch (err) {
+          console.log('[v0] MarkerClusterer not available, showing markers without clustering')
+        }
 
         // Fit map to show all markers
         if (newMarkers.length > 1) {
@@ -174,17 +178,10 @@ export function LocationsMap({ locations, onLocationClick }: LocationsMapProps) 
     if (locationsToGeocode.length === 0) return
 
     try {
-      const { Geocoder } = await google.maps.importLibrary('geocoding') as any
-      const geocoder = new Geocoder()
+      const geocoder = new google.maps.Geocoder()
 
       for (const location of locationsToGeocode) {
-        const address = [
-          location.address,
-          location.city,
-          location.state,
-          location.zip_code,
-          location.country,
-        ]
+        const address = [location.address, location.city, location.state, location.zip_code, location.country]
           .filter(Boolean)
           .join(', ')
 
@@ -193,9 +190,20 @@ export function LocationsMap({ locations, onLocationClick }: LocationsMapProps) 
         try {
           const result = await geocoder.geocode({ address })
           if (result.results[0]) {
-            const { lat, lng } = result.results[0].geometry.location
-            console.log(`[v0] Geocoded ${location.name}: ${lat()}, ${lng()}`)
-            // You could update the location in the database here
+            const lat = result.results[0].geometry.location.lat()
+            const lng = result.results[0].geometry.location.lng()
+            console.log(`[v0] Geocoded ${location.name}: ${lat}, ${lng}`)
+
+            // Update location in database
+            await fetch(`/api/locations/${location.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                ...location,
+                latitude: lat,
+                longitude: lng,
+              }),
+            })
           }
         } catch (err) {
           console.error(`[v0] Geocoding failed for ${location.name}:`, err)
@@ -228,7 +236,9 @@ export function LocationsMap({ locations, onLocationClick }: LocationsMapProps) 
             : ''
         }
         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-          <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 9999px; font-size: 12px; font-weight: 500; background: ${location.status === 'active' ? '#d1fae5' : '#e5e7eb'}; color: ${location.status === 'active' ? '#065f46' : '#374151'};">
+          <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 9999px; font-size: 12px; font-weight: 500; background: ${
+            location.status === 'active' ? '#d1fae5' : '#e5e7eb'
+          }; color: ${location.status === 'active' ? '#065f46' : '#374151'};">
             ${location.status === 'active' ? 'Active' : 'Inactive'}
           </span>
           ${
@@ -244,13 +254,13 @@ export function LocationsMap({ locations, onLocationClick }: LocationsMapProps) 
               : ''
           }
         </div>
-        <a href="/dashboard/locations" 
-           style="display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; background: #3b82f6; color: white; border-radius: 6px; font-size: 13px; font-weight: 500; text-decoration: none;">
+        <button onclick="window.location.href='/dashboard/locations'" 
+           style="display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; background: #3b82f6; color: white; border-radius: 6px; font-size: 13px; font-weight: 500; text-decoration: none; border: none; cursor: pointer;">
           View Details
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
           </svg>
-        </a>
+        </button>
       </div>
     `
   }
