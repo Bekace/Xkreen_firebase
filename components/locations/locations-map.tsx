@@ -1,8 +1,8 @@
 'use client'
 
-// Interactive map component with custom styling and auto-geocoding
+// Interactive map component with custom styling, auto-geocoding, and geolocation
 import { useCallback, useState, useEffect } from 'react'
-import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api'
+import { GoogleMap, LoadScript, Marker, InfoWindow, OverlayView } from '@react-google-maps/api'
 import { Card, CardContent } from '@/components/ui/card'
 import { Loader2, MapPin, Phone, User, Monitor } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -36,7 +36,7 @@ interface LocationsMapProps {
 }
 
 const containerStyle = {
-  width: '80%',
+  width: '100%',
   height: '600px',
 }
 
@@ -120,12 +120,36 @@ const mapStyles = [
 export function LocationsMap({ locations, isActive, onLocationClick }: LocationsMapProps) {
   const [map, setMap] = useState<google.maps.Map | null>(null)
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null)
+  const [hoveredLocation, setHoveredLocation] = useState<Location | null>(null)
   const [center, setCenter] = useState(defaultCenter)
-  const [zoom, setZoom] = useState(4)
+  const [zoom, setZoom] = useState(11)
   const [localLocations, setLocalLocations] = useState<Location[]>(locations)
   const [isGeocoding, setIsGeocoding] = useState(false)
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''
+
+  // Get user's geolocation
+  useEffect(() => {
+    if (!isActive || userLocation) return
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const userPos = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          }
+          setUserLocation(userPos)
+          setCenter(userPos)
+          setZoom(11)
+        },
+        (error) => {
+          console.error('Geolocation error:', error)
+        }
+      )
+    }
+  }, [isActive, userLocation])
 
   useEffect(() => {
     if (!isActive) return
@@ -134,15 +158,15 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
     
     const locationsWithCoords = locations.filter((loc) => loc.latitude && loc.longitude)
     
-    if (locationsWithCoords.length > 0) {
+    // Only update center if we don't have user location yet
+    if (!userLocation && locationsWithCoords.length > 0) {
       const firstLocation = locationsWithCoords[0]
       setCenter({
         lat: firstLocation.latitude!,
         lng: firstLocation.longitude!,
       })
-      setZoom(locationsWithCoords.length === 1 ? 12 : 8)
-    } else {
-      // If no locations have coords, trigger geocoding
+      setZoom(11)
+    } else if (locationsWithCoords.length === 0) {
       geocodeLocations(locations)
     }
   }, [locations, isActive])
@@ -189,12 +213,6 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
               loc.id === location.id ? { ...loc, latitude: lat, longitude: lng } : loc
             )
           )
-          
-          // Update center to show the first geocoded location
-          if (locationsWithoutCoords[0].id === location.id) {
-            setCenter({ lat, lng })
-            setZoom(12)
-          }
         }
       } catch (error) {
         console.error(`Failed to geocode ${location.name}:`, error)
@@ -208,31 +226,13 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
     setMap(map)
   }, [])
 
-  // Auto-fit bounds when map or locations change
-  useEffect(() => {
-    if (!map || typeof google === 'undefined') return
-    
-    const locationsWithCoords = localLocations.filter((loc) => loc.latitude && loc.longitude)
-    if (locationsWithCoords.length > 0) {
-      const bounds = new google.maps.LatLngBounds()
-      locationsWithCoords.forEach((loc) => {
-        bounds.extend(new google.maps.LatLng(loc.latitude!, loc.longitude!))
-      })
-      map.fitBounds(bounds)
-      
-      // Adjust zoom for single location
-      if (locationsWithCoords.length === 1) {
-        setTimeout(() => map.setZoom(14), 100)
-      }
-    }
-  }, [map, localLocations])
-
   const onUnmount = useCallback(() => {
     setMap(null)
   }, [])
 
   const handleMarkerClick = (location: Location) => {
     setSelectedLocation(location)
+    setHoveredLocation(null)
   }
 
   const handleInfoWindowClose = () => {
@@ -244,6 +244,13 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
       onLocationClick(selectedLocation)
       setSelectedLocation(null)
     }
+  }
+
+  // Calculate marker size based on screen count
+  const getMarkerSize = (screenCount: number) => {
+    const baseSize = 30
+    const sizeIncrement = Math.min(screenCount * 3, 30) // Max 60px diameter
+    return baseSize + sizeIncrement
   }
 
   // Filter locations that have coordinates
@@ -282,24 +289,79 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
               scaleControl: true,
             }}
           >
-            {typeof google !== 'undefined' && mappableLocations.map((location) => (
-              <Marker
-                key={location.id}
-                position={{
-                  lat: location.latitude!,
-                  lng: location.longitude!,
-                }}
-                onClick={() => handleMarkerClick(location)}
-                icon={{
-                  path: google.maps.SymbolPath.CIRCLE,
-                  scale: 10,
-                  fillColor: '#186670',
-                  fillOpacity: 1,
-                  strokeColor: '#ffffff',
-                  strokeWeight: 2,
-                }}
-              />
-            ))}
+            {typeof google !== 'undefined' && mappableLocations.map((location) => {
+              const screenCount = location._count?.screens || 0
+              const size = getMarkerSize(screenCount)
+              
+              return (
+                <OverlayView
+                  key={location.id}
+                  position={{
+                    lat: location.latitude!,
+                    lng: location.longitude!,
+                  }}
+                  mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+                >
+                  <div
+                    style={{
+                      transform: 'translate(-50%, -50%)',
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => handleMarkerClick(location)}
+                    onMouseEnter={() => setHoveredLocation(location)}
+                    onMouseLeave={() => setHoveredLocation(null)}
+                  >
+                    {/* Custom circular marker */}
+                    <div
+                      style={{
+                        width: `${size}px`,
+                        height: `${size}px`,
+                        borderRadius: '50%',
+                        backgroundColor: '#186670',
+                        border: '3px solid white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontWeight: 'bold',
+                        fontSize: screenCount > 99 ? '10px' : screenCount > 9 ? '12px' : '14px',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                      }}
+                    >
+                      {screenCount}
+                    </div>
+                    
+                    {/* Hover tooltip */}
+                    {hoveredLocation?.id === location.id && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          bottom: `${size / 2 + 10}px`,
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                          color: 'white',
+                          padding: '8px 12px',
+                          borderRadius: '6px',
+                          whiteSpace: 'nowrap',
+                          fontSize: '13px',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                          pointerEvents: 'none',
+                          zIndex: 1000,
+                        }}
+                      >
+                        <div style={{ fontWeight: '600', marginBottom: '2px' }}>
+                          {screenCount} screen{screenCount !== 1 ? 's' : ''} here.
+                        </div>
+                        <div style={{ fontSize: '11px', opacity: 0.9 }}>
+                          Click to see details
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </OverlayView>
+              )
+            })}
 
             {selectedLocation && selectedLocation.latitude && selectedLocation.longitude && (
               <InfoWindow
