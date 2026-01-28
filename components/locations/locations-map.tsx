@@ -354,7 +354,7 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
             }}
           >
             {typeof google !== 'undefined' && mappableLocations.map((location) => {
-              const screenCount = location._count?.screens || 0
+              const screenCount = location._count?.screens || location.screen_count || 0
               const size = getMarkerSize(screenCount)
               
               return (
