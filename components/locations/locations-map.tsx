@@ -1,6 +1,6 @@
 'use client'
 
-// Interactive map component with custom styling, auto-geocoding, geolocation, and dynamic screen-based markers
+// Interactive map component with custom styling, auto-geocoding, geolocation, screen-based markers, and 25-mile radius focus
 import { useCallback, useState, useEffect } from 'react'
 import { GoogleMap, LoadScript, Marker, InfoWindow, OverlayView } from '@react-google-maps/api'
 import { Card, CardContent } from '@/components/ui/card'
