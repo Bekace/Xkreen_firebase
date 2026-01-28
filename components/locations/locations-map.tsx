@@ -154,9 +154,13 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
   useEffect(() => {
     if (!isActive) return
     
+    console.log('[v0] Map received locations:', locations)
+    console.log('[v0] Map locations count:', locations.length)
+    
     setLocalLocations(locations)
     
     const locationsWithCoords = locations.filter((loc) => loc.latitude && loc.longitude)
+    console.log('[v0] Locations with coordinates:', locationsWithCoords.length)
     
     // Only update center if we don't have user location yet
     if (!userLocation && locationsWithCoords.length > 0) {
