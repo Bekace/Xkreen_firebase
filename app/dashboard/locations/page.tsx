@@ -300,25 +300,40 @@ export default function LocationsPage() {
         body: JSON.stringify({ screen_ids: selectedScreenIds }),
       })
 
-      if (!response.ok) {
-        throw new Error("Failed to assign screens")
+    if (!response.ok) {
+      const errorData = await response.json()
+      if (errorData.already_assigned) {
+        toast({
+          title: "Error",
+          description: "Some screens are already assigned to other locations",
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: errorData.error || "Failed to assign screens",
+          variant: "destructive",
+        })
       }
+      setSubmitting(false)
+      return
+    }
 
-      toast({
-        title: "Success",
-        description: `${selectedScreenIds.length} screen(s) assigned successfully`,
-      })
+    toast({
+      title: "Success",
+      description: `${selectedScreenIds.length} screen(s) assigned successfully`,
+    })
 
-      setIsAssignScreensDialogOpen(false)
-      setSelectedScreenIds([])
-      setCurrentLocation(null)
-      fetchLocations()
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to assign screens",
-        variant: "destructive",
-      })
+    setIsAssignScreensDialogOpen(false)
+    setSelectedScreenIds([])
+    setCurrentLocation(null)
+    fetchLocations()
+  } catch (error) {
+    toast({
+      title: "Error",
+      description: "Failed to assign screens",
+      variant: "destructive",
+    })
     } finally {
       setSubmitting(false)
     }
@@ -411,10 +426,13 @@ export default function LocationsPage() {
   )
 
   const getAvailableScreens = () => {
-    if (!currentLocation) return screens
-
-    const assignedScreenIds = currentLocation.screens?.map((s) => s.id) || []
-    return screens.filter((screen) => !assignedScreenIds.includes(screen.id))
+    // Get all screens that are already assigned to ANY location
+    const allAssignedScreenIds = locations.flatMap(
+      (loc) => loc.screens?.map((s) => s.id) || []
+    )
+    
+    // Return only screens that are not assigned anywhere
+    return screens.filter((screen) => !allAssignedScreenIds.includes(screen.id))
   }
 
   if (loading) {

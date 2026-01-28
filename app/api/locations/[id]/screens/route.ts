@@ -32,6 +32,23 @@ export async function POST(request: Request, { params }: { params: { id: string 
       return NextResponse.json({ error: "Location not found" }, { status: 404 })
     }
 
+    // Check if any screens are already assigned to other locations
+    const { data: existingAssignments } = await supabase
+      .from("screen_locations")
+      .select("screen_id")
+      .in("screen_id", screen_ids)
+
+    if (existingAssignments && existingAssignments.length > 0) {
+      const alreadyAssignedIds = existingAssignments.map((a) => a.screen_id)
+      return NextResponse.json(
+        {
+          error: "Some screens are already assigned to other locations",
+          already_assigned: alreadyAssignedIds,
+        },
+        { status: 400 }
+      )
+    }
+
     // Insert screen assignments
     const assignments = screen_ids.map((screen_id) => ({
       location_id: params.id,
