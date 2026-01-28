@@ -565,8 +565,7 @@ export default function LocationsPage() {
             locations={locations}
             isActive={activeTab === 'map'}
             onLocationClick={(location) => {
-              setCurrentLocation(location)
-              setIsEditDialogOpen(true)
+              openEditDialog(location)
             }}
           />
         </TabsContent>
