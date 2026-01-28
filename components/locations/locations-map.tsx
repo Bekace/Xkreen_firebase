@@ -226,6 +226,52 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
     setMap(map)
   }, [])
 
+  // Auto-fit bounds to 25-mile radius from user location
+  useEffect(() => {
+    if (!map || typeof google === 'undefined' || !userLocation) return
+    
+    const locationsWithCoords = localLocations.filter((loc) => loc.latitude && loc.longitude)
+    if (locationsWithCoords.length === 0) return
+
+    // Filter locations within 25 miles of user
+    const nearbyLocations = locationsWithCoords.filter((loc) => {
+      const distance = calculateDistance(
+        userLocation.lat,
+        userLocation.lng,
+        loc.latitude!,
+        loc.longitude!
+      )
+      return distance <= 25
+    })
+
+    // Fit bounds based on nearby locations
+    if (nearbyLocations.length > 0) {
+      const bounds = new google.maps.LatLngBounds()
+      
+      // Add user location
+      bounds.extend(new google.maps.LatLng(userLocation.lat, userLocation.lng))
+      
+      // Add nearby locations
+      nearbyLocations.forEach((loc) => {
+        bounds.extend(new google.maps.LatLng(loc.latitude!, loc.longitude!))
+      })
+      
+      map.fitBounds(bounds)
+      
+      // Set closer zoom for single nearby location
+      if (nearbyLocations.length === 1) {
+        setTimeout(() => map.setZoom(11), 100)
+      }
+    } else {
+      // No locations within 25 miles - show all locations
+      const bounds = new google.maps.LatLngBounds()
+      locationsWithCoords.forEach((loc) => {
+        bounds.extend(new google.maps.LatLng(loc.latitude!, loc.longitude!))
+      })
+      map.fitBounds(bounds)
+    }
+  }, [map, userLocation, localLocations])
+
   const onUnmount = useCallback(() => {
     setMap(null)
   }, [])
@@ -246,6 +292,21 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
     }
   }
 
+  // Calculate distance between two coordinates in miles (Haversine formula)
+  const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+    const R = 3959 // Earth's radius in miles
+    const dLat = (lat2 - lat1) * (Math.PI / 180)
+    const dLng = (lng2 - lng1) * (Math.PI / 180)
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * (Math.PI / 180)) *
+        Math.cos(lat2 * (Math.PI / 180)) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+    return R * c
+  }
+
   // Calculate marker size based on screen count
   const getMarkerSize = (screenCount: number) => {
     const baseSize = 45
@@ -255,14 +316,6 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
 
   // Filter locations that have coordinates
   const mappableLocations = localLocations.filter((loc) => loc.latitude && loc.longitude)
-  
-  // Debug: Log screen counts
-  console.log('[v0] Mappable locations with screen counts:', 
-    mappableLocations.map(loc => ({ 
-      name: loc.name, 
-      screenCount: loc._count?.screens || 0 
-    }))
-  )
   console.log('[v0] Total locations:', localLocations.length)
   console.log('[v0] Mappable locations:', mappableLocations.length)
   console.log('[v0] All locations data:', localLocations)
@@ -293,7 +346,7 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
             onUnmount={onUnmount}
             options={{
               streetViewControl: false,
-              mapTypeControl: true,
+              mapTypeControl: false,
               fullscreenControl: true,
               styles: mapStyles,
               zoomControl: true,
