@@ -1,6 +1,6 @@
 'use client'
 
-// Interactive map component with custom styling, auto-geocoding, and geolocation
+// Interactive map component with custom styling, auto-geocoding, geolocation, and dynamic screen-based markers
 import { useCallback, useState, useEffect } from 'react'
 import { GoogleMap, LoadScript, Marker, InfoWindow, OverlayView } from '@react-google-maps/api'
 import { Card, CardContent } from '@/components/ui/card'
@@ -248,13 +248,21 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
 
   // Calculate marker size based on screen count
   const getMarkerSize = (screenCount: number) => {
-    const baseSize = 30
-    const sizeIncrement = Math.min(screenCount * 3, 30) // Max 60px diameter
+    const baseSize = 45
+    const sizeIncrement = Math.min(screenCount * 4, 40) // Max 85px diameter
     return baseSize + sizeIncrement
   }
 
   // Filter locations that have coordinates
   const mappableLocations = localLocations.filter((loc) => loc.latitude && loc.longitude)
+  
+  // Debug: Log screen counts
+  console.log('[v0] Mappable locations with screen counts:', 
+    mappableLocations.map(loc => ({ 
+      name: loc.name, 
+      screenCount: loc._count?.screens || 0 
+    }))
+  )
   console.log('[v0] Total locations:', localLocations.length)
   console.log('[v0] Mappable locations:', mappableLocations.length)
   console.log('[v0] All locations data:', localLocations)
@@ -320,14 +328,13 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
                         width: `${size}px`,
                         height: `${size}px`,
                         borderRadius: '50%',
-                        backgroundColor: '#186670',
-                        border: '3px solid white',
+                        backgroundColor: 'rgba(0, 0, 0, 0.85)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         color: 'white',
                         fontWeight: 'bold',
-                        fontSize: screenCount > 99 ? '10px' : screenCount > 9 ? '12px' : '14px',
+                        fontSize: screenCount > 99 ? '12px' : screenCount > 9 ? '14px' : '16px',
                         boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
                       }}
                     >
