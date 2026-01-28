@@ -111,10 +111,13 @@ export async function GET() {
 
     console.log("[v0] Fetched locations count:", locations?.length || 0)
 
-    // Transform data to include screen count
+    // Transform data to include screen count in Prisma format
     const transformedLocations = locations.map((location) => ({
       ...location,
       screen_count: location.screen_locations?.length || 0,
+      _count: {
+        screens: location.screen_locations?.length || 0,
+      },
       screens: location.screen_locations?.map((sl: any) => sl.screens) || [],
     }))
 
