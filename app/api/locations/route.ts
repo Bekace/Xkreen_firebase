@@ -1,6 +1,35 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 
+// Geocode address to get latitude/longitude
+async function geocodeAddress(
+  address: string,
+  city: string,
+  state: string,
+  zipCode?: string
+): Promise<{ lat: number; lng: number } | null> {
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+  if (!apiKey) return null
+
+  const fullAddress = `${address}, ${city}, ${state} ${zipCode || ''}`.trim()
+  
+  try {
+    const response = await fetch(
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(fullAddress)}&key=${apiKey}`
+    )
+    const data = await response.json()
+
+    if (data.status === 'OK' && data.results && data.results.length > 0) {
+      const { lat, lng } = data.results[0].geometry.location
+      return { lat, lng }
+    }
+  } catch (error) {
+    console.error('[v0] Geocoding error:', error)
+  }
+
+  return null
+}
+
 export async function GET() {
   try {
     const supabase = await createClient()
@@ -165,6 +194,20 @@ export async function POST(request: Request) {
 
     console.log("[v0] Inserting location:", name)
 
+    // Auto-geocode if address is provided but no coordinates
+    let finalLatitude = latitude
+    let finalLongitude = longitude
+    
+    if (!latitude && !longitude && address && city && state) {
+      console.log("[v0] Auto-geocoding address...")
+      const coords = await geocodeAddress(address, city, state, zip_code)
+      if (coords) {
+        finalLatitude = coords.lat
+        finalLongitude = coords.lng
+        console.log("[v0] Geocoded coordinates:", finalLatitude, finalLongitude)
+      }
+    }
+
     const { data: location, error } = await supabase
       .from("locations")
       .insert({
@@ -177,8 +220,8 @@ export async function POST(request: Request) {
         state: state || null,
         zip_code: zip_code || null,
         country: country || null,
-        latitude: latitude || null,
-        longitude: longitude || null,
+        latitude: finalLatitude || null,
+        longitude: finalLongitude || null,
         contact_person: contact_person || null,
         phone_number: phone_number || null,
         operating_hours: operating_hours || null,
