@@ -138,14 +138,6 @@ export default function LocationsPage() {
       }
 
       const data = await response.json()
-      console.log('[v0] Fetched locations from API:', data.locations)
-      console.log('[v0] Total locations:', data.locations?.length)
-      console.log('[v0] Locations with coords:', data.locations?.filter((l: any) => l.latitude && l.longitude).length)
-      console.log('[v0] Screen count data:', data.locations?.map((l: any) => ({ 
-        name: l.name, 
-        _count: l._count,
-        screens: l.screens?.length 
-      })))
       setLocations(data.locations || [])
     } catch (error) {
       console.error("Error fetching locations:", error)
