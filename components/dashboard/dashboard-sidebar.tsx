@@ -11,6 +11,7 @@ import {
   Monitor,
   ImageIcon,
   PlayCircle,
+  Calendar,
   BarChart3,
   Settings,
   ChevronLeft,
@@ -47,6 +48,11 @@ const navigation = [
     name: "Playlists",
     href: "/dashboard/playlists",
     icon: PlayCircle,
+  },
+  {
+    name: "Schedules",
+    href: "/dashboard/schedules",
+    icon: Calendar,
   },
   {
     name: "Analytics",

@@ -22,6 +22,7 @@ import {
   Edit,
   Circle,
   CheckCircle2,
+  Calendar,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { transformScreenData } from "@/utils/transformScreenData"
@@ -44,9 +45,10 @@ interface Screen {
   media_id?: string
   screen_playlists?: { playlist_id: string; is_active: boolean; playlists?: { id: string; name: string } }[] // Added playlists relation
   screen_media?: { media_id: string; media?: { id: string; name: string } }[] // Added screen_media
-  content_type?: "playlist" | "asset" | "none" // Added content_type
+  content_type?: "playlist" | "asset" | "schedule" | "none" // Added content_type
   enable_audio_management?: boolean
-}
+  screen_schedules?: { schedule_id: string; schedules?: { id: string; name: string } }[]
+  }
 
 interface Playlist {
   id: string
@@ -89,6 +91,7 @@ export default function ScreensPage() {
   const [screens, setScreens] = useState<Screen[]>([])
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([])
+  const [schedules, setSchedules] = useState<{ id: string; name: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
@@ -141,6 +144,7 @@ export default function ScreensPage() {
     fetchScreens()
     fetchPlaylists()
     fetchMediaItems()
+    fetchSchedules()
   }, [])
 
   const fetchScreenLimits = async () => {
@@ -202,6 +206,18 @@ export default function ScreensPage() {
       }
     } catch (error) {
       console.error("Error fetching media items:", error)
+    }
+  }
+
+  const fetchSchedules = async () => {
+    try {
+      const response = await fetch("/api/schedules")
+      if (response.ok) {
+        const data = await response.json()
+        setSchedules(data.schedules || [])
+      }
+    } catch (error) {
+      console.error("Error fetching schedules:", error)
     }
   }
 
@@ -1041,6 +1057,8 @@ export default function ScreensPage() {
     // Determine the initial content_type based on existing assignments
     if (screen.screen_playlists && screen.screen_playlists.length > 0) {
       setEditingContentType("playlist")
+    } else if (screen.screen_schedules && screen.screen_schedules.length > 0) {
+      setEditingContentType("schedule")
     } else if (screen.screen_media && screen.screen_media.length > 0) {
       setEditingContentType("asset")
     } else if (screen.media_id) {
@@ -1056,6 +1074,15 @@ export default function ScreensPage() {
       screen.screen_playlists.forEach((sp: any) => {
         if (sp.playlist_id) {
           selectedIds.push(sp.playlist_id)
+        }
+      })
+    }
+
+    // Add all schedules from screen_schedules
+    if (screen.screen_schedules) {
+      screen.screen_schedules.forEach((ss: any) => {
+        if (ss.schedule_id) {
+          selectedIds.push(ss.schedule_id)
         }
       })
     }
@@ -1184,11 +1211,13 @@ export default function ScreensPage() {
                     <span className="capitalize">
                       {screen.screen_playlists && screen.screen_playlists.length > 0
                         ? "Playlist"
-                        : screen.screen_media && screen.screen_media.length > 0
-                          ? "Media Asset"
-                          : screen.media_id
+                        : screen.screen_schedules && screen.screen_schedules.length > 0
+                          ? "Schedule"
+                          : screen.screen_media && screen.screen_media.length > 0
                             ? "Media Asset"
-                            : "None"}
+                            : screen.media_id
+                              ? "Media Asset"
+                              : "None"}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -1198,16 +1227,20 @@ export default function ScreensPage() {
                       title={
                         screen.screen_playlists && screen.screen_playlists.length > 0
                           ? screen.screen_playlists.map((sp: any) => sp.playlists?.name || "Unknown").join(", ")
-                          : screen.screen_media && screen.screen_media.length > 0
-                            ? screen.screen_media.map((sm: any) => sm.media?.name || "Unknown").join(", ")
-                            : "Not assigned"
+                          : screen.screen_schedules && screen.screen_schedules.length > 0
+                            ? screen.screen_schedules.map((ss: any) => ss.schedules?.name || "Unknown").join(", ")
+                            : screen.screen_media && screen.screen_media.length > 0
+                              ? screen.screen_media.map((sm: any) => sm.media?.name || "Unknown").join(", ")
+                              : "Not assigned"
                       }
                     >
                       {screen.screen_playlists && screen.screen_playlists.length > 0
                         ? screen.screen_playlists.map((sp: any) => sp.playlists?.name || "Unknown").join(", ")
-                        : screen.screen_media && screen.screen_media.length > 0
-                          ? screen.screen_media.map((sm: any) => sm.media?.name || "Unknown").join(", ")
-                          : "Not assigned"}
+                        : screen.screen_schedules && screen.screen_schedules.length > 0
+                          ? screen.screen_schedules.map((ss: any) => ss.schedules?.name || "Unknown").join(", ")
+                          : screen.screen_media && screen.screen_media.length > 0
+                            ? screen.screen_media.map((sm: any) => sm.media?.name || "Unknown").join(", ")
+                            : "Not assigned"}
                     </span>
                   </div>
                   {/* End content type and name display */}
@@ -1441,6 +1474,13 @@ export default function ScreensPage() {
                     >
                       Media Assets
                     </Button>
+                    <Button
+                      variant={editingContentType === "schedule" ? "default" : "outline"}
+                      className={editingContentType === "schedule" ? "bg-cyan-500 hover:bg-cyan-600" : ""}
+                      onClick={() => setEditingContentType("schedule")}
+                    >
+                      Schedules
+                    </Button>
                   </div>
 
                   {/* Playlists Section */}
@@ -1520,6 +1560,46 @@ export default function ScreensPage() {
                                   <span className="text-sm font-medium block">{media.name}</span>
                                   <p className="text-xs text-gray-500">{media.mime_type}</p>
                                 </div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Schedules Section */}
+                  {editingContentType === "schedule" && (
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-semibold flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-cyan-500" />
+                        Schedules
+                      </h4>
+                      <div className="space-y-2 max-h-48 overflow-y-auto border rounded-lg p-3 bg-gray-50/50 scrollbar-hide">
+                        {schedules.length === 0 ? (
+                          <p className="text-sm text-gray-500 text-center py-4">No schedules available</p>
+                        ) : (
+                          schedules.map((schedule) => (
+                            <div
+                              key={schedule.id}
+                              className={`p-3 rounded-lg cursor-pointer transition-all ${
+                                editingSelectedContentIds.includes(schedule.id)
+                                  ? "bg-cyan-50 ring-2 ring-cyan-500"
+                                  : "bg-white hover:bg-gray-50"
+                              }`}
+                              onClick={() => {
+                                setEditingSelectedContentIds((prev) =>
+                                  prev.includes(schedule.id) ? prev.filter((id) => id !== schedule.id) : [...prev, schedule.id],
+                                )
+                              }}
+                            >
+                              <div className="flex items-center gap-3 text-popover">
+                                {editingSelectedContentIds.includes(schedule.id) ? (
+                                  <CheckCircle2 className="h-5 w-5 text-cyan-500" />
+                                ) : (
+                                  <Circle className="h-5 w-5 text-gray-300" />
+                                )}
+                                <span className="text-sm font-medium text-popover">{schedule.name}</span>
                               </div>
                             </div>
                           ))
