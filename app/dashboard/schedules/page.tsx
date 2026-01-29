@@ -152,7 +152,13 @@ export default function SchedulesPage() {
   }
 
   const handleCreateSchedule = async () => {
+    console.log("[v0] handleCreateSchedule called")
+    console.log("[v0] newScheduleName:", newScheduleName)
+    console.log("[v0] newScheduleDescription:", newScheduleDescription)
+    console.log("[v0] newScheduleTimezone:", newScheduleTimezone)
+    
     if (!newScheduleName.trim()) {
+      console.log("[v0] Validation failed: schedule name is empty")
       toast({
         title: "Error",
         description: "Schedule name is required",
@@ -161,6 +167,8 @@ export default function SchedulesPage() {
       return
     }
 
+    console.log("[v0] Starting schedule creation...")
+    
     try {
       const response = await fetch("/api/schedules", {
         method: "POST",
@@ -172,7 +180,11 @@ export default function SchedulesPage() {
         }),
       })
 
+      console.log("[v0] API response status:", response.status)
+
       if (response.ok) {
+        const data = await response.json()
+        console.log("[v0] Schedule created successfully:", data)
         toast({
           title: "Success",
           description: "Schedule created successfully",
@@ -183,6 +195,7 @@ export default function SchedulesPage() {
         fetchSchedules()
       } else {
         const data = await response.json()
+        console.log("[v0] Error response:", data)
         toast({
           title: "Error",
           description: data.error || "Failed to create schedule",
@@ -190,7 +203,7 @@ export default function SchedulesPage() {
         })
       }
     } catch (error) {
-      console.error("Error creating schedule:", error)
+      console.error("[v0] Error creating schedule:", error)
       toast({
         title: "Error",
         description: "Failed to create schedule",
@@ -651,7 +664,12 @@ export default function SchedulesPage() {
             <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreateSchedule}>Create Schedule</Button>
+            <Button 
+              onClick={handleCreateSchedule}
+              className="bg-cyan-500 hover:bg-cyan-600"
+            >
+              Create Schedule
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
