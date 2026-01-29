@@ -26,6 +26,11 @@ interface Location {
   _count?: {
     screens: number
   }
+  screen_count?: number
+  screens?: Array<{
+    id: string
+    name: string
+  }>
   user_id: string
 }
 
@@ -468,12 +473,43 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
                     </div>
                   )}
 
-                  {selectedLocation._count && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
-                      <Monitor className="w-4 h-4 flex-shrink-0" />
-                      <span>{selectedLocation._count.screens} screen(s)</span>
+                  {(selectedLocation._count?.screens || selectedLocation.screen_count) ? (
+                    <div className="mb-3">
+                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                        <Monitor className="w-4 h-4 flex-shrink-0" />
+                        <span className="font-medium">
+                          {selectedLocation._count?.screens || selectedLocation.screen_count} screen(s)
+                        </span>
+                      </div>
+                      
+                      {selectedLocation.screens && selectedLocation.screens.length > 0 && (
+                        <div className="ml-6 mb-2">
+                          <ul className="text-xs text-gray-600 space-y-1">
+                            {selectedLocation.screens.map((screen) => (
+                              <li key={screen.id} className="truncate">
+                                • {screen.name}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      <button
+                        onClick={() => {
+                          if (map && selectedLocation.latitude && selectedLocation.longitude) {
+                            map.panTo({
+                              lat: selectedLocation.latitude,
+                              lng: selectedLocation.longitude,
+                            })
+                            map.setZoom(15)
+                          }
+                        }}
+                        className="ml-6 text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        View location on map
+                      </button>
                     </div>
-                  )}
+                  ) : null}
 
                   <Button onClick={handleViewDetails} size="sm" className="w-full">
                     View Details
