@@ -72,7 +72,6 @@ export async function POST(request: NextRequest) {
       name,
       description,
       is_active = true,
-      timezone = "UTC",
     } = body
 
     if (!name) {
@@ -80,7 +79,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Schedule name is required" }, { status: 400 })
     }
 
-    console.log("[v0] Creating schedule with:", { user_id: user.id, name, description, is_active, timezone })
+    console.log("[v0] Creating schedule with:", { user_id: user.id, name, description, is_active })
 
     // Create new schedule
     const { data: schedule, error } = await supabase
@@ -90,7 +89,6 @@ export async function POST(request: NextRequest) {
         name,
         description,
         is_active,
-        timezone,
       })
       .select()
       .single()

@@ -27,7 +27,6 @@ interface Schedule {
   name: string
   description: string
   is_active: boolean
-  timezone: string
   created_at: string
   schedule_items: { count: number }[]
 }
@@ -72,7 +71,6 @@ export default function SchedulesPage() {
   // Form states
   const [newScheduleName, setNewScheduleName] = useState("")
   const [newScheduleDescription, setNewScheduleDescription] = useState("")
-  const [newScheduleTimezone, setNewScheduleTimezone] = useState("UTC")
   const [editScheduleName, setEditScheduleName] = useState("")
   const [editScheduleDescription, setEditScheduleDescription] = useState("")
   const [editScheduleActive, setEditScheduleActive] = useState(true)
@@ -155,7 +153,6 @@ export default function SchedulesPage() {
     console.log("[v0] handleCreateSchedule called")
     console.log("[v0] newScheduleName:", newScheduleName)
     console.log("[v0] newScheduleDescription:", newScheduleDescription)
-    console.log("[v0] newScheduleTimezone:", newScheduleTimezone)
     
     if (!newScheduleName.trim()) {
       console.log("[v0] Validation failed: schedule name is empty")
@@ -176,7 +173,6 @@ export default function SchedulesPage() {
         body: JSON.stringify({
           name: newScheduleName,
           description: newScheduleDescription,
-          timezone: newScheduleTimezone,
         }),
       })
 
@@ -643,21 +639,6 @@ export default function SchedulesPage() {
                 value={newScheduleDescription}
                 onChange={(e) => setNewScheduleDescription(e.target.value)}
               />
-            </div>
-            <div>
-              <Label htmlFor="timezone">Timezone</Label>
-              <Select value={newScheduleTimezone} onValueChange={setNewScheduleTimezone}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="UTC">UTC</SelectItem>
-                  <SelectItem value="America/New_York">Eastern Time</SelectItem>
-                  <SelectItem value="America/Chicago">Central Time</SelectItem>
-                  <SelectItem value="America/Denver">Mountain Time</SelectItem>
-                  <SelectItem value="America/Los_Angeles">Pacific Time</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
           <DialogFooter>
