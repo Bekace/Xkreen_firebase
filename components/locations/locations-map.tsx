@@ -438,8 +438,24 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
                   lng: selectedLocation.longitude,
                 }}
                 onCloseClick={handleInfoWindowClose}
+                options={{
+                  pixelOffset: new google.maps.Size(0, -10),
+                }}
               >
                 <div className="p-2 max-w-xs">
+                  <style jsx global>{`
+                    .gm-style-iw button {
+                      background-color: white !important;
+                      border: 1px solid #d1d5db !important;
+                      opacity: 1 !important;
+                    }
+                    .gm-style-iw button:hover {
+                      background-color: #f3f4f6 !important;
+                    }
+                    .gm-style-iw button img {
+                      filter: invert(0) !important;
+                    }
+                  `}</style>
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <h3 className="font-semibold text-base">{selectedLocation.name}</h3>
                     <Badge variant={selectedLocation.status === 'active' ? 'default' : 'secondary'}>
