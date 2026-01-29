@@ -278,9 +278,23 @@ export default function SchedulesPage() {
   }
 
   const handleAddScheduleItem = async () => {
-    if (!selectedSchedule) return
+    console.log("[v0] handleAddScheduleItem called")
+    console.log("[v0] selectedSchedule:", selectedSchedule?.id)
+    console.log("[v0] itemContentType:", itemContentType)
+    console.log("[v0] itemContentId:", itemContentId)
+    console.log("[v0] itemStartTime:", itemStartTime)
+    console.log("[v0] itemEndTime:", itemEndTime)
+    console.log("[v0] itemRecurrence:", itemRecurrence)
+    console.log("[v0] itemDaysOfWeek:", itemDaysOfWeek)
+    console.log("[v0] itemPriority:", itemPriority)
+    
+    if (!selectedSchedule) {
+      console.log("[v0] Error: No schedule selected")
+      return
+    }
     
     if (!itemContentId || !itemStartTime || !itemEndTime) {
+      console.log("[v0] Validation failed: missing required fields")
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -301,6 +315,9 @@ export default function SchedulesPage() {
       daysOfWeek = itemDaysOfWeek
     }
 
+    console.log("[v0] Prepared recurrenceRule:", recurrenceRule)
+    console.log("[v0] Starting schedule item creation...")
+
     try {
       const response = await fetch(`/api/schedules/${selectedSchedule.id}/items`, {
         method: "POST",
@@ -316,7 +333,11 @@ export default function SchedulesPage() {
         }),
       })
 
+      console.log("[v0] API response status:", response.status)
+
       if (response.ok) {
+        const data = await response.json()
+        console.log("[v0] Schedule item created successfully:", data)
         toast({
           title: "Success",
           description: "Schedule item added successfully",
@@ -326,6 +347,7 @@ export default function SchedulesPage() {
         fetchScheduleItems(selectedSchedule.id)
       } else {
         const data = await response.json()
+        console.log("[v0] Error response:", data)
         toast({
           title: "Error",
           description: data.error || "Failed to add schedule item",
@@ -333,7 +355,7 @@ export default function SchedulesPage() {
         })
       }
     } catch (error) {
-      console.error("Error adding schedule item:", error)
+      console.error("[v0] Error adding schedule item:", error)
       toast({
         title: "Error",
         description: "Failed to add schedule item",
@@ -691,7 +713,12 @@ export default function SchedulesPage() {
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleEditSchedule}>Save Changes</Button>
+            <Button 
+              onClick={handleEditSchedule}
+              className="bg-cyan-500 hover:bg-cyan-600"
+            >
+              Save Changes
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -806,7 +833,12 @@ export default function SchedulesPage() {
             <Button variant="outline" onClick={() => setIsAddItemDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleAddScheduleItem}>Add Time Slot</Button>
+            <Button 
+              onClick={handleAddScheduleItem}
+              className="bg-cyan-500 hover:bg-cyan-600"
+            >
+              Add Time Slot
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
