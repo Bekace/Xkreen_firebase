@@ -241,7 +241,7 @@ export function LocationsMap({ locations, isActive, onLocationClick }: Locations
         loc.latitude!,
         loc.longitude!
       )
-      return distance <= 25
+      return distance <= 45
     })
 
     // Fit bounds based on nearby locations
