@@ -129,7 +129,7 @@ export default function SchedulesPage() {
 
   const fetchMedia = async () => {
     try {
-      const response = await fetch("/api/media")
+      const response = await fetch("/api/media/list")
       if (response.ok) {
         const data = await response.json()
         setMediaItems(data.media || [])
