@@ -1,15 +1,27 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Calendar,
   Plus,
@@ -19,8 +31,20 @@ import {
   Clock,
   PlayCircle,
   ImageIcon,
+  ChevronLeft,
+  ChevronRight,
+  PanelLeftClose,
+  PanelLeft,
+  MoreHorizontal,
 } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { useToast } from "@/hooks/use-toast"
+import { cn } from "@/lib/utils"
 
 interface Schedule {
   id: string
@@ -28,7 +52,7 @@ interface Schedule {
   description: string
   is_active: boolean
   created_at: string
-  schedule_items: { count: number }[]
+  schedule_items: ScheduleItem[]
 }
 
 interface ScheduleItem {
@@ -57,6 +81,16 @@ interface Media {
   url: string
 }
 
+// Predefined colors for time slots
+const SLOT_COLORS = [
+  { bg: "bg-cyan-100", border: "border-cyan-300", text: "text-cyan-800" },
+  { bg: "bg-emerald-100", border: "border-emerald-300", text: "text-emerald-800" },
+  { bg: "bg-amber-100", border: "border-amber-300", text: "text-amber-800" },
+  { bg: "bg-rose-100", border: "border-rose-300", text: "text-rose-800" },
+  { bg: "bg-violet-100", border: "border-violet-300", text: "text-violet-800" },
+  { bg: "bg-blue-100", border: "border-blue-300", text: "text-blue-800" },
+]
+
 export default function SchedulesPage() {
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [searchQuery, setSearchQuery] = useState("")
@@ -66,6 +100,13 @@ export default function SchedulesPage() {
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null)
   const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => {
+    const today = new Date()
+    const dayOfWeek = today.getDay()
+    const diff = today.getDate() - dayOfWeek
+    return new Date(today.setDate(diff))
+  })
   const { toast } = useToast()
 
   // Form states
@@ -78,15 +119,30 @@ export default function SchedulesPage() {
   // Schedule item form states
   const [itemContentType, setItemContentType] = useState<"playlist" | "media">("playlist")
   const [itemContentId, setItemContentId] = useState("")
-  const [itemStartTime, setItemStartTime] = useState("")
-  const [itemEndTime, setItemEndTime] = useState("")
-  const [itemRecurrence, setItemRecurrence] = useState<"none" | "daily" | "weekly">("none")
-  const [itemDaysOfWeek, setItemDaysOfWeek] = useState<number[]>([])
+  const [itemStartTime, setItemStartTime] = useState("09:00")
+  const [itemEndTime, setItemEndTime] = useState("17:00")
+  const [itemRecurrence, setItemRecurrence] = useState<"none" | "daily" | "weekly">("daily")
+  const [itemDaysOfWeek, setItemDaysOfWeek] = useState<number[]>([1, 2, 3, 4, 5])
   const [itemPriority, setItemPriority] = useState(0)
+  const [clickedDayIndex, setClickedDayIndex] = useState<number | null>(null)
 
   // Content for schedule items
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [mediaItems, setMediaItems] = useState<Media[]>([])
+
+  // Hours for calendar grid (6 AM to 10 PM)
+  const hours = Array.from({ length: 17 }, (_, i) => i + 6)
+
+  // Generate week days
+  const weekDays = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const date = new Date(currentWeekStart)
+      date.setDate(date.getDate() + i)
+      return date
+    })
+  }, [currentWeekStart])
+
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
   useEffect(() => {
     fetchSchedules()
@@ -94,12 +150,23 @@ export default function SchedulesPage() {
     fetchMedia()
   }, [])
 
+  useEffect(() => {
+    if (selectedSchedule) {
+      fetchScheduleItems(selectedSchedule.id)
+    }
+  }, [selectedSchedule])
+
   const fetchSchedules = async () => {
     try {
       const response = await fetch("/api/schedules")
       if (response.ok) {
         const data = await response.json()
-        setSchedules(data.schedules || [])
+        const schedulesData = data.schedules || []
+        setSchedules(schedulesData)
+        // Auto-select first schedule if none selected
+        if (schedulesData.length > 0 && !selectedSchedule) {
+          setSelectedSchedule(schedulesData[0])
+        }
       }
     } catch (error) {
       console.error("Error fetching schedules:", error)
@@ -142,7 +209,7 @@ export default function SchedulesPage() {
       const response = await fetch(`/api/schedules/${scheduleId}`)
       if (response.ok) {
         const data = await response.json()
-        setScheduleItems(data.schedule.schedule_items || [])
+        setScheduleItems(data.schedule?.schedule_items || [])
       }
     } catch (error) {
       console.error("Error fetching schedule items:", error)
@@ -150,12 +217,7 @@ export default function SchedulesPage() {
   }
 
   const handleCreateSchedule = async () => {
-    console.log("[v0] handleCreateSchedule called")
-    console.log("[v0] newScheduleName:", newScheduleName)
-    console.log("[v0] newScheduleDescription:", newScheduleDescription)
-    
     if (!newScheduleName.trim()) {
-      console.log("[v0] Validation failed: schedule name is empty")
       toast({
         title: "Error",
         description: "Schedule name is required",
@@ -164,8 +226,6 @@ export default function SchedulesPage() {
       return
     }
 
-    console.log("[v0] Starting schedule creation...")
-    
     try {
       const response = await fetch("/api/schedules", {
         method: "POST",
@@ -176,11 +236,8 @@ export default function SchedulesPage() {
         }),
       })
 
-      console.log("[v0] API response status:", response.status)
-
       if (response.ok) {
         const data = await response.json()
-        console.log("[v0] Schedule created successfully:", data)
         toast({
           title: "Success",
           description: "Schedule created successfully",
@@ -189,9 +246,12 @@ export default function SchedulesPage() {
         setNewScheduleName("")
         setNewScheduleDescription("")
         fetchSchedules()
+        // Select the newly created schedule
+        if (data.schedule) {
+          setSelectedSchedule(data.schedule)
+        }
       } else {
         const data = await response.json()
-        console.log("[v0] Error response:", data)
         toast({
           title: "Error",
           description: data.error || "Failed to create schedule",
@@ -199,7 +259,7 @@ export default function SchedulesPage() {
         })
       }
     } catch (error) {
-      console.error("[v0] Error creating schedule:", error)
+      console.error("Error creating schedule:", error)
       toast({
         title: "Error",
         description: "Failed to create schedule",
@@ -259,6 +319,10 @@ export default function SchedulesPage() {
           title: "Success",
           description: "Schedule deleted successfully",
         })
+        if (selectedSchedule?.id === scheduleId) {
+          setSelectedSchedule(null)
+          setScheduleItems([])
+        }
         fetchSchedules()
       } else {
         toast({
@@ -278,23 +342,16 @@ export default function SchedulesPage() {
   }
 
   const handleAddScheduleItem = async () => {
-    console.log("[v0] handleAddScheduleItem called")
-    console.log("[v0] selectedSchedule:", selectedSchedule?.id)
-    console.log("[v0] itemContentType:", itemContentType)
-    console.log("[v0] itemContentId:", itemContentId)
-    console.log("[v0] itemStartTime:", itemStartTime)
-    console.log("[v0] itemEndTime:", itemEndTime)
-    console.log("[v0] itemRecurrence:", itemRecurrence)
-    console.log("[v0] itemDaysOfWeek:", itemDaysOfWeek)
-    console.log("[v0] itemPriority:", itemPriority)
-    
     if (!selectedSchedule) {
-      console.log("[v0] Error: No schedule selected")
+      toast({
+        title: "Error",
+        description: "Please select a schedule first",
+        variant: "destructive",
+      })
       return
     }
-    
+
     if (!itemContentId || !itemStartTime || !itemEndTime) {
-      console.log("[v0] Validation failed: missing required fields")
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -315,9 +372,6 @@ export default function SchedulesPage() {
       daysOfWeek = itemDaysOfWeek
     }
 
-    console.log("[v0] Prepared recurrenceRule:", recurrenceRule)
-    console.log("[v0] Starting schedule item creation...")
-
     try {
       const response = await fetch(`/api/schedules/${selectedSchedule.id}/items`, {
         method: "POST",
@@ -333,39 +387,34 @@ export default function SchedulesPage() {
         }),
       })
 
-      console.log("[v0] API response status:", response.status)
-
       if (response.ok) {
-        const data = await response.json()
-        console.log("[v0] Schedule item created successfully:", data)
         toast({
           title: "Success",
-          description: "Schedule item added successfully",
+          description: "Time slot added successfully",
         })
         setIsAddItemDialogOpen(false)
         resetItemForm()
         fetchScheduleItems(selectedSchedule.id)
       } else {
         const data = await response.json()
-        console.log("[v0] Error response:", data)
         toast({
           title: "Error",
-          description: data.error || "Failed to add schedule item",
+          description: data.error || "Failed to add time slot",
           variant: "destructive",
         })
       }
     } catch (error) {
-      console.error("[v0] Error adding schedule item:", error)
+      console.error("Error adding schedule item:", error)
       toast({
         title: "Error",
-        description: "Failed to add schedule item",
+        description: "Failed to add time slot",
         variant: "destructive",
       })
     }
   }
 
   const handleDeleteScheduleItem = async (itemId: string) => {
-    if (!selectedSchedule || !confirm("Are you sure you want to delete this schedule item?")) return
+    if (!selectedSchedule) return
 
     try {
       const response = await fetch(`/api/schedules/${selectedSchedule.id}/items/${itemId}`, {
@@ -375,13 +424,13 @@ export default function SchedulesPage() {
       if (response.ok) {
         toast({
           title: "Success",
-          description: "Schedule item deleted successfully",
+          description: "Time slot deleted",
         })
         fetchScheduleItems(selectedSchedule.id)
       } else {
         toast({
           title: "Error",
-          description: "Failed to delete schedule item",
+          description: "Failed to delete time slot",
           variant: "destructive",
         })
       }
@@ -389,7 +438,7 @@ export default function SchedulesPage() {
       console.error("Error deleting schedule item:", error)
       toast({
         title: "Error",
-        description: "Failed to delete schedule item",
+        description: "Failed to delete time slot",
         variant: "destructive",
       })
     }
@@ -398,11 +447,12 @@ export default function SchedulesPage() {
   const resetItemForm = () => {
     setItemContentType("playlist")
     setItemContentId("")
-    setItemStartTime("")
-    setItemEndTime("")
-    setItemRecurrence("none")
-    setItemDaysOfWeek([])
+    setItemStartTime("09:00")
+    setItemEndTime("17:00")
+    setItemRecurrence("daily")
+    setItemDaysOfWeek([1, 2, 3, 4, 5])
     setItemPriority(0)
+    setClickedDayIndex(null)
   }
 
   const openEditDialog = (schedule: Schedule) => {
@@ -413,226 +463,365 @@ export default function SchedulesPage() {
     setIsEditDialogOpen(true)
   }
 
-  const openScheduleDetails = (schedule: Schedule) => {
-    setSelectedSchedule(schedule)
-    fetchScheduleItems(schedule.id)
-  }
-
   const toggleDayOfWeek = (day: number) => {
     setItemDaysOfWeek((prev) =>
       prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
     )
   }
 
+  const goToToday = () => {
+    const today = new Date()
+    const dayOfWeek = today.getDay()
+    const diff = today.getDate() - dayOfWeek
+    setCurrentWeekStart(new Date(today.setDate(diff)))
+  }
+
+  const goToPreviousWeek = () => {
+    const newDate = new Date(currentWeekStart)
+    newDate.setDate(newDate.getDate() - 7)
+    setCurrentWeekStart(newDate)
+  }
+
+  const goToNextWeek = () => {
+    const newDate = new Date(currentWeekStart)
+    newDate.setDate(newDate.getDate() + 7)
+    setCurrentWeekStart(newDate)
+  }
+
+  const handleCellClick = (dayIndex: number, hour: number) => {
+    if (!selectedSchedule) {
+      toast({
+        title: "No schedule selected",
+        description: "Please select or create a schedule first",
+        variant: "destructive",
+      })
+      return
+    }
+    setClickedDayIndex(dayIndex)
+    setItemStartTime(`${hour.toString().padStart(2, "0")}:00`)
+    setItemEndTime(`${(hour + 1).toString().padStart(2, "0")}:00`)
+    // If clicking on a specific day, set weekly recurrence with that day
+    setItemRecurrence("weekly")
+    setItemDaysOfWeek([dayIndex])
+    setIsAddItemDialogOpen(true)
+  }
+
   const filteredSchedules = schedules.filter((schedule) =>
     schedule.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+  // Get time slot position and height for calendar display
+  const getSlotStyle = (item: ScheduleItem) => {
+    const [startHour, startMin] = item.start_time.split(":").map(Number)
+    const [endHour, endMin] = item.end_time.split(":").map(Number)
+
+    const startOffset = (startHour - 6) * 60 + startMin
+    const endOffset = (endHour - 6) * 60 + endMin
+    const duration = endOffset - startOffset
+
+    return {
+      top: `${(startOffset / 60) * 48}px`,
+      height: `${(duration / 60) * 48}px`,
+    }
+  }
+
+  // Check if an item should display on a given day
+  const shouldDisplayOnDay = (item: ScheduleItem, dayIndex: number) => {
+    if (item.recurrence_rule?.includes("DAILY")) {
+      return true
+    }
+    if (item.recurrence_rule?.includes("WEEKLY") && item.days_of_week) {
+      return item.days_of_week.includes(dayIndex)
+    }
+    // No recurrence - show on all days for now
+    return true
+  }
+
+  // Get color for an item
+  const getItemColor = (index: number) => {
+    return SLOT_COLORS[index % SLOT_COLORS.length]
+  }
+
+  const formatWeekRange = () => {
+    const endDate = new Date(currentWeekStart)
+    endDate.setDate(endDate.getDate() + 6)
+    const startMonth = currentWeekStart.toLocaleDateString("en-US", { month: "short" })
+    const endMonth = endDate.toLocaleDateString("en-US", { month: "short" })
+    const startDay = currentWeekStart.getDate()
+    const endDay = endDate.getDate()
+    const year = endDate.getFullYear()
+
+    if (startMonth === endMonth) {
+      return `${startMonth} ${startDay} - ${endDay}, ${year}`
+    }
+    return `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${year}`
+  }
 
   if (loading) {
     return (
-      <div className="p-8">
-        <div className="flex items-center justify-center h-64">
-          <p className="text-muted-foreground">Loading schedules...</p>
-        </div>
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-muted-foreground">Loading schedules...</p>
       </div>
     )
   }
 
   return (
-    <div className="p-8 space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Schedules</h1>
-          <p className="text-muted-foreground">Manage time-based content scheduling</p>
+    <div className="flex h-[calc(100vh-64px)]">
+      {/* Sidebar */}
+      <div
+        className={cn(
+          "border-r bg-background transition-all duration-300 flex flex-col",
+          sidebarCollapsed ? "w-0 overflow-hidden" : "w-72"
+        )}
+      >
+        {/* Sidebar Header */}
+        <div className="p-4 border-b">
+          <Button
+            onClick={() => setIsCreateDialogOpen(true)}
+            className="w-full bg-cyan-500 hover:bg-cyan-600"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Create Schedule
+          </Button>
         </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Create Schedule
-        </Button>
-      </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-        <Input
-          placeholder="Search schedules..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
-        />
-      </div>
-
-      {/* Schedules Grid */}
-      {selectedSchedule ? (
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <Button variant="ghost" onClick={() => setSelectedSchedule(null)}>
-                ← Back to Schedules
-              </Button>
-              <h2 className="text-2xl font-bold mt-2">{selectedSchedule.name}</h2>
-              <p className="text-muted-foreground">{selectedSchedule.description}</p>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => openEditDialog(selectedSchedule)}>
-                <Edit className="w-4 h-4 mr-2" />
-                Edit
-              </Button>
-              <Button onClick={() => setIsAddItemDialogOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Time Slot
-              </Button>
-            </div>
+        {/* Search */}
+        <div className="p-4 border-b">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <Input
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-9"
+            />
           </div>
+        </div>
 
-          {/* Schedule Items */}
-          <div className="space-y-4">
-            {scheduleItems.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <Clock className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">No time slots added yet</p>
-                  <Button className="mt-4" onClick={() => setIsAddItemDialogOpen(true)}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add First Time Slot
-                  </Button>
-                </CardContent>
-              </Card>
+        {/* Schedule List */}
+        <ScrollArea className="flex-1">
+          <div className="p-2">
+            {filteredSchedules.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No schedules found
+              </p>
             ) : (
-              scheduleItems.map((item) => (
-                <Card key={item.id}>
-                  <CardContent className="py-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        {item.content_type === "playlist" ? (
-                          <PlayCircle className="w-5 h-5 text-primary" />
-                        ) : (
-                          <ImageIcon className="w-5 h-5 text-primary" />
-                        )}
-                        <div>
-                          <p className="font-medium">
-                            {item.content_type === "playlist"
-                              ? item.playlists?.name
-                              : item.media?.name}
-                          </p>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                            <span>
-                              {new Date(`2000-01-01T${item.start_time}`).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}{" "}
-                              -{" "}
-                              {new Date(`2000-01-01T${item.end_time}`).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </span>
-                            {item.recurrence_rule && (
-                              <span className="text-xs px-2 py-1 bg-secondary rounded">
-                                {item.recurrence_rule.includes("DAILY")
-                                  ? "Daily"
-                                  : item.recurrence_rule.includes("WEEKLY")
-                                    ? `Weekly: ${item.days_of_week?.map((d) => dayNames[d]).join(", ")}`
-                                    : "Recurring"}
-                              </span>
-                            )}
-                            <span className="text-xs px-2 py-1 bg-secondary rounded">
-                              Priority: {item.priority}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
+              filteredSchedules.map((schedule) => (
+                <div
+                  key={schedule.id}
+                  className={cn(
+                    "flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-colors group",
+                    selectedSchedule?.id === schedule.id
+                      ? "bg-cyan-50 border border-cyan-200"
+                      : "hover:bg-muted"
+                  )}
+                  onClick={() => setSelectedSchedule(schedule)}
+                >
+                  <div
+                    className={cn(
+                      "w-3 h-3 rounded-full",
+                      schedule.is_active ? "bg-cyan-500" : "bg-gray-300"
+                    )}
+                  />
+                  <span className="flex-1 text-sm font-medium truncate">
+                    {schedule.name}
+                  </span>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleDeleteScheduleItem(item.id)}
+                        className="h-8 w-8 opacity-0 group-hover:opacity-100"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <MoreHorizontal className="w-4 h-4" />
                       </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => openEditDialog(schedule)}>
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleDeleteSchedule(schedule.id)}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               ))
             )}
           </div>
+        </ScrollArea>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Calendar Header */}
+        <div className="flex items-center justify-between p-4 border-b bg-background">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            >
+              {sidebarCollapsed ? (
+                <PanelLeft className="w-5 h-5" />
+              ) : (
+                <PanelLeftClose className="w-5 h-5" />
+              )}
+            </Button>
+            <Button variant="outline" size="sm" onClick={goToToday}>
+              Today
+            </Button>
+            <Button variant="ghost" size="icon" onClick={goToPreviousWeek}>
+              <ChevronLeft className="w-5 h-5" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={goToNextWeek}>
+              <ChevronRight className="w-5 h-5" />
+            </Button>
+            <h2 className="text-lg font-semibold ml-2">{formatWeekRange()}</h2>
+          </div>
+          <div className="flex items-center gap-2">
+            {selectedSchedule && (
+              <span className="text-sm text-muted-foreground">
+                Viewing: <span className="font-medium text-foreground">{selectedSchedule.name}</span>
+              </span>
+            )}
+          </div>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredSchedules.length === 0 ? (
-            <Card className="col-span-full">
-              <CardContent className="py-12 text-center">
-                <Calendar className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">
-                  {searchQuery ? "No schedules found" : "No schedules yet"}
-                </p>
-                {!searchQuery && (
-                  <Button className="mt-4" onClick={() => setIsCreateDialogOpen(true)}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create Your First Schedule
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
+
+        {/* Calendar Grid */}
+        <div className="flex-1 overflow-auto">
+          {!selectedSchedule ? (
+            <div className="flex flex-col items-center justify-center h-full text-center p-8">
+              <Calendar className="w-16 h-16 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No Schedule Selected</h3>
+              <p className="text-muted-foreground mb-4">
+                Select a schedule from the sidebar or create a new one to get started
+              </p>
+              <Button onClick={() => setIsCreateDialogOpen(true)} className="bg-cyan-500 hover:bg-cyan-600">
+                <Plus className="w-4 h-4 mr-2" />
+                Create Schedule
+              </Button>
+            </div>
           ) : (
-            filteredSchedules.map((schedule) => (
-              <Card
-                key={schedule.id}
-                className="hover:border-primary transition-colors cursor-pointer"
-                onClick={() => openScheduleDetails(schedule)}
-              >
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <Calendar className="w-8 h-8 text-primary" />
-                    <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          openEditDialog(schedule)
-                        }}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleDeleteSchedule(schedule.id)
-                        }}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  <CardTitle className="mt-4">{schedule.name}</CardTitle>
-                  <p className="text-sm text-muted-foreground">{schedule.description}</p>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      {schedule.schedule_items?.[0]?.count || 0} time slots
-                    </span>
-                    <span
-                      className={`px-2 py-1 rounded text-xs ${
-                        schedule.is_active
-                          ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                          : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                      }`}
+            <div className="min-w-[800px]">
+              {/* Day Headers */}
+              <div className="flex border-b bg-muted/30 sticky top-0 z-10">
+                <div className="w-16 shrink-0 border-r" />
+                {weekDays.map((date, index) => {
+                  const isToday = date.toDateString() === new Date().toDateString()
+                  return (
+                    <div
+                      key={index}
+                      className={cn(
+                        "flex-1 p-2 text-center border-r last:border-r-0",
+                        isToday && "bg-cyan-50"
+                      )}
                     >
-                      {schedule.is_active ? "Active" : "Inactive"}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+                      <div className="text-xs text-muted-foreground">{dayNames[index]}</div>
+                      <div
+                        className={cn(
+                          "text-lg font-semibold",
+                          isToday && "text-cyan-600"
+                        )}
+                      >
+                        {date.getDate()}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Time Grid */}
+              <div className="flex">
+                {/* Time Labels */}
+                <div className="w-16 shrink-0 border-r">
+                  {hours.map((hour) => (
+                    <div
+                      key={hour}
+                      className="h-12 border-b text-xs text-muted-foreground pr-2 text-right pt-0 -mt-2"
+                    >
+                      {hour === 12 ? "12PM" : hour > 12 ? `${hour - 12}PM` : `${hour}AM`}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Day Columns */}
+                {weekDays.map((date, dayIndex) => {
+                  const isToday = date.toDateString() === new Date().toDateString()
+                  return (
+                    <div
+                      key={dayIndex}
+                      className={cn(
+                        "flex-1 border-r last:border-r-0 relative",
+                        isToday && "bg-cyan-50/30"
+                      )}
+                    >
+                      {/* Hour cells */}
+                      {hours.map((hour) => (
+                        <div
+                          key={hour}
+                          className="h-12 border-b border-dashed hover:bg-muted/50 cursor-pointer transition-colors"
+                          onClick={() => handleCellClick(dayIndex, hour)}
+                        />
+                      ))}
+
+                      {/* Schedule Items */}
+                      {scheduleItems
+                        .filter((item) => shouldDisplayOnDay(item, dayIndex))
+                        .map((item, itemIndex) => {
+                          const style = getSlotStyle(item)
+                          const color = getItemColor(itemIndex)
+                          const contentName =
+                            item.content_type === "playlist"
+                              ? item.playlists?.name
+                              : item.media?.name
+
+                          return (
+                            <div
+                              key={`${item.id}-${dayIndex}`}
+                              className={cn(
+                                "absolute left-1 right-1 rounded-md border p-1 overflow-hidden cursor-pointer group",
+                                color.bg,
+                                color.border,
+                                color.text
+                              )}
+                              style={style}
+                              title={`${contentName}\n${item.start_time} - ${item.end_time}`}
+                            >
+                              <div className="text-xs font-medium truncate">
+                                {item.start_time.slice(0, 5)} - {item.end_time.slice(0, 5)}
+                              </div>
+                              <div className="text-xs truncate opacity-80">
+                                {contentName || "Unknown content"}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="absolute top-0 right-0 h-5 w-5 opacity-0 group-hover:opacity-100 hover:bg-white/50"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleDeleteScheduleItem(item.id)
+                                }}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          )
+                        })}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
           )}
         </div>
-      )}
+      </div>
 
       {/* Create Schedule Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -643,23 +832,23 @@ export default function SchedulesPage() {
               Create a new schedule to manage time-based content delivery
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 py-4">
             <div>
               <Label htmlFor="name">Schedule Name</Label>
               <Input
                 id="name"
-                placeholder="Morning Content"
                 value={newScheduleName}
                 onChange={(e) => setNewScheduleName(e.target.value)}
+                placeholder="e.g., Morning Content"
               />
             </div>
             <div>
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
-                placeholder="Content scheduled for morning hours"
                 value={newScheduleDescription}
                 onChange={(e) => setNewScheduleDescription(e.target.value)}
+                placeholder="Optional description..."
               />
             </div>
           </div>
@@ -667,10 +856,7 @@ export default function SchedulesPage() {
             <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
               Cancel
             </Button>
-            <Button 
-              onClick={handleCreateSchedule}
-              className="bg-cyan-500 hover:bg-cyan-600"
-            >
+            <Button onClick={handleCreateSchedule} className="bg-cyan-500 hover:bg-cyan-600">
               Create Schedule
             </Button>
           </DialogFooter>
@@ -682,8 +868,9 @@ export default function SchedulesPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Schedule</DialogTitle>
+            <DialogDescription>Update schedule details</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 py-4">
             <div>
               <Label htmlFor="edit-name">Schedule Name</Label>
               <Input
@@ -713,49 +900,67 @@ export default function SchedulesPage() {
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
               Cancel
             </Button>
-            <Button 
-              onClick={handleEditSchedule}
-              className="bg-cyan-500 hover:bg-cyan-600"
-            >
+            <Button onClick={handleEditSchedule} className="bg-cyan-500 hover:bg-cyan-600">
               Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Add Schedule Item Dialog */}
+      {/* Add Time Slot Dialog */}
       <Dialog open={isAddItemDialogOpen} onOpenChange={setIsAddItemDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Add Time Slot</DialogTitle>
             <DialogDescription>
-              Add a time-based content slot to this schedule
+              Add content to play during a specific time period
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 py-4">
+            {/* Content Type */}
             <div>
               <Label>Content Type</Label>
-              <Select value={itemContentType} onValueChange={(v: "playlist" | "media") => setItemContentType(v)}>
+              <Select
+                value={itemContentType}
+                onValueChange={(v: "playlist" | "media") => {
+                  setItemContentType(v)
+                  setItemContentId("")
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="playlist">Playlist</SelectItem>
-                  <SelectItem value="media">Media</SelectItem>
+                  <SelectItem value="playlist">
+                    <div className="flex items-center">
+                      <PlayCircle className="w-4 h-4 mr-2" />
+                      Playlist
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="media">
+                    <div className="flex items-center">
+                      <ImageIcon className="w-4 h-4 mr-2" />
+                      Media
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Content Selection */}
             <div>
-              <Label>Select {itemContentType === "playlist" ? "Playlist" : "Media"}</Label>
+              <Label>
+                {itemContentType === "playlist" ? "Select Playlist" : "Select Media"}
+              </Label>
               <Select value={itemContentId} onValueChange={setItemContentId}>
                 <SelectTrigger>
-                  <SelectValue placeholder={`Choose a ${itemContentType}`} />
+                  <SelectValue placeholder="Choose content..." />
                 </SelectTrigger>
                 <SelectContent>
                   {itemContentType === "playlist"
-                    ? playlists.map((pl) => (
-                        <SelectItem key={pl.id} value={pl.id}>
-                          {pl.name}
+                    ? playlists.map((playlist) => (
+                        <SelectItem key={playlist.id} value={playlist.id}>
+                          {playlist.name}
                         </SelectItem>
                       ))
                     : mediaItems.map((media) => (
@@ -766,66 +971,78 @@ export default function SchedulesPage() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Time Range */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="start-time">Start Time</Label>
+                <Label>Start Time</Label>
                 <Input
-                  id="start-time"
                   type="time"
                   value={itemStartTime}
                   onChange={(e) => setItemStartTime(e.target.value)}
                 />
               </div>
               <div>
-                <Label htmlFor="end-time">End Time</Label>
+                <Label>End Time</Label>
                 <Input
-                  id="end-time"
                   type="time"
                   value={itemEndTime}
                   onChange={(e) => setItemEndTime(e.target.value)}
                 />
               </div>
             </div>
+
+            {/* Recurrence */}
             <div>
-              <Label>Recurrence</Label>
-              <Select value={itemRecurrence} onValueChange={(v: "none" | "daily" | "weekly") => setItemRecurrence(v)}>
+              <Label>Repeat</Label>
+              <Select
+                value={itemRecurrence}
+                onValueChange={(v: "none" | "daily" | "weekly") => setItemRecurrence(v)}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">One-time</SelectItem>
+                  <SelectItem value="none">Does not repeat</SelectItem>
                   <SelectItem value="daily">Daily</SelectItem>
-                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="weekly">Weekly on selected days</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Days of Week */}
             {itemRecurrence === "weekly" && (
               <div>
-                <Label>Days of Week</Label>
-                <div className="flex gap-2 mt-2">
+                <Label className="mb-2 block">Days</Label>
+                <div className="flex gap-1">
                   {dayNames.map((day, index) => (
                     <Button
-                      key={index}
+                      key={day}
                       type="button"
                       variant={itemDaysOfWeek.includes(index) ? "default" : "outline"}
                       size="sm"
+                      className={cn(
+                        "w-10 h-10 p-0",
+                        itemDaysOfWeek.includes(index) && "bg-cyan-500 hover:bg-cyan-600"
+                      )}
                       onClick={() => toggleDayOfWeek(index)}
                     >
-                      {day}
+                      {day.charAt(0)}
                     </Button>
                   ))}
                 </div>
               </div>
             )}
+
+            {/* Priority */}
             <div>
-              <Label htmlFor="priority">Priority (0-10)</Label>
+              <Label>Priority (higher = more important)</Label>
               <Input
-                id="priority"
                 type="number"
                 min="0"
-                max="10"
+                max="100"
                 value={itemPriority}
-                onChange={(e) => setItemPriority(parseInt(e.target.value) || 0)}
+                onChange={(e) => setItemPriority(Number(e.target.value))}
               />
             </div>
           </div>
@@ -833,10 +1050,7 @@ export default function SchedulesPage() {
             <Button variant="outline" onClick={() => setIsAddItemDialogOpen(false)}>
               Cancel
             </Button>
-            <Button 
-              onClick={handleAddScheduleItem}
-              className="bg-cyan-500 hover:bg-cyan-600"
-            >
+            <Button onClick={handleAddScheduleItem} className="bg-cyan-500 hover:bg-cyan-600">
               Add Time Slot
             </Button>
           </DialogFooter>
