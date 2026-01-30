@@ -96,6 +96,8 @@ export default function SchedulesPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false)
+  const [isEditItemDialogOpen, setIsEditItemDialogOpen] = useState(false)
+  const [editingItem, setEditingItem] = useState<ScheduleItem | null>(null)
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null)
   const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -409,6 +411,91 @@ export default function SchedulesPage() {
     }
   }
 
+  const handleEditScheduleItem = async () => {
+    if (!selectedSchedule || !editingItem) return
+
+    if (!itemContentId || !itemStartTime || !itemEndTime) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      })
+      return
+    }
+
+    let recurrenceRule = null
+    let daysOfWeek = null
+
+    if (itemRecurrence === "daily") {
+      recurrenceRule = "FREQ=DAILY"
+    } else if (itemRecurrence === "weekly" && itemDaysOfWeek.length > 0) {
+      const days = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"]
+      const byDay = itemDaysOfWeek.map((d) => days[d]).join(",")
+      recurrenceRule = `FREQ=WEEKLY;BYDAY=${byDay}`
+      daysOfWeek = itemDaysOfWeek
+    }
+
+    try {
+      const response = await fetch(`/api/schedules/${selectedSchedule.id}/items/${editingItem.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content_type: itemContentType,
+          content_id: itemContentId,
+          start_time: itemStartTime,
+          end_time: itemEndTime,
+          recurrence_rule: recurrenceRule,
+          days_of_week: daysOfWeek,
+          priority: itemPriority,
+        }),
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Time slot updated successfully",
+        })
+        setIsEditItemDialogOpen(false)
+        setEditingItem(null)
+        resetItemForm()
+        fetchScheduleItems(selectedSchedule.id)
+      } else {
+        const data = await response.json()
+        toast({
+          title: "Error",
+          description: data.error || "Failed to update time slot",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update time slot",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const openEditItemDialog = (item: ScheduleItem) => {
+    setEditingItem(item)
+    setItemContentType(item.content_type)
+    setItemContentId(item.content_id)
+    setItemStartTime(item.start_time.slice(0, 5))
+    setItemEndTime(item.end_time.slice(0, 5))
+    
+    if (item.recurrence_rule?.includes("DAILY")) {
+      setItemRecurrence("daily")
+    } else if (item.recurrence_rule?.includes("WEEKLY")) {
+      setItemRecurrence("weekly")
+      setItemDaysOfWeek(item.days_of_week || [])
+    } else {
+      setItemRecurrence("none")
+    }
+    
+    setItemPriority(item.priority || 0)
+    setIsEditItemDialogOpen(true)
+  }
+
   const handleDeleteScheduleItem = async (itemId: string) => {
     if (!selectedSchedule) return
 
@@ -533,9 +620,9 @@ export default function SchedulesPage() {
     return true
   }
 
-  // Get color for an item
+  // Get color for an item - use cyan/green for all blocks
   const getItemColor = (index: number) => {
-    return SLOT_COLORS[index % SLOT_COLORS.length]
+    return { bg: "bg-cyan-100", border: "border-cyan-400", text: "text-cyan-900" }
   }
 
   const formatWeekRange = () => {
@@ -782,13 +869,14 @@ export default function SchedulesPage() {
                             <div
                               key={`${item.id}-${dayIndex}`}
                               className={cn(
-                                "absolute left-1 right-1 rounded-md border p-1 overflow-hidden cursor-pointer group",
+                                "absolute left-1 right-1 rounded-md border-2 p-1 overflow-hidden cursor-pointer group hover:shadow-lg transition-shadow",
                                 color.bg,
                                 color.border,
                                 color.text
                               )}
                               style={style}
                               title={`${contentName}\n${item.start_time} - ${item.end_time}`}
+                              onClick={() => openEditItemDialog(item)}
                             >
                               <div className="text-xs font-medium truncate">
                                 {item.start_time.slice(0, 5)} - {item.end_time.slice(0, 5)}
@@ -1030,24 +1118,152 @@ export default function SchedulesPage() {
               </div>
             )}
 
-            {/* Priority */}
-            <div>
-              <Label>Priority (higher = more important)</Label>
-              <Input
-                type="number"
-                min="0"
-                max="100"
-                value={itemPriority}
-                onChange={(e) => setItemPriority(Number(e.target.value))}
-              />
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddItemDialogOpen(false)}>
-              Cancel
+              Close
             </Button>
             <Button onClick={handleAddScheduleItem} className="bg-cyan-500 hover:bg-cyan-600">
-              Add Time Slot
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Time Slot Dialog */}
+      <Dialog open={isEditItemDialogOpen} onOpenChange={setIsEditItemDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Time Slot</DialogTitle>
+            <DialogDescription>
+              Update content and schedule settings
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Content Type */}
+            <div>
+              <Label>Type</Label>
+              <Select
+                value={itemContentType}
+                onValueChange={(v: "playlist" | "media") => {
+                  setItemContentType(v)
+                  setItemContentId("")
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="playlist">Playlist</SelectItem>
+                  <SelectItem value="media">Media</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Content Selection */}
+            <div>
+              <Label>
+                Selected {itemContentType === "playlist" ? "Playlist" : "Media"}
+              </Label>
+              <Select value={itemContentId} onValueChange={setItemContentId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose content..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {itemContentType === "playlist"
+                    ? playlists.map((playlist) => (
+                        <SelectItem key={playlist.id} value={playlist.id}>
+                          {playlist.name}
+                        </SelectItem>
+                      ))
+                    : mediaItems.map((media) => (
+                        <SelectItem key={media.id} value={media.id}>
+                          {media.name}
+                        </SelectItem>
+                      ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Time Range */}
+            <div>
+              <Label>Time</Label>
+              <div className="text-sm text-muted-foreground">
+                {itemStartTime} - {itemEndTime}
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <Input
+                  type="time"
+                  value={itemStartTime}
+                  onChange={(e) => setItemStartTime(e.target.value)}
+                />
+                <Input
+                  type="time"
+                  value={itemEndTime}
+                  onChange={(e) => setItemEndTime(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Recurrence */}
+            <div>
+              <Label>Repeat</Label>
+              <Select
+                value={itemRecurrence}
+                onValueChange={(v: "none" | "daily" | "weekly") => setItemRecurrence(v)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Does not repeat</SelectItem>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Days of Week */}
+            {itemRecurrence === "weekly" && (
+              <div>
+                <Label className="mb-2 block">Days</Label>
+                <div className="flex gap-1">
+                  {dayNames.map((day, index) => (
+                    <Button
+                      key={day}
+                      type="button"
+                      variant={itemDaysOfWeek.includes(index) ? "default" : "outline"}
+                      size="sm"
+                      className={cn(
+                        "w-10 h-10 p-0",
+                        itemDaysOfWeek.includes(index) && "bg-cyan-500 hover:bg-cyan-600"
+                      )}
+                      onClick={() => toggleDayOfWeek(index)}
+                    >
+                      {day.charAt(0)}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => setIsEditItemDialogOpen(false)}>
+              Close
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (editingItem) {
+                  handleDeleteScheduleItem(editingItem.id)
+                  setIsEditItemDialogOpen(false)
+                }
+              }}
+            >
+              Delete
+            </Button>
+            <Button onClick={handleEditScheduleItem} className="bg-cyan-500 hover:bg-cyan-600">
+              Save
             </Button>
           </DialogFooter>
         </DialogContent>
