@@ -43,11 +43,10 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("[v0] POST /api/schedules - Starting")
     const supabase = await createClient()
 
     if (!supabase) {
-      console.error("[v0] Failed to create Supabase client")
+      console.error("Failed to create Supabase client")
       return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
     }
 
@@ -57,29 +56,19 @@ export async function POST(request: NextRequest) {
       error: authError,
     } = await supabase.auth.getUser()
     
-    console.log("[v0] User:", user?.id)
-    console.log("[v0] Auth error:", authError)
-    
     if (authError || !user) {
-      console.error("[v0] Authentication failed")
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const body = await request.json()
-    console.log("[v0] Request body:", body)
-    
     const {
       name,
       description,
       is_active = true,
-    } = body
+    } = await request.json()
 
     if (!name) {
-      console.log("[v0] Validation failed: name is required")
       return NextResponse.json({ error: "Schedule name is required" }, { status: 400 })
     }
-
-    console.log("[v0] Creating schedule with:", { user_id: user.id, name, description, is_active })
 
     // Create new schedule
     const { data: schedule, error } = await supabase
@@ -94,18 +83,13 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      console.error("[v0] Database error:", error)
-      console.error("[v0] Error details:", JSON.stringify(error, null, 2))
-      return NextResponse.json({ error: `Failed to create schedule: ${error.message}` }, { status: 500 })
+      console.error("Database error:", error)
+      return NextResponse.json({ error: "Failed to create schedule" }, { status: 500 })
     }
 
-    console.log("[v0] Schedule created successfully:", schedule)
     return NextResponse.json({ schedule })
   } catch (error) {
-    console.error("[v0] Error creating schedule:", error)
-    console.error("[v0] Error stack:", error instanceof Error ? error.stack : "No stack trace")
-    return NextResponse.json({ 
-      error: `Failed to create schedule: ${error instanceof Error ? error.message : "Unknown error"}` 
-    }, { status: 500 })
+    console.error("Error creating schedule:", error)
+    return NextResponse.json({ error: "Failed to create schedule" }, { status: 500 })
   }
 }

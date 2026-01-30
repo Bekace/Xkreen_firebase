@@ -9,6 +9,8 @@ export async function GET(
     const supabase = await createClient()
     const { id } = await params
 
+    console.log("[v0] GET schedule - ID:", id)
+
     if (!supabase) {
       console.error("Failed to create Supabase client")
       return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
@@ -19,7 +21,11 @@ export async function GET(
       data: { user },
       error: authError,
     } = await supabase.auth.getUser()
+    
+    console.log("[v0] User ID:", user?.id)
+    
     if (authError || !user) {
+      console.log("[v0] Auth failed")
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -38,14 +44,17 @@ export async function GET(
       .eq("user_id", user.id)
       .single()
 
+    console.log("[v0] Query result - schedule:", schedule)
+    console.log("[v0] Query result - error:", error)
+
     if (error) {
-      console.error("Database error:", error)
+      console.error("[v0] Database error:", error)
       return NextResponse.json({ error: "Schedule not found" }, { status: 404 })
     }
 
     return NextResponse.json({ schedule })
   } catch (error) {
-    console.error("Error fetching schedule:", error)
+    console.error("[v0] Exception:", error)
     return NextResponse.json({ error: "Failed to fetch schedule" }, { status: 500 })
   }
 }
