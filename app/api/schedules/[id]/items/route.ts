@@ -3,11 +3,11 @@ import { type NextRequest, NextResponse } from "next/server"
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const supabase = await createClient()
-    const { id: scheduleId } = await params
+    const { id: scheduleId } = params
 
     if (!supabase) {
       console.error("Failed to create Supabase client")

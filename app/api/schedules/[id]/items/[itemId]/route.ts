@@ -3,11 +3,11 @@ import { type NextRequest, NextResponse } from "next/server"
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string; itemId: string }> }
+  { params }: { params: { id: string; itemId: string } }
 ) {
   try {
     const supabase = await createClient()
-    const { itemId } = await params
+    const { itemId } = params
 
     if (!supabase) {
       console.error("Failed to create Supabase client")
@@ -47,11 +47,11 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string; itemId: string }> }
+  { params }: { params: { id: string; itemId: string } }
 ) {
   try {
     const supabase = await createClient()
-    const { itemId } = await params
+    const { itemId } = params
 
     if (!supabase) {
       console.error("Failed to create Supabase client")
