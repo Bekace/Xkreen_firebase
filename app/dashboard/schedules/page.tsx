@@ -620,9 +620,9 @@ export default function SchedulesPage() {
     return true
   }
 
-  // Get color for an item - use cyan/green for all blocks
+  // Get color for an item - use prominent cyan/green for all blocks
   const getItemColor = (index: number) => {
-    return { bg: "bg-cyan-100", border: "border-cyan-400", text: "text-cyan-900" }
+    return { bg: "bg-cyan-400", border: "border-cyan-600", text: "text-white" }
   }
 
   const formatWeekRange = () => {
@@ -869,7 +869,7 @@ export default function SchedulesPage() {
                             <div
                               key={`${item.id}-${dayIndex}`}
                               className={cn(
-                                "absolute left-1 right-1 rounded-md border-2 p-1 overflow-hidden cursor-pointer group hover:shadow-lg transition-shadow",
+                                "absolute left-0.5 right-0.5 rounded-lg border-l-4 p-2 overflow-hidden cursor-pointer group hover:shadow-xl transition-all hover:scale-[1.02]",
                                 color.bg,
                                 color.border,
                                 color.text
@@ -878,16 +878,16 @@ export default function SchedulesPage() {
                               title={`${contentName}\n${item.start_time} - ${item.end_time}`}
                               onClick={() => openEditItemDialog(item)}
                             >
-                              <div className="text-xs font-medium truncate">
+                              <div className="text-xs font-bold truncate">
                                 {item.start_time.slice(0, 5)} - {item.end_time.slice(0, 5)}
                               </div>
-                              <div className="text-xs truncate opacity-80">
+                              <div className="text-xs truncate font-medium mt-0.5">
                                 {contentName || "Unknown content"}
                               </div>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="absolute top-0 right-0 h-5 w-5 opacity-0 group-hover:opacity-100 hover:bg-white/50"
+                                className="absolute top-0.5 right-0.5 h-5 w-5 opacity-0 group-hover:opacity-100 hover:bg-cyan-700"
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   handleDeleteScheduleItem(item.id)
@@ -1057,23 +1057,25 @@ export default function SchedulesPage() {
             </div>
 
             {/* Time Range */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Start Time</Label>
+            <div>
+              <Label>Time</Label>
+              <div className="grid grid-cols-2 gap-2">
                 <Input
                   type="time"
                   value={itemStartTime}
                   onChange={(e) => setItemStartTime(e.target.value)}
+                  className="text-center font-medium"
                 />
-              </div>
-              <div>
-                <Label>End Time</Label>
                 <Input
                   type="time"
                   value={itemEndTime}
                   onChange={(e) => setItemEndTime(e.target.value)}
+                  className="text-center font-medium"
                 />
               </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {itemStartTime && itemEndTime && `${itemStartTime} - ${itemEndTime}`}
+              </p>
             </div>
 
             {/* Recurrence */}
@@ -1188,21 +1190,23 @@ export default function SchedulesPage() {
             {/* Time Range */}
             <div>
               <Label>Time</Label>
-              <div className="text-sm text-muted-foreground">
-                {itemStartTime} - {itemEndTime}
-              </div>
-              <div className="grid grid-cols-2 gap-2 mt-2">
+              <div className="grid grid-cols-2 gap-2">
                 <Input
                   type="time"
                   value={itemStartTime}
                   onChange={(e) => setItemStartTime(e.target.value)}
+                  className="text-center font-medium"
                 />
                 <Input
                   type="time"
                   value={itemEndTime}
                   onChange={(e) => setItemEndTime(e.target.value)}
+                  className="text-center font-medium"
                 />
               </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {itemStartTime && itemEndTime && `${itemStartTime} - ${itemEndTime}`}
+              </p>
             </div>
 
             {/* Recurrence */}
