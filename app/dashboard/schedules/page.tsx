@@ -21,7 +21,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Calendar,
   Plus,
@@ -598,8 +597,8 @@ export default function SchedulesPage() {
           </div>
         </div>
 
-        {/* Schedule List */}
-        <ScrollArea className="flex-1">
+{/* Schedule List */}
+              <div className="flex-1 overflow-y-auto">
           <div className="p-2">
             {filteredSchedules.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
@@ -654,9 +653,9 @@ export default function SchedulesPage() {
                 </div>
               ))
             )}
-          </div>
-        </ScrollArea>
-      </div>
+              </div>
+              </div>
+            </div>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
