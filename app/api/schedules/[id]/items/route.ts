@@ -43,7 +43,8 @@ export async function POST(
       recurrence_rule,
       days_of_week,
       priority = 0,
-      is_active = true,
+      start_date,
+      end_date,
     } = await request.json()
 
     if (!content_type || !content_id) {
@@ -60,6 +61,23 @@ export async function POST(
       )
     }
 
+    // Determine recurrence_type from recurrence_rule
+    let recurrence_type = "once"
+    if (recurrence_rule) {
+      if (recurrence_rule.includes("FREQ=DAILY")) {
+        recurrence_type = "daily"
+      } else if (recurrence_rule.includes("FREQ=WEEKLY")) {
+        recurrence_type = "weekly"
+      } else if (recurrence_rule.includes("FREQ=MONTHLY")) {
+        recurrence_type = "monthly"
+      } else {
+        recurrence_type = "custom"
+      }
+    }
+
+    // Use provided start_date or default to today
+    const itemStartDate = start_date || new Date().toISOString().split("T")[0]
+
     // Create schedule item
     const { data: item, error } = await supabase
       .from("schedule_items")
@@ -69,10 +87,12 @@ export async function POST(
         content_id,
         start_time,
         end_time,
+        recurrence_type,
         recurrence_rule,
         days_of_week,
         priority,
-        is_active,
+        start_date: itemStartDate,
+        end_date: end_date || null,
       })
       .select()
       .single()
