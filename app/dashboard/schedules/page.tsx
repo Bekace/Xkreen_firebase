@@ -1,6 +1,6 @@
 "use client"
 
-// Updated calendar interface with prominent cyan time blocks
+// Calendar scheduling with TimePicker component and fixed API params
 import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
