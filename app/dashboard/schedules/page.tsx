@@ -1,5 +1,6 @@
 "use client"
 
+// Updated calendar interface with prominent cyan time blocks
 import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
