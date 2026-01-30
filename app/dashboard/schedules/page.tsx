@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { TimePicker } from "@/components/time-picker"
 
 interface Schedule {
   id: string
@@ -342,9 +343,6 @@ export default function SchedulesPage() {
   }
 
   const handleAddScheduleItem = async () => {
-    console.log("[v0] Add item called - selectedSchedule:", selectedSchedule?.id)
-    console.log("[v0] Form values:", { itemContentType, itemContentId, itemStartTime, itemEndTime, itemRecurrence, itemDaysOfWeek })
-    
     if (!selectedSchedule) {
       toast({
         title: "Error",
@@ -355,7 +353,6 @@ export default function SchedulesPage() {
     }
 
     if (!itemContentId || !itemStartTime || !itemEndTime) {
-      console.log("[v0] Validation failed")
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -376,29 +373,22 @@ export default function SchedulesPage() {
       daysOfWeek = itemDaysOfWeek
     }
 
-    const payload = {
-      content_type: itemContentType,
-      content_id: itemContentId,
-      start_time: itemStartTime,
-      end_time: itemEndTime,
-      recurrence_rule: recurrenceRule,
-      days_of_week: daysOfWeek,
-      priority: itemPriority,
-    }
-    console.log("[v0] Sending payload:", payload)
-
     try {
       const response = await fetch(`/api/schedules/${selectedSchedule.id}/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          content_type: itemContentType,
+          content_id: itemContentId,
+          start_time: itemStartTime,
+          end_time: itemEndTime,
+          recurrence_rule: recurrenceRule,
+          days_of_week: daysOfWeek,
+          priority: itemPriority,
+        }),
       })
 
-      console.log("[v0] Response status:", response.status)
-
       if (response.ok) {
-        const data = await response.json()
-        console.log("[v0] Success! Item created:", data)
         toast({
           title: "Success",
           description: "Time slot added successfully",
@@ -408,7 +398,6 @@ export default function SchedulesPage() {
         fetchScheduleItems(selectedSchedule.id)
       } else {
         const data = await response.json()
-        console.log("[v0] Error response:", data)
         toast({
           title: "Error",
           description: data.error || "Failed to add time slot",
@@ -416,7 +405,6 @@ export default function SchedulesPage() {
         })
       }
     } catch (error) {
-      console.error("[v0] Exception:", error)
       toast({
         title: "Error",
         description: "Failed to add time slot",
@@ -1072,24 +1060,13 @@ export default function SchedulesPage() {
 
             {/* Time Range */}
             <div>
-              <Label>Time</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <Input
-                  type="time"
-                  value={itemStartTime}
-                  onChange={(e) => setItemStartTime(e.target.value)}
-                  className="text-center font-medium"
-                />
-                <Input
-                  type="time"
-                  value={itemEndTime}
-                  onChange={(e) => setItemEndTime(e.target.value)}
-                  className="text-center font-medium"
-                />
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {itemStartTime && itemEndTime && `${itemStartTime} - ${itemEndTime}`}
-              </p>
+              <Label>Start Time</Label>
+              <TimePicker value={itemStartTime} onChange={setItemStartTime} />
+            </div>
+            
+            <div>
+              <Label>End Time</Label>
+              <TimePicker value={itemEndTime} onChange={setItemEndTime} />
             </div>
 
             {/* Recurrence */}
@@ -1203,24 +1180,13 @@ export default function SchedulesPage() {
 
             {/* Time Range */}
             <div>
-              <Label>Time</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <Input
-                  type="time"
-                  value={itemStartTime}
-                  onChange={(e) => setItemStartTime(e.target.value)}
-                  className="text-center font-medium"
-                />
-                <Input
-                  type="time"
-                  value={itemEndTime}
-                  onChange={(e) => setItemEndTime(e.target.value)}
-                  className="text-center font-medium"
-                />
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {itemStartTime && itemEndTime && `${itemStartTime} - ${itemEndTime}`}
-              </p>
+              <Label>Start Time</Label>
+              <TimePicker value={itemStartTime} onChange={setItemStartTime} />
+            </div>
+            
+            <div>
+              <Label>End Time</Label>
+              <TimePicker value={itemEndTime} onChange={setItemEndTime} />
             </div>
 
             {/* Recurrence */}
