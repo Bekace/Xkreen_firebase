@@ -216,7 +216,12 @@ export default function SchedulesPage() {
   }
 
   const handleCreateSchedule = async () => {
+    console.log("[v0] handleCreateSchedule called")
+    console.log("[v0] newScheduleName:", newScheduleName)
+    console.log("[v0] newScheduleDescription:", newScheduleDescription)
+    
     if (!newScheduleName.trim()) {
+      console.log("[v0] Validation failed: name is empty")
       toast({
         title: "Error",
         description: "Schedule name is required",
@@ -225,18 +230,24 @@ export default function SchedulesPage() {
       return
     }
 
+    const payload = {
+      name: newScheduleName,
+      description: newScheduleDescription,
+    }
+    console.log("[v0] Request payload:", payload)
+
     try {
       const response = await fetch("/api/schedules", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: newScheduleName,
-          description: newScheduleDescription,
-        }),
+        body: JSON.stringify(payload),
       })
+
+      console.log("[v0] Response status:", response.status)
 
       if (response.ok) {
         const data = await response.json()
+        console.log("[v0] Success response:", data)
         toast({
           title: "Success",
           description: "Schedule created successfully",
@@ -251,6 +262,7 @@ export default function SchedulesPage() {
         }
       } else {
         const data = await response.json()
+        console.log("[v0] Error response:", data)
         toast({
           title: "Error",
           description: data.error || "Failed to create schedule",
@@ -258,7 +270,7 @@ export default function SchedulesPage() {
         })
       }
     } catch (error) {
-      console.error("Error creating schedule:", error)
+      console.error("[v0] Error creating schedule:", error)
       toast({
         title: "Error",
         description: "Failed to create schedule",
@@ -268,20 +280,33 @@ export default function SchedulesPage() {
   }
 
   const handleEditSchedule = async () => {
-    if (!selectedSchedule) return
+    console.log("[v0] handleEditSchedule called")
+    console.log("[v0] selectedSchedule:", selectedSchedule?.id)
+    
+    if (!selectedSchedule) {
+      console.log("[v0] Error: No schedule selected")
+      return
+    }
+
+    const payload = {
+      name: editScheduleName,
+      description: editScheduleDescription,
+      is_active: editScheduleActive,
+    }
+    console.log("[v0] Update payload:", payload)
 
     try {
       const response = await fetch(`/api/schedules/${selectedSchedule.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: editScheduleName,
-          description: editScheduleDescription,
-          is_active: editScheduleActive,
-        }),
+        body: JSON.stringify(payload),
       })
 
+      console.log("[v0] Response status:", response.status)
+
       if (response.ok) {
+        const data = await response.json()
+        console.log("[v0] Success response:", data)
         toast({
           title: "Success",
           description: "Schedule updated successfully",
@@ -289,14 +314,16 @@ export default function SchedulesPage() {
         setIsEditDialogOpen(false)
         fetchSchedules()
       } else {
+        const data = await response.json()
+        console.log("[v0] Error response:", data)
         toast({
           title: "Error",
-          description: "Failed to update schedule",
+          description: data.error || "Failed to update schedule",
           variant: "destructive",
         })
       }
     } catch (error) {
-      console.error("Error updating schedule:", error)
+      console.error("[v0] Error updating schedule:", error)
       toast({
         title: "Error",
         description: "Failed to update schedule",
@@ -341,7 +368,15 @@ export default function SchedulesPage() {
   }
 
   const handleAddScheduleItem = async () => {
+    console.log("[v0] handleAddScheduleItem called")
+    console.log("[v0] selectedSchedule:", selectedSchedule?.id)
+    console.log("[v0] itemContentType:", itemContentType)
+    console.log("[v0] itemContentId:", itemContentId)
+    console.log("[v0] itemStartTime:", itemStartTime)
+    console.log("[v0] itemEndTime:", itemEndTime)
+    
     if (!selectedSchedule) {
+      console.log("[v0] Error: No schedule selected")
       toast({
         title: "Error",
         description: "Please select a schedule first",
@@ -351,6 +386,8 @@ export default function SchedulesPage() {
     }
 
     if (!itemContentId || !itemStartTime || !itemEndTime) {
+      console.log("[v0] Validation failed - missing required fields")
+      console.log("[v0] itemContentId:", itemContentId, "itemStartTime:", itemStartTime, "itemEndTime:", itemEndTime)
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -371,22 +408,29 @@ export default function SchedulesPage() {
       daysOfWeek = itemDaysOfWeek
     }
 
+    const payload = {
+      content_type: itemContentType,
+      content_id: itemContentId,
+      start_time: itemStartTime,
+      end_time: itemEndTime,
+      recurrence_rule: recurrenceRule,
+      days_of_week: daysOfWeek,
+      priority: itemPriority,
+    }
+    console.log("[v0] Request payload:", payload)
+
     try {
       const response = await fetch(`/api/schedules/${selectedSchedule.id}/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          content_type: itemContentType,
-          content_id: itemContentId,
-          start_time: itemStartTime,
-          end_time: itemEndTime,
-          recurrence_rule: recurrenceRule,
-          days_of_week: daysOfWeek,
-          priority: itemPriority,
-        }),
+        body: JSON.stringify(payload),
       })
 
+      console.log("[v0] Response status:", response.status)
+      
       if (response.ok) {
+        const data = await response.json()
+        console.log("[v0] Success response:", data)
         toast({
           title: "Success",
           description: "Time slot added successfully",
@@ -396,6 +440,7 @@ export default function SchedulesPage() {
         fetchScheduleItems(selectedSchedule.id)
       } else {
         const data = await response.json()
+        console.log("[v0] Error response:", data)
         toast({
           title: "Error",
           description: data.error || "Failed to add time slot",
@@ -403,7 +448,7 @@ export default function SchedulesPage() {
         })
       }
     } catch (error) {
-      console.error("Error adding schedule item:", error)
+      console.error("[v0] Error adding schedule item:", error)
       toast({
         title: "Error",
         description: "Failed to add time slot",
