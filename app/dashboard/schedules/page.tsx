@@ -209,20 +209,13 @@ export default function SchedulesPage() {
 
   const fetchScheduleItems = async (scheduleId: string) => {
     try {
-      console.log("[v0] Fetching schedule items for:", scheduleId)
       const response = await fetch(`/api/schedules/${scheduleId}`)
-      console.log("[v0] Response status:", response.status)
       if (response.ok) {
         const data = await response.json()
-        console.log("[v0] Received schedule data:", data)
-        console.log("[v0] Schedule items count:", data.schedule?.schedule_items?.length || 0)
         setScheduleItems(data.schedule?.schedule_items || [])
-      } else {
-        const errorData = await response.json()
-        console.error("[v0] Error response:", errorData)
       }
     } catch (error) {
-      console.error("[v0] Error fetching schedule items:", error)
+      console.error("Error fetching schedule items:", error)
     }
   }
 
@@ -380,6 +373,29 @@ export default function SchedulesPage() {
       daysOfWeek = itemDaysOfWeek
     }
 
+    // Check for time overlaps with existing items
+    const hasOverlap = scheduleItems.some(existingItem => 
+      checkTimeOverlap(
+        itemStartTime,
+        itemEndTime,
+        existingItem.start_time.slice(0, 5),
+        existingItem.end_time.slice(0, 5),
+        daysOfWeek,
+        existingItem.days_of_week,
+        recurrenceRule,
+        existingItem.recurrence_rule
+      )
+    )
+
+    if (hasOverlap) {
+      toast({
+        title: "Time Conflict",
+        description: "This time slot overlaps with an existing schedule",
+        variant: "destructive",
+      })
+      return
+    }
+
     try {
       const response = await fetch(`/api/schedules/${selectedSchedule.id}/items`, {
         method: "POST",
@@ -442,6 +458,31 @@ export default function SchedulesPage() {
       const byDay = itemDaysOfWeek.map((d) => days[d]).join(",")
       recurrenceRule = `FREQ=WEEKLY;BYDAY=${byDay}`
       daysOfWeek = itemDaysOfWeek
+    }
+
+    // Check for time overlaps with other items (excluding the current item being edited)
+    const hasOverlap = scheduleItems
+      .filter(item => item.id !== editingItem.id)
+      .some(existingItem => 
+        checkTimeOverlap(
+          itemStartTime,
+          itemEndTime,
+          existingItem.start_time.slice(0, 5),
+          existingItem.end_time.slice(0, 5),
+          daysOfWeek,
+          existingItem.days_of_week,
+          recurrenceRule,
+          existingItem.recurrence_rule
+        )
+      )
+
+    if (hasOverlap) {
+      toast({
+        title: "Time Conflict",
+        description: "This time slot overlaps with an existing schedule",
+        variant: "destructive",
+      })
+      return
     }
 
     try {
@@ -632,6 +673,51 @@ export default function SchedulesPage() {
   // Get color for an item - use prominent cyan/green for all blocks
   const getItemColor = (index: number) => {
     return { bg: "bg-cyan-400", border: "border-cyan-600", text: "text-white" }
+  }
+
+  // Check if time ranges overlap
+  const checkTimeOverlap = (
+    start1: string,
+    end1: string,
+    start2: string,
+    end2: string,
+    days1: number[] | null,
+    days2: number[] | null,
+    rule1: string | null,
+    rule2: string | null
+  ): boolean => {
+    // Check if days overlap
+    const getDaysSet = (days: number[] | null, rule: string | null): Set<number> => {
+      if (rule?.includes("DAILY")) {
+        return new Set([0, 1, 2, 3, 4, 5, 6])
+      }
+      if (days && days.length > 0) {
+        return new Set(days)
+      }
+      // No recurrence - consider all days
+      return new Set([0, 1, 2, 3, 4, 5, 6])
+    }
+
+    const days1Set = getDaysSet(days1, rule1)
+    const days2Set = getDaysSet(days2, rule2)
+    
+    // Check if any day overlaps
+    const hasCommonDay = Array.from(days1Set).some(day => days2Set.has(day))
+    if (!hasCommonDay) return false
+
+    // Check if time ranges overlap
+    const [h1Start, m1Start] = start1.split(":").map(Number)
+    const [h1End, m1End] = end1.split(":").map(Number)
+    const [h2Start, m2Start] = start2.split(":").map(Number)
+    const [h2End, m2End] = end2.split(":").map(Number)
+
+    const time1Start = h1Start * 60 + m1Start
+    const time1End = h1End * 60 + m1End
+    const time2Start = h2Start * 60 + m2Start
+    const time2End = h2End * 60 + m2End
+
+    // Check if time ranges overlap
+    return time1Start < time2End && time1End > time2Start
   }
 
   const formatWeekRange = () => {
@@ -871,8 +957,8 @@ export default function SchedulesPage() {
                           const color = getItemColor(itemIndex)
                           const contentName =
                             item.content_type === "playlist"
-                              ? item.playlists?.name
-                              : item.media?.name
+                              ? playlists.find((p) => p.id === item.content_id)?.name
+                              : mediaItems.find((m) => m.id === item.content_id)?.name
 
                           return (
                             <div

@@ -5,12 +5,8 @@ import { type NextRequest, NextResponse } from "next/server"
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const supabase = await createClient()
-    const scheduleId = params.id
-    
-    console.log("[v0 API] GET /api/schedules/[id] - Schedule ID:", scheduleId)
 
     if (!supabase) {
-      console.error("[v0 API] Supabase client creation failed")
       return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
     }
 
@@ -20,10 +16,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       error: authError,
     } = await supabase.auth.getUser()
     
-    console.log("[v0 API] User authenticated:", user?.id)
-    
     if (authError || !user) {
-      console.error("[v0 API] Authentication failed:", authError?.message)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -34,26 +27,19 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         *,
         schedule_items(*)
       `)
-      .eq("id", scheduleId)
+      .eq("id", params.id)
       .eq("user_id", user.id)
       .single()
 
-    console.log("[v0 API] Query completed - Error:", error?.message, "Schedule found:", !!schedule)
-    console.log("[v0 API] Schedule items count:", schedule?.schedule_items?.length || 0)
-
     if (error) {
-      console.error("[v0 API] Database error fetching schedule:", error)
-      return NextResponse.json({ error: "Schedule not found", details: error.message }, { status: 404 })
+      console.error("Database error fetching schedule:", error)
+      return NextResponse.json({ error: "Schedule not found" }, { status: 404 })
     }
 
-    console.log("[v0 API] Returning schedule with", schedule.schedule_items?.length || 0, "items")
     return NextResponse.json({ schedule })
   } catch (error) {
-    console.error("[v0 API] Exception in GET:", error)
-    return NextResponse.json({ 
-      error: "Failed to fetch schedule",
-      details: error instanceof Error ? error.message : "Unknown error"
-    }, { status: 500 })
+    console.error("Error fetching schedule:", error)
+    return NextResponse.json({ error: "Failed to fetch schedule" }, { status: 500 })
   }
 }
 
