@@ -115,9 +115,13 @@ export default function SchedulesPage() {
   // Form states
   const [newScheduleName, setNewScheduleName] = useState("")
   const [newScheduleDescription, setNewScheduleDescription] = useState("")
+  const [newDefaultContentType, setNewDefaultContentType] = useState<"playlist" | "media">("playlist")
+  const [newDefaultContentId, setNewDefaultContentId] = useState("")
   const [editScheduleName, setEditScheduleName] = useState("")
   const [editScheduleDescription, setEditScheduleDescription] = useState("")
   const [editScheduleActive, setEditScheduleActive] = useState(true)
+  const [editDefaultContentType, setEditDefaultContentType] = useState<"playlist" | "media">("playlist")
+  const [editDefaultContentId, setEditDefaultContentId] = useState("")
 
   // Schedule item form states
   const [itemContentType, setItemContentType] = useState<"playlist" | "media">("playlist")
@@ -229,26 +233,30 @@ export default function SchedulesPage() {
       return
     }
 
-    try {
-      const response = await fetch("/api/schedules", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: newScheduleName,
-          description: newScheduleDescription,
-        }),
-      })
+  try {
+    const response = await fetch("/api/schedules", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: newScheduleName,
+        description: newScheduleDescription,
+        default_content_type: newDefaultContentId ? newDefaultContentType : null,
+        default_content_id: newDefaultContentId || null,
+      }),
+    })
 
-      if (response.ok) {
-        const data = await response.json()
-        toast({
-          title: "Success",
-          description: "Schedule created successfully",
-        })
-        setIsCreateDialogOpen(false)
-        setNewScheduleName("")
-        setNewScheduleDescription("")
-        fetchSchedules()
+    if (response.ok) {
+      const data = await response.json()
+      toast({
+        title: "Success",
+        description: "Schedule created successfully",
+      })
+      setIsCreateDialogOpen(false)
+      setNewScheduleName("")
+      setNewScheduleDescription("")
+      setNewDefaultContentType("playlist")
+      setNewDefaultContentId("")
+      fetchSchedules()
         if (data.schedule) {
           setSelectedSchedule(data.schedule)
         }
@@ -272,16 +280,18 @@ export default function SchedulesPage() {
   const handleEditSchedule = async () => {
     if (!selectedSchedule) return
 
-    try {
-      const response = await fetch(`/api/schedules/${selectedSchedule.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: editScheduleName,
-          description: editScheduleDescription,
-          is_active: editScheduleActive,
-        }),
-      })
+  try {
+    const response = await fetch(`/api/schedules/${selectedSchedule.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: editScheduleName,
+        description: editScheduleDescription,
+        is_active: editScheduleActive,
+        default_content_type: editDefaultContentId ? editDefaultContentType : null,
+        default_content_id: editDefaultContentId || null,
+      }),
+    })
 
       if (response.ok) {
         toast({
@@ -593,6 +603,8 @@ export default function SchedulesPage() {
     setEditScheduleName(schedule.name)
     setEditScheduleDescription(schedule.description || "")
     setEditScheduleActive(schedule.is_active)
+    setEditDefaultContentType((schedule as any).default_content_type || "playlist")
+    setEditDefaultContentId((schedule as any).default_content_id || "")
     setIsEditDialogOpen(true)
   }
 
@@ -1018,6 +1030,50 @@ export default function SchedulesPage() {
                 placeholder="Optional description..."
               />
             </div>
+            
+            {/* Default Content Section */}
+            <div className="space-y-3 pt-2 border-t">
+              <Label className="text-base">Default Content</Label>
+              <p className="text-xs text-muted-foreground">
+                Fill in the time gaps between events of your schedules
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <Select
+                  value={newDefaultContentType}
+                  onValueChange={(value: "playlist" | "media") => {
+                    setNewDefaultContentType(value)
+                    setNewDefaultContentId("")
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="playlist">Playlist</SelectItem>
+                    <SelectItem value="media">Media</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={newDefaultContentId} onValueChange={setNewDefaultContentId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={`Select ${newDefaultContentType}`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {newDefaultContentType === "playlist"
+                      ? playlists.map((playlist) => (
+                          <SelectItem key={playlist.id} value={playlist.id}>
+                            {playlist.name}
+                          </SelectItem>
+                        ))
+                      : mediaItems.map((media) => (
+                          <SelectItem key={media.id} value={media.id}>
+                            {media.name}
+                          </SelectItem>
+                        ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
@@ -1061,6 +1117,50 @@ export default function SchedulesPage() {
                 checked={editScheduleActive}
                 onCheckedChange={setEditScheduleActive}
               />
+            </div>
+            
+            {/* Default Content Section */}
+            <div className="space-y-3 pt-2 border-t">
+              <Label className="text-base">Default Content</Label>
+              <p className="text-xs text-muted-foreground">
+                Fill in the time gaps between events of your schedules
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <Select
+                  value={editDefaultContentType}
+                  onValueChange={(value: "playlist" | "media") => {
+                    setEditDefaultContentType(value)
+                    setEditDefaultContentId("")
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="playlist">Playlist</SelectItem>
+                    <SelectItem value="media">Media</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={editDefaultContentId} onValueChange={setEditDefaultContentId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={`Select ${editDefaultContentType}`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {editDefaultContentType === "playlist"
+                      ? playlists.map((playlist) => (
+                          <SelectItem key={playlist.id} value={playlist.id}>
+                            {playlist.name}
+                          </SelectItem>
+                        ))
+                      : mediaItems.map((media) => (
+                          <SelectItem key={media.id} value={media.id}>
+                            {media.name}
+                          </SelectItem>
+                        ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
           <DialogFooter>
