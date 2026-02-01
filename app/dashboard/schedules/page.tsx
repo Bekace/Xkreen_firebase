@@ -209,13 +209,20 @@ export default function SchedulesPage() {
 
   const fetchScheduleItems = async (scheduleId: string) => {
     try {
+      console.log("[v0] Fetching schedule items for:", scheduleId)
       const response = await fetch(`/api/schedules/${scheduleId}`)
+      console.log("[v0] Response status:", response.status)
       if (response.ok) {
         const data = await response.json()
+        console.log("[v0] Received schedule data:", data)
+        console.log("[v0] Schedule items count:", data.schedule?.schedule_items?.length || 0)
         setScheduleItems(data.schedule?.schedule_items || [])
+      } else {
+        const errorData = await response.json()
+        console.error("[v0] Error response:", errorData)
       }
     } catch (error) {
-      console.error("Error fetching schedule items:", error)
+      console.error("[v0] Error fetching schedule items:", error)
     }
   }
 
