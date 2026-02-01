@@ -27,16 +27,12 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Get schedule with items
+    // Get schedule with items (no relationship joins due to polymorphic content_type)
     const { data: schedule, error } = await supabase
       .from("schedules")
       .select(`
         *,
-        schedule_items(
-          *,
-          playlists(id, name),
-          media(id, name, type, url)
-        )
+        schedule_items(*)
       `)
       .eq("id", scheduleId)
       .eq("user_id", user.id)
