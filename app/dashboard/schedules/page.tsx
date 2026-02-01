@@ -280,18 +280,18 @@ export default function SchedulesPage() {
   const handleEditSchedule = async () => {
     if (!selectedSchedule) return
 
-  try {
-    const response = await fetch(`/api/schedules/${selectedSchedule.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: editScheduleName,
-        description: editScheduleDescription,
-        is_active: editScheduleActive,
-        default_content_type: editDefaultContentId ? editDefaultContentType : null,
-        default_content_id: editDefaultContentId || null,
-      }),
-    })
+    try {
+      const response = await fetch(`/api/schedules/${selectedSchedule.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editScheduleName,
+          description: editScheduleDescription,
+          is_active: editScheduleActive,
+          default_content_type: editDefaultContentId ? editDefaultContentType : null,
+          default_content_id: editDefaultContentId || null,
+        }),
+      })
 
       if (response.ok) {
         toast({
