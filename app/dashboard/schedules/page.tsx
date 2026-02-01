@@ -670,9 +670,9 @@ export default function SchedulesPage() {
     return true
   }
 
-  // Get color for an item - use prominent cyan/green for all blocks
+  // Get color for an item - use dark teal matching the reference design
   const getItemColor = (index: number) => {
-    return { bg: "bg-cyan-400", border: "border-cyan-600", text: "text-white" }
+    return { bg: "bg-teal-700", border: "border-teal-800", text: "text-white" }
   }
 
   // Check if time ranges overlap
@@ -889,25 +889,17 @@ export default function SchedulesPage() {
           ) : (
             <div className="min-w-[800px]">
               {/* Day Headers */}
-              <div className="flex border-b bg-muted/30 sticky top-0 z-10">
-                <div className="w-16 shrink-0 border-r" />
+              <div className="flex border-b sticky top-0 z-10">
+                <div className="w-16 shrink-0 border-r bg-gray-100" />
                 {weekDays.map((date, index) => {
                   const isToday = date.toDateString() === new Date().toDateString()
                   return (
                     <div
                       key={index}
-                      className={cn(
-                        "flex-1 p-2 text-center border-r last:border-r-0",
-                        isToday && "bg-cyan-50"
-                      )}
+                      className="flex-1 p-3 text-center border-r last:border-r-0 bg-gray-100"
                     >
-                      <div className="text-xs text-muted-foreground">{dayNames[index]}</div>
-                      <div
-                        className={cn(
-                          "text-lg font-semibold",
-                          isToday && "text-cyan-600"
-                        )}
-                      >
+                      <div className="text-xs font-medium text-gray-600">{dayNames[index]}</div>
+                      <div className="text-2xl font-semibold text-gray-900 mt-1">
                         {date.getDate()}
                       </div>
                     </div>
@@ -935,10 +927,7 @@ export default function SchedulesPage() {
                   return (
                     <div
                       key={dayIndex}
-                      className={cn(
-                        "flex-1 border-r last:border-r-0 relative",
-                        isToday && "bg-cyan-50/30"
-                      )}
+                      className="flex-1 border-r last:border-r-0 relative bg-cyan-50"
                     >
                       {/* Hour cells */}
                       {hours.map((hour) => (
@@ -964,25 +953,24 @@ export default function SchedulesPage() {
                             <div
                               key={`${item.id}-${dayIndex}`}
                               className={cn(
-                                "absolute left-0.5 right-0.5 rounded-lg border-l-4 p-2 overflow-hidden cursor-pointer group hover:shadow-xl transition-all hover:scale-[1.02]",
+                                "absolute left-1 right-1 rounded-md p-2.5 overflow-hidden cursor-pointer group hover:shadow-lg transition-shadow",
                                 color.bg,
-                                color.border,
                                 color.text
                               )}
                               style={style}
                               title={`${contentName}\n${item.start_time} - ${item.end_time}`}
                               onClick={() => openEditItemDialog(item)}
                             >
-                              <div className="text-xs font-bold truncate">
+                              <div className="text-xs font-medium truncate">
                                 {item.start_time.slice(0, 5)} - {item.end_time.slice(0, 5)}
                               </div>
-                              <div className="text-xs truncate font-medium mt-0.5">
+                              <div className="text-sm truncate font-medium mt-0.5">
                                 {contentName || "Unknown content"}
                               </div>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="absolute top-0.5 right-0.5 h-5 w-5 opacity-0 group-hover:opacity-100 hover:bg-cyan-700"
+                                className="absolute top-0.5 right-0.5 h-5 w-5 opacity-0 group-hover:opacity-100 hover:bg-teal-800"
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   handleDeleteScheduleItem(item.id)
