@@ -277,6 +277,7 @@ export default function SchedulesPage() {
     }
   }
 
+  // Update schedule with default content support
   const handleEditSchedule = async () => {
     if (!selectedSchedule) return
 
