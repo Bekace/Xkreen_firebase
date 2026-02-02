@@ -233,30 +233,30 @@ export default function SchedulesPage() {
       return
     }
 
-  try {
-    const response = await fetch("/api/schedules", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: newScheduleName,
-        description: newScheduleDescription,
-        default_content_type: newDefaultContentId ? newDefaultContentType : null,
-        default_content_id: newDefaultContentId || null,
-      }),
-    })
-
-    if (response.ok) {
-      const data = await response.json()
-      toast({
-        title: "Success",
-        description: "Schedule created successfully",
+    try {
+      const response = await fetch("/api/schedules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newScheduleName,
+          description: newScheduleDescription,
+          default_content_type: newDefaultContentId ? newDefaultContentType : null,
+          default_content_id: newDefaultContentId || null,
+        }),
       })
-      setIsCreateDialogOpen(false)
-      setNewScheduleName("")
-      setNewScheduleDescription("")
-      setNewDefaultContentType("playlist")
-      setNewDefaultContentId("")
-      fetchSchedules()
+
+      if (response.ok) {
+        const data = await response.json()
+        toast({
+          title: "Success",
+          description: "Schedule created successfully",
+        })
+        setIsCreateDialogOpen(false)
+        setNewScheduleName("")
+        setNewScheduleDescription("")
+        setNewDefaultContentType("playlist")
+        setNewDefaultContentId("")
+        fetchSchedules()
         if (data.schedule) {
           setSelectedSchedule(data.schedule)
         }
@@ -277,7 +277,6 @@ export default function SchedulesPage() {
     }
   }
 
-  // Update schedule with default content support
   const handleEditSchedule = async () => {
     if (!selectedSchedule) return
 
