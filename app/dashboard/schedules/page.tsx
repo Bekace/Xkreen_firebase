@@ -278,34 +278,22 @@ export default function SchedulesPage() {
   }
 
   const handleEditSchedule = async () => {
-    console.log("[v0] handleEditSchedule called")
-    console.log("[v0] selectedSchedule:", selectedSchedule)
-    
-    if (!selectedSchedule) {
-      console.log("[v0] No selected schedule, returning")
-      return
-    }
-
-    const payload = {
-      name: editScheduleName,
-      description: editScheduleDescription,
-      is_active: editScheduleActive,
-      default_content_type: editDefaultContentId ? editDefaultContentType : null,
-      default_content_id: editDefaultContentId || null,
-    }
-    console.log("[v0] Payload:", payload)
+    if (!selectedSchedule) return
 
     try {
       const response = await fetch(`/api/schedules/${selectedSchedule.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          name: editScheduleName,
+          description: editScheduleDescription,
+          is_active: editScheduleActive,
+          default_content_type: editDefaultContentId ? editDefaultContentType : null,
+          default_content_id: editDefaultContentId || null,
+        }),
       })
 
-      console.log("[v0] Response status:", response.status)
-
       if (response.ok) {
-        console.log("[v0] Update successful")
         toast({
           title: "Success",
           description: "Schedule updated successfully",
@@ -314,7 +302,6 @@ export default function SchedulesPage() {
         fetchSchedules()
       } else {
         const data = await response.json()
-        console.log("[v0] Error response:", data)
         toast({
           title: "Error",
           description: data.error || "Failed to update schedule",
@@ -322,7 +309,6 @@ export default function SchedulesPage() {
         })
       }
     } catch (error) {
-      console.error("[v0] Exception:", error)
       toast({
         title: "Error",
         description: "Failed to update schedule",
