@@ -97,6 +97,7 @@ export default function ScreensPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [editingScreen, setEditingScreen] = useState<Screen | null>(null)
   const [creating, setCreating] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
   const [updating, setUpdating] = useState(false)
   const [repairingScreen, setRepairingScreen] = useState<Screen | null>(null)
   const [newPairingCode, setNewPairingCode] = useState("")
@@ -145,6 +146,14 @@ export default function ScreensPage() {
     fetchPlaylists()
     fetchMediaItems()
     fetchSchedules()
+
+    // Poll for screen status updates every 30 seconds
+    const pollInterval = setInterval(() => {
+      fetchScreens()
+    }, 30000)
+
+    // Cleanup interval on unmount
+    return () => clearInterval(pollInterval)
   }, [])
 
   const fetchScreenLimits = async () => {
@@ -166,6 +175,7 @@ export default function ScreensPage() {
         const data = await response.json()
         const transformedScreens = data.screens.map(transformScreenData)
         setScreens(transformedScreens)
+        setLastUpdated(new Date())
       } else {
         toast({
           title: "Error",
@@ -1110,17 +1120,34 @@ export default function ScreensPage() {
     <div className="space-y-6">
       {/* Header Section */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Screens</h1>
-          <p className="text-muted-foreground">Manage your digital signage screens</p>
-          {screenLimits && (
-            <p className="text-sm text-muted-foreground mt-1">
-              {screenLimits.limit === -1
-                ? `${screenLimits.current} screens (Unlimited)`
-                : `${screenLimits.current} / ${screenLimits.limit} screens used`}
-            </p>
-          )}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Screens</h1>
+        <p className="text-muted-foreground">Manage your digital signage screens</p>
+        {screenLimits && (
+          <p className="text-sm text-muted-foreground mt-1">
+            {screenLimits.limit === -1
+              ? `${screenLimits.current} screens (Unlimited)`
+              : `${screenLimits.current} / ${screenLimits.limit} screens used`}
+          </p>
+        )}
+        <div className="flex items-center gap-2 mt-2">
+          <div className="flex items-center gap-1.5">
+            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-xs text-muted-foreground">
+              Monitoring status · Last updated {Math.floor((new Date().getTime() - lastUpdated.getTime()) / 1000)}s ago
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => fetchScreens()}
+            className="h-6 px-2 text-xs"
+          >
+            <RotateCw className="h-3 w-3 mr-1" />
+            Refresh
+          </Button>
         </div>
+      </div>
         <Button
           onClick={() => setIsCreateDialogOpen(true)}
           className="bg-cyan-500 hover:bg-cyan-600"
