@@ -11,18 +11,12 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
-  Eye,
-  PlayCircle,
-  ImageIcon,
   Tv,
-  Smartphone,
-  CheckCircle,
-  Wifi,
-  RotateCw,
-  Edit,
+  PlayCircle,
   Circle,
   CheckCircle2,
   Calendar,
+  VolumeX,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { transformScreenData } from "@/utils/transformScreenData"
@@ -1207,16 +1201,23 @@ export default function ScreensPage() {
                       {screen.location && <p className="text-sm text-gray-600">{screen.location}</p>}
                     </div>
                   </div>
-                  <div
-                    className={`px-2 py-1 rounded text-xs font-medium ${
-                      screen.status === "online"
-                        ? "bg-green-100 text-green-700"
-                        : screen.status === "paired"
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-gray-100 text-gray-700"
-                    }`}
-                  >
-                    {screen.status}
+                  <div className="flex items-center gap-2">
+                    {screen.enable_audio_management && (
+                      <div className="p-1.5 rounded bg-gray-100" title="Audio muted">
+                        <VolumeX className="h-4 w-4 text-gray-600" />
+                      </div>
+                    )}
+                    <div
+                      className={`px-2 py-1 rounded text-xs font-medium ${
+                        screen.status === "online"
+                          ? "bg-green-100 text-green-700"
+                          : screen.status === "paired"
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-gray-100 text-gray-700"
+                      }`}
+                    >
+                      {screen.status}
+                    </div>
                   </div>
                 </div>
 
