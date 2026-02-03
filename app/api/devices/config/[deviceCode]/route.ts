@@ -84,13 +84,7 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
         activePlaylist = {
           id: `asset-playlist-${screen.id}`,
           name: `Assets for ${screen.name}`,
-          background_color: "#000000",
           is_active: true,
-          scale_image: "fit",
-          scale_video: "fit",
-          scale_document: "fit",
-          shuffle: false,
-          default_transition: "fade",
         }
 
         console.log("[v0] Loaded multiple assets from screen_media:", playlistContent.length)
@@ -121,13 +115,7 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
           activePlaylist = {
             id: `asset-playlist-${screen.id}`,
             name: `Asset: ${mediaItem.name}`,
-            background_color: "#000000",
             is_active: true,
-            scale_image: "fit",
-            scale_video: "fit",
-            scale_document: "fit",
-            shuffle: false,
-            default_transition: "fade",
           }
         }
       }
@@ -143,13 +131,7 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
           playlists!screen_playlists_playlist_id_fkey (
             id,
             name,
-            background_color,
-            is_active,
-            scale_image,
-            scale_video,
-            scale_document,
-            shuffle,
-            default_transition
+            is_active
           )
         `)
         .eq("screen_id", screen.id)
@@ -163,12 +145,9 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
       if (playlistData) {
         activePlaylist = playlistData
 
-        console.log("[v0] Active playlist scale settings:", {
+        console.log("[v0] Active playlist found:", {
           playlistId: activePlaylist.id,
           playlistName: activePlaylist.name,
-          scale_image: activePlaylist.scale_image,
-          scale_video: activePlaylist.scale_video,
-          scale_document: activePlaylist.scale_document,
         })
 
         console.log("[v0] Found active playlist, fetching items for playlist_id:", activePlaylist.id)
