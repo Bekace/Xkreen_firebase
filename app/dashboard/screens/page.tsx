@@ -18,6 +18,9 @@ import {
   Calendar,
   VolumeX,
   RotateCw,
+  Edit,
+  Eye,
+  MoreVertical,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { transformScreenData } from "@/utils/transformScreenData"
