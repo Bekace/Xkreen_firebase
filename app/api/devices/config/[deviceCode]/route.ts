@@ -203,25 +203,27 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
       playlistId: activePlaylist?.id,
     })
 
-    // Transform content for Android app - flatten media objects and apply duration logic
+    // Transform content for Android app - apply duration logic and nest media object
     const transformedContent = playlistContent.map((item: any) => {
-      const media = item.media || {}
+      const mediaData = item.media || {}
       
       // Duration logic: use duration_override from playlist_items, else media.duration for videos, else 10 for images
       let duration = item.duration_override || 10
-      if (media.type?.startsWith('video/') && media.duration) {
-        duration = item.duration_override || media.duration
+      if (mediaData.mime_type?.startsWith('video/') && mediaData.duration) {
+        duration = item.duration_override || mediaData.duration
       }
       
       return {
-        id: media.id,
-        name: media.name,
-        type: media.type,
-        url: media.url,
+        id: mediaData.id,
+        name: mediaData.name,
         duration: duration,
         position: item.position,
         transition_type: item.transition_type || screen.default_transition || "fade",
         transition_duration: item.transition_duration || 0.8,
+        media: {
+          file_path: mediaData.file_path,
+          mime_type: mediaData.mime_type,
+        }
       }
     })
 
