@@ -142,7 +142,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const { name, location, resolution, orientation, content_type, enable_audio_management } = await request.json()
+    const { 
+      name, 
+      location, 
+      resolution, 
+      orientation, 
+      content_type, 
+      enable_audio_management,
+      shuffle,
+      is_active,
+      scale_image,
+      scale_video,
+      scale_document,
+      background_color,
+      default_transition
+    } = await request.json()
 
     if (!name) {
       return NextResponse.json({ error: "Screen name is required" }, { status: 400 })
@@ -164,6 +178,13 @@ export async function POST(request: NextRequest) {
         status: "offline",
         content_type: content_type || "none",
         enable_audio_management: enable_audio_management ?? false,
+        shuffle: shuffle ?? false,
+        is_active: is_active ?? true,
+        scale_image: scale_image || "fit",
+        scale_video: scale_video || "fit",
+        scale_document: scale_document || "fit",
+        background_color: background_color || "#000000",
+        default_transition: default_transition || "fade",
       })
       .select()
       .single()
