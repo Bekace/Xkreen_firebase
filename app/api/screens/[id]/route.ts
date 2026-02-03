@@ -65,8 +65,22 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     const requestData = await request.json()
-    const { name, location, resolution, orientation, selectedContentIds, content_type, enable_audio_management } =
-      requestData
+    const { 
+      name, 
+      location, 
+      resolution, 
+      orientation, 
+      selectedContentIds, 
+      content_type, 
+      enable_audio_management,
+      shuffle,
+      is_active,
+      scale_image,
+      scale_video,
+      scale_document,
+      background_color,
+      default_transition
+    } = requestData
 
     console.log("[v0] Screen update request:")
     console.log(`[v0] - Screen ID: ${params.id}`)
@@ -83,6 +97,27 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     if (enable_audio_management !== undefined) {
       updateData.enable_audio_management = enable_audio_management
+    }
+    if (shuffle !== undefined) {
+      updateData.shuffle = shuffle
+    }
+    if (is_active !== undefined) {
+      updateData.is_active = is_active
+    }
+    if (scale_image !== undefined) {
+      updateData.scale_image = scale_image
+    }
+    if (scale_video !== undefined) {
+      updateData.scale_video = scale_video
+    }
+    if (scale_document !== undefined) {
+      updateData.scale_document = scale_document
+    }
+    if (background_color !== undefined) {
+      updateData.background_color = background_color
+    }
+    if (default_transition !== undefined) {
+      updateData.default_transition = default_transition
     }
 
     const { error: deletePlaylistsError } = await supabase.from("screen_playlists").delete().eq("screen_id", params.id)

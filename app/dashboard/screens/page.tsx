@@ -47,6 +47,13 @@ interface Screen {
   content_type?: "playlist" | "asset" | "schedule" | "none" // Added content_type
   enable_audio_management?: boolean
   screen_schedules?: { schedule_id: string; schedules?: { id: string; name: string } }[]
+  shuffle?: boolean
+  is_active?: boolean
+  scale_image?: string
+  scale_video?: string
+  scale_document?: string
+  background_color?: string
+  default_transition?: string
   }
 
 interface Playlist {
@@ -1485,6 +1492,115 @@ export default function ScreensPage() {
                         setEditingScreen({ ...editingScreen, enable_audio_management: checked })
                       }
                     />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Active</Label>
+                      <p className="text-sm text-gray-600">Enable this screen</p>
+                    </div>
+                    <Switch
+                      checked={editingScreen.is_active !== false}
+                      onCheckedChange={(checked) =>
+                        setEditingScreen({ ...editingScreen, is_active: checked })
+                      }
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Shuffle Content</Label>
+                      <p className="text-sm text-gray-600">Randomize playback order</p>
+                    </div>
+                    <Switch
+                      checked={editingScreen.shuffle || false}
+                      onCheckedChange={(checked) =>
+                        setEditingScreen({ ...editingScreen, shuffle: checked })
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="edit-background-color">Background Color</Label>
+                    <Input
+                      id="edit-background-color"
+                      type="color"
+                      value={editingScreen.background_color || "#000000"}
+                      onChange={(e) => setEditingScreen({ ...editingScreen, background_color: e.target.value })}
+                      className="h-10 cursor-pointer"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="edit-transition">Default Transition</Label>
+                    <Select
+                      value={editingScreen.default_transition || "fade"}
+                      onValueChange={(value) => setEditingScreen({ ...editingScreen, default_transition: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fade">Fade</SelectItem>
+                        <SelectItem value="slide">Slide</SelectItem>
+                        <SelectItem value="none">None</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-4 border-t pt-4">
+                  <Label className="text-base font-semibold">Scaling Options</Label>
+
+                  <div>
+                    <Label htmlFor="edit-scale-image">Image Scaling</Label>
+                    <Select
+                      value={editingScreen.scale_image || "fit"}
+                      onValueChange={(value) => setEditingScreen({ ...editingScreen, scale_image: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fill">Fill (Cover)</SelectItem>
+                        <SelectItem value="fit">Fit (Contain)</SelectItem>
+                        <SelectItem value="stretch">Stretch</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="edit-scale-video">Video Scaling</Label>
+                    <Select
+                      value={editingScreen.scale_video || "fit"}
+                      onValueChange={(value) => setEditingScreen({ ...editingScreen, scale_video: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fill">Fill (Cover)</SelectItem>
+                        <SelectItem value="fit">Fit (Contain)</SelectItem>
+                        <SelectItem value="stretch">Stretch</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="edit-scale-document">Document Scaling</Label>
+                    <Select
+                      value={editingScreen.scale_document || "fit"}
+                      onValueChange={(value) => setEditingScreen({ ...editingScreen, scale_document: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fill">Fill (Cover)</SelectItem>
+                        <SelectItem value="fit">Fit (Contain)</SelectItem>
+                        <SelectItem value="stretch">Stretch</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
