@@ -131,11 +131,6 @@ export async function POST(request: NextRequest) {
     const {
       name,
       description,
-      scale_image = "fit",
-      scale_video = "fit",
-      scale_document = "fit",
-      shuffle = false,
-      default_transition = "fade",
     } = await request.json()
 
     if (!name) {
@@ -150,11 +145,6 @@ export async function POST(request: NextRequest) {
         name,
         description,
         is_active: true,
-        scale_image,
-        scale_video,
-        scale_document,
-        shuffle,
-        default_transition,
       })
       .select()
       .single()
