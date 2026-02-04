@@ -160,7 +160,7 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
             duration_override,
             transition_type,
             transition_duration,
-            media (
+            media:media_id (
               id,
               name,
               url,
