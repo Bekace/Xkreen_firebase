@@ -120,9 +120,9 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
         }
       }
     }
-    // If not asset content, check for playlist
-    else {
-      console.log("[v0] No media_id, checking for active playlist for screen:", screen.id)
+    // If content type is playlist, check for active playlist
+    else if (screen.content_type === "playlist" || !screen.content_type) {
+      console.log("[v0] Content type is playlist, checking for active playlist for screen:", screen.id)
 
       const { data: screenPlaylist, error: playlistError } = await supabase
         .from("screen_playlists")
