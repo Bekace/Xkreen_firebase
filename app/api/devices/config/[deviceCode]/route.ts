@@ -58,9 +58,9 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
           media (
             id,
             name,
-            url,
-            type,
-            size,
+            file_path,
+            mime_type,
+            file_size,
             duration
           )
         `)
@@ -94,7 +94,7 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
 
         const { data: mediaItem, error: singleMediaError } = await supabase
           .from("media")
-          .select("id, name, url, type, size, duration")
+          .select("id, name, file_path, mime_type, file_size, duration")
           .eq("id", screen.media_id)
           .single()
 
@@ -163,9 +163,9 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
             media (
               id,
               name,
-              url,
-              type,
-              size,
+              file_path,
+              mime_type,
+              file_size,
               duration
             )
           `)
@@ -219,9 +219,9 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
             id: mediaData.id,
             name: mediaData.name,
             duration: mediaData.duration,
-            file_path: mediaData.url,      // map db 'url' to Android 'file_path'
-            file_size: mediaData.size,     // map db 'size' to Android 'file_size'
-            mime_type: mediaData.type,     // map db 'type' to Android 'mime_type'
+            file_path: mediaData.file_path,
+            file_size: mediaData.file_size,
+            mime_type: mediaData.mime_type,
           }
         }
       })
