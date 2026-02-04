@@ -229,6 +229,17 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
         }
       })
 
+    // Add screen-level display settings to playlist object for Android app compatibility
+    const playlistWithSettings = activePlaylist ? {
+      ...activePlaylist,
+      background_color: screen.background_color || "#000000",
+      scale_image: screen.scale_image || "fit",
+      scale_video: screen.scale_video || "fit",
+      scale_document: screen.scale_document || "fit",
+      shuffle: screen.shuffle ?? false,
+      default_transition: screen.default_transition || "fade",
+    } : null
+
     const responseData = {
       device: {
         id: device.id,
@@ -249,7 +260,7 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
         scale_document: screen.scale_document || "fit",
         background_color: screen.background_color || "#000000",
         default_transition: screen.default_transition || "fade",
-        playlist: activePlaylist,
+        playlist: playlistWithSettings,
         content: transformedContent,
       },
     }
