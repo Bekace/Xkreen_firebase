@@ -89,7 +89,8 @@ interface WizardState {
     preloadAssets: boolean
     showOfflineIndicator: boolean
     mute: boolean
-    notificationsEnabled: boolean // Added notificationsEnabled
+    notificationsEnabled: boolean
+    defaultTransition: string
   }
 }
 
@@ -139,7 +140,8 @@ export default function ScreensPage() {
       preloadAssets: false,
       showOfflineIndicator: true,
       mute: false,
-      notificationsEnabled: true, // Added notificationsEnabled
+      notificationsEnabled: true,
+      defaultTransition: "fade",
     },
   })
 
@@ -372,6 +374,7 @@ export default function ScreensPage() {
           resolution: wizardState.resolution,
           content_type: wizardState.selectedContentIds.length > 0 ? "playlist" : "none",
           enable_audio_management: wizardState.advancedOptions.mute,
+          default_transition: wizardState.advancedOptions.defaultTransition,
         }),
       })
 
@@ -963,6 +966,32 @@ export default function ScreensPage() {
             }
           />
         </div>
+
+        <div>
+          <Label>Default Transition</Label>
+          <p className="text-sm text-gray-600">Transition effect for Android devices</p>
+          <Select
+            value={wizardState.advancedOptions.defaultTransition}
+            onValueChange={(value) =>
+              setWizardState((prev) => ({
+                ...prev,
+                advancedOptions: { ...prev.advancedOptions, defaultTransition: value },
+              }))
+            }
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">None</SelectItem>
+              <SelectItem value="fade">Fade</SelectItem>
+              <SelectItem value="slide_left">Slide from Left</SelectItem>
+              <SelectItem value="slide_right">Slide from Right</SelectItem>
+              <SelectItem value="rotate">Rotate In</SelectItem>
+              <SelectItem value="flip">Flip</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
     </div>
   )
@@ -1543,6 +1572,7 @@ export default function ScreensPage() {
 
                     <div className="space-y-2">
                       <Label htmlFor="edit-transition" className="text-white font-medium">Default Transition</Label>
+                      <p className="text-xs text-gray-500">Transition effect used on Android devices</p>
                       <Select
                         value={editingScreen.default_transition || "fade"}
                         onValueChange={(value) => setEditingScreen({ ...editingScreen, default_transition: value })}
@@ -1551,9 +1581,12 @@ export default function ScreensPage() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="fade">Fade</SelectItem>
-                          <SelectItem value="slide">Slide</SelectItem>
                           <SelectItem value="none">None</SelectItem>
+                          <SelectItem value="fade">Fade</SelectItem>
+                          <SelectItem value="slide_left">Slide from Left</SelectItem>
+                          <SelectItem value="slide_right">Slide from Right</SelectItem>
+                          <SelectItem value="rotate">Rotate In</SelectItem>
+                          <SelectItem value="flip">Flip</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
