@@ -1478,129 +1478,146 @@ export default function ScreensPage() {
                   </Select>
                 </div>
 
-                <div className="space-y-4 border-t pt-4">
-                  <Label className="text-base font-semibold">Advanced Options</Label>
+                {/* Advanced Options Section */}
+                <div className="space-y-4 border-t border-gray-700 pt-6 mt-6">
+                  <div className="flex items-center gap-2">
+                    <div className="h-1 w-1 rounded-full bg-cyan-500"></div>
+                    <h3 className="text-base font-semibold text-white">Advanced Options</h3>
+                  </div>
 
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>Mute</Label>
-                      <p className="text-sm text-gray-600">Disable audio playback</p>
+                  <div className="space-y-4 pl-3">
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50 border border-gray-700 hover:border-gray-600 transition-colors">
+                      <div>
+                        <Label className="text-white font-medium">Active</Label>
+                        <p className="text-sm text-gray-400 mt-1">Enable this screen for display</p>
+                      </div>
+                      <Switch
+                        checked={editingScreen.is_active !== false}
+                        onCheckedChange={(checked) =>
+                          setEditingScreen({ ...editingScreen, is_active: checked })
+                        }
+                      />
                     </div>
-                    <Switch
-                      checked={editingScreen.enable_audio_management || false}
-                      onCheckedChange={(checked) =>
-                        setEditingScreen({ ...editingScreen, enable_audio_management: checked })
-                      }
-                    />
-                  </div>
 
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>Active</Label>
-                      <p className="text-sm text-gray-600">Enable this screen</p>
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50 border border-gray-700 hover:border-gray-600 transition-colors">
+                      <div>
+                        <Label className="text-white font-medium">Mute Audio</Label>
+                        <p className="text-sm text-gray-400 mt-1">Disable audio playback</p>
+                      </div>
+                      <Switch
+                        checked={editingScreen.enable_audio_management || false}
+                        onCheckedChange={(checked) =>
+                          setEditingScreen({ ...editingScreen, enable_audio_management: checked })
+                        }
+                      />
                     </div>
-                    <Switch
-                      checked={editingScreen.is_active !== false}
-                      onCheckedChange={(checked) =>
-                        setEditingScreen({ ...editingScreen, is_active: checked })
-                      }
-                    />
-                  </div>
 
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>Shuffle Content</Label>
-                      <p className="text-sm text-gray-600">Randomize playback order</p>
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50 border border-gray-700 hover:border-gray-600 transition-colors">
+                      <div>
+                        <Label className="text-white font-medium">Shuffle Content</Label>
+                        <p className="text-sm text-gray-400 mt-1">Randomize playback order</p>
+                      </div>
+                      <Switch
+                        checked={editingScreen.shuffle || false}
+                        onCheckedChange={(checked) =>
+                          setEditingScreen({ ...editingScreen, shuffle: checked })
+                        }
+                      />
                     </div>
-                    <Switch
-                      checked={editingScreen.shuffle || false}
-                      onCheckedChange={(checked) =>
-                        setEditingScreen({ ...editingScreen, shuffle: checked })
-                      }
-                    />
-                  </div>
 
-                  <div>
-                    <Label htmlFor="edit-background-color">Background Color</Label>
-                    <Input
-                      id="edit-background-color"
-                      type="color"
-                      value={editingScreen.background_color || "#000000"}
-                      onChange={(e) => setEditingScreen({ ...editingScreen, background_color: e.target.value })}
-                      className="h-10 cursor-pointer"
-                    />
-                  </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-background-color" className="text-white font-medium">Background Color</Label>
+                      <div className="flex items-center gap-3">
+                        <Input
+                          id="edit-background-color"
+                          type="color"
+                          value={editingScreen.background_color || "#000000"}
+                          onChange={(e) => setEditingScreen({ ...editingScreen, background_color: e.target.value })}
+                          className="h-12 w-20 cursor-pointer border-gray-700"
+                        />
+                        <span className="text-sm text-gray-400 font-mono">
+                          {editingScreen.background_color || "#000000"}
+                        </span>
+                      </div>
+                    </div>
 
-                  <div>
-                    <Label htmlFor="edit-transition">Default Transition</Label>
-                    <Select
-                      value={editingScreen.default_transition || "fade"}
-                      onValueChange={(value) => setEditingScreen({ ...editingScreen, default_transition: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="fade">Fade</SelectItem>
-                        <SelectItem value="slide">Slide</SelectItem>
-                        <SelectItem value="none">None</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-transition" className="text-white font-medium">Default Transition</Label>
+                      <Select
+                        value={editingScreen.default_transition || "fade"}
+                        onValueChange={(value) => setEditingScreen({ ...editingScreen, default_transition: value })}
+                      >
+                        <SelectTrigger className="border-gray-700">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="fade">Fade</SelectItem>
+                          <SelectItem value="slide">Slide</SelectItem>
+                          <SelectItem value="none">None</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
 
-                <div className="space-y-4 border-t pt-4">
-                  <Label className="text-base font-semibold">Scaling Options</Label>
-
-                  <div>
-                    <Label htmlFor="edit-scale-image">Image Scaling</Label>
-                    <Select
-                      value={editingScreen.scale_image || "fit"}
-                      onValueChange={(value) => setEditingScreen({ ...editingScreen, scale_image: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="fill">Fill (Cover)</SelectItem>
-                        <SelectItem value="fit">Fit (Contain)</SelectItem>
-                        <SelectItem value="stretch">Stretch</SelectItem>
-                      </SelectContent>
-                    </Select>
+                {/* Scaling Options Section */}
+                <div className="space-y-4 border-t border-gray-700 pt-6 mt-6">
+                  <div className="flex items-center gap-2">
+                    <div className="h-1 w-1 rounded-full bg-cyan-500"></div>
+                    <h3 className="text-base font-semibold text-white">Content Scaling</h3>
                   </div>
 
-                  <div>
-                    <Label htmlFor="edit-scale-video">Video Scaling</Label>
-                    <Select
-                      value={editingScreen.scale_video || "fit"}
-                      onValueChange={(value) => setEditingScreen({ ...editingScreen, scale_video: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="fill">Fill (Cover)</SelectItem>
-                        <SelectItem value="fit">Fit (Contain)</SelectItem>
-                        <SelectItem value="stretch">Stretch</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <div className="space-y-4 pl-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-scale-image" className="text-white font-medium">Image Scaling</Label>
+                      <Select
+                        value={editingScreen.scale_image || "fit"}
+                        onValueChange={(value) => setEditingScreen({ ...editingScreen, scale_image: value })}
+                      >
+                        <SelectTrigger className="border-gray-700">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="fill">Fill (Cover entire screen)</SelectItem>
+                          <SelectItem value="fit">Fit (Maintain aspect ratio)</SelectItem>
+                          <SelectItem value="stretch">Stretch (Fill without ratio)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                  <div>
-                    <Label htmlFor="edit-scale-document">Document Scaling</Label>
-                    <Select
-                      value={editingScreen.scale_document || "fit"}
-                      onValueChange={(value) => setEditingScreen({ ...editingScreen, scale_document: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="fill">Fill (Cover)</SelectItem>
-                        <SelectItem value="fit">Fit (Contain)</SelectItem>
-                        <SelectItem value="stretch">Stretch</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-scale-video" className="text-white font-medium">Video Scaling</Label>
+                      <Select
+                        value={editingScreen.scale_video || "fit"}
+                        onValueChange={(value) => setEditingScreen({ ...editingScreen, scale_video: value })}
+                      >
+                        <SelectTrigger className="border-gray-700">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="fill">Fill (Cover entire screen)</SelectItem>
+                          <SelectItem value="fit">Fit (Maintain aspect ratio)</SelectItem>
+                          <SelectItem value="stretch">Stretch (Fill without ratio)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-scale-document" className="text-white font-medium">Document Scaling</Label>
+                      <Select
+                        value={editingScreen.scale_document || "fit"}
+                        onValueChange={(value) => setEditingScreen({ ...editingScreen, scale_document: value })}
+                      >
+                        <SelectTrigger className="border-gray-700">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="fill">Fill (Cover entire screen)</SelectItem>
+                          <SelectItem value="fit">Fit (Maintain aspect ratio)</SelectItem>
+                          <SelectItem value="stretch">Stretch (Fill without ratio)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
 
