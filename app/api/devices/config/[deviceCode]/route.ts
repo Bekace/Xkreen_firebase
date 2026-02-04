@@ -258,8 +258,8 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
         background_color: screen.background_color || "#000000",
         default_transition: screen.default_transition || "fade",
         playlist: playlistWithSettings,
-        content: transformedContent,
       },
+      content: transformedContent,
     }
 
     const response = NextResponse.json(responseData)
