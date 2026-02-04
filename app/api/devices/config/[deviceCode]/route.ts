@@ -203,27 +203,24 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
       playlistId: activePlaylist?.id,
     })
 
-    // Transform content for Android app - apply duration logic and map db fields to Android expected fields
+    // Transform content for Android app - match old API structure exactly
     const transformedContent = playlistContent
       .filter((item: any) => item.media) // Only include items with valid media
       .map((item: any) => {
         const mediaData = item.media
         
-        // Duration logic: use duration_override from playlist_items, else media.duration for videos, else 10 for images
-        let duration = item.duration_override || 10
-        if (mediaData.type?.startsWith('video/') && mediaData.duration) {
-          duration = item.duration_override || mediaData.duration
-        }
-        
         return {
-          id: mediaData.id,
-          name: mediaData.name,
-          duration: duration,
+          id: item.id,
           position: item.position,
-          transition_type: item.transition_type || screen.default_transition || "fade",
-          transition_duration: item.transition_duration || 0.8,
+          duration_override: item.duration_override,
+          transition_type: item.transition_type,
+          transition_duration: item.transition_duration,
           media: {
+            id: mediaData.id,
+            name: mediaData.name,
+            duration: mediaData.duration,
             file_path: mediaData.url,      // map db 'url' to Android 'file_path'
+            file_size: mediaData.size,     // map db 'size' to Android 'file_size'
             mime_type: mediaData.type,     // map db 'type' to Android 'mime_type'
           }
         }
