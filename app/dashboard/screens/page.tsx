@@ -23,6 +23,7 @@ import {
   Eye,
   MoreVertical,
   Wifi,
+  ImageIcon,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { transformScreenData } from "@/utils/transformScreenData"
