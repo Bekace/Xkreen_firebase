@@ -103,6 +103,7 @@ export default function SchedulesPage() {
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null)
   const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [savingItem, setSavingItem] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => {
     const today = new Date()
@@ -452,49 +453,13 @@ export default function SchedulesPage() {
     if (!itemContentId || !itemStartTime || !itemEndTime) {
       toast({
         title: "Error",
-        description: "Please fill in all required fields",
+        description: "Please fill in all fields",
         variant: "destructive",
       })
       return
     }
 
-    let recurrenceRule = null
-    let daysOfWeek = null
-
-    if (itemRecurrence === "daily") {
-      recurrenceRule = "FREQ=DAILY"
-    } else if (itemRecurrence === "weekly" && itemDaysOfWeek.length > 0) {
-      const days = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"]
-      const byDay = itemDaysOfWeek.map((d) => days[d]).join(",")
-      recurrenceRule = `FREQ=WEEKLY;BYDAY=${byDay}`
-      daysOfWeek = itemDaysOfWeek
-    }
-
-    // Check for time overlaps with other items (excluding the current item being edited)
-    const hasOverlap = scheduleItems
-      .filter(item => item.id !== editingItem.id)
-      .some(existingItem => 
-        checkTimeOverlap(
-          itemStartTime,
-          itemEndTime,
-          existingItem.start_time.slice(0, 5),
-          existingItem.end_time.slice(0, 5),
-          daysOfWeek,
-          existingItem.days_of_week,
-          recurrenceRule,
-          existingItem.recurrence_rule
-        )
-      )
-
-    if (hasOverlap) {
-      toast({
-        title: "Time Conflict",
-        description: "This time slot overlaps with an existing schedule",
-        variant: "destructive",
-      })
-      return
-    }
-
+    setSavingItem(true)
     try {
       const response = await fetch(`/api/schedules/${selectedSchedule.id}/items/${editingItem.id}`, {
         method: "PATCH",
@@ -533,6 +498,8 @@ export default function SchedulesPage() {
         description: "Failed to update time slot",
         variant: "destructive",
       })
+    } finally {
+      setSavingItem(false)
     }
   }
 
@@ -1427,9 +1394,9 @@ export default function SchedulesPage() {
             >
               Delete
             </Button>
-            <Button onClick={handleEditScheduleItem} className="bg-cyan-500 hover:bg-cyan-600">
-              Save
-            </Button>
+              <Button onClick={handleEditScheduleItem} disabled={savingItem} className="bg-cyan-500 hover:bg-cyan-600">
+                {savingItem ? "Saving..." : "Save"}
+              </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
