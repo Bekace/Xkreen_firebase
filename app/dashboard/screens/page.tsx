@@ -1138,39 +1138,36 @@ export default function ScreensPage() {
 
     const selectedIds: string[] = []
 
-    // Add all playlists from screen_playlists
-    if (screen.screen_playlists) {
-      screen.screen_playlists.forEach((sp: any) => {
-        if (sp.playlist_id) {
-          selectedIds.push(sp.playlist_id)
-        }
-      })
+    // Add only the first playlist from screen_playlists (single select)
+    if (screen.screen_playlists && screen.screen_playlists.length > 0) {
+      const firstPlaylist = screen.screen_playlists[0]
+      if (firstPlaylist.playlist_id) {
+        selectedIds.push(firstPlaylist.playlist_id)
+      }
     }
 
-    // Add all schedules from screen_schedules
-    if (screen.screen_schedules) {
-      screen.screen_schedules.forEach((ss: any) => {
-        if (ss.schedule_id) {
-          selectedIds.push(ss.schedule_id)
-        }
-      })
+    // Add only the first schedule from screen_schedules (single select)
+    if (selectedIds.length === 0 && screen.screen_schedules && screen.screen_schedules.length > 0) {
+      const firstSchedule = screen.screen_schedules[0]
+      if (firstSchedule.schedule_id) {
+        selectedIds.push(firstSchedule.schedule_id)
+      }
     }
 
-    // Add all media from screen_media junction table
-    if (screen.screen_media) {
-      screen.screen_media.forEach((sm: any) => {
-        if (sm.media_id) {
-          selectedIds.push(sm.media_id)
-        }
-      })
+    // Add only the first media from screen_media junction table (single select)
+    if (selectedIds.length === 0 && screen.screen_media && screen.screen_media.length > 0) {
+      const firstMedia = screen.screen_media[0]
+      if (firstMedia.media_id) {
+        selectedIds.push(firstMedia.media_id)
+      }
     }
 
     // Fallback: if no screen_media but has media_id, add it
-    if (!screen.screen_media?.length && screen.media_id) {
+    if (selectedIds.length === 0 && screen.media_id) {
       selectedIds.push(screen.media_id)
     }
 
-    console.log("[v0] openEditDialog - selectedIds:", selectedIds)
+    console.log("[v0] openEditDialog - selectedIds (single select):", selectedIds)
     setEditingSelectedContentIds(selectedIds)
   }
 
@@ -1730,11 +1727,7 @@ export default function ScreensPage() {
                                   : "bg-white hover:bg-gray-50"
                               }`}
                               onClick={() => {
-                                setEditingSelectedContentIds((prev) =>
-                                  prev.includes(playlist.id)
-                                    ? prev.filter((id) => id !== playlist.id)
-                                    : [...prev, playlist.id],
-                                )
+                                setEditingSelectedContentIds([playlist.id])
                               }}
                             >
                               <div className="flex items-center gap-3 text-popover">
@@ -1772,9 +1765,7 @@ export default function ScreensPage() {
                                   : "bg-white hover:bg-gray-50"
                               }`}
                               onClick={() => {
-                                setEditingSelectedContentIds((prev) =>
-                                  prev.includes(media.id) ? prev.filter((id) => id !== media.id) : [...prev, media.id],
-                                )
+                                setEditingSelectedContentIds([media.id])
                               }}
                             >
                               <div className="flex items-center gap-3">
@@ -1815,9 +1806,7 @@ export default function ScreensPage() {
                                   : "bg-white hover:bg-gray-50"
                               }`}
                               onClick={() => {
-                                setEditingSelectedContentIds((prev) =>
-                                  prev.includes(schedule.id) ? prev.filter((id) => id !== schedule.id) : [...prev, schedule.id],
-                                )
+                                setEditingSelectedContentIds([schedule.id])
                               }}
                             >
                               <div className="flex items-center gap-3 text-popover">
