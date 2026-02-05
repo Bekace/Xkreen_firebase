@@ -14,6 +14,7 @@ import {
   Tv,
   PlayCircle,
   Circle,
+  CheckCircle,
   CheckCircle2,
   Calendar,
   VolumeX,
