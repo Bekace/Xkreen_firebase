@@ -24,6 +24,7 @@ import {
   MoreVertical,
   Wifi,
   ImageIcon,
+  Smartphone,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { transformScreenData } from "@/utils/transformScreenData"
