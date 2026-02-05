@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Monitor, ImageIcon, PlayCircle, Activity, Plus, TrendingUp, Zap, CheckCircle2, X } from "lucide-react"
+import { Monitor, ImageIcon, PlayCircle, Activity, Plus, TrendingUp, Zap, CheckCircle2, X, Wifi, CheckCircle } from "lucide-react"
 import type { User } from "@supabase/supabase-js"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
@@ -24,6 +24,8 @@ export function DashboardOverview({ user, showWelcome = false }: DashboardOvervi
   const [loading, setLoading] = useState(true)
   const [isWelcomeOpen, setIsWelcomeOpen] = useState(showWelcome)
   const [subscription, setSubscription] = useState<{ planName: string } | null>(null)
+  const [deviceStatus, setDeviceStatus] = useState<{ online: number; offline: number; total: number } | null>(null)
+  const [proofOfPlay, setProofOfPlay] = useState<{ totalPlays: number; successRate: string } | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -41,7 +43,36 @@ export function DashboardOverview({ user, showWelcome = false }: DashboardOvervi
       }
     }
 
+    async function fetchDeviceStatus() {
+      try {
+        const response = await fetch("/api/devices/status")
+        if (response.ok) {
+          const data = await response.json()
+          setDeviceStatus(data.summary)
+        }
+      } catch (error) {
+        console.error("[v0] Error fetching device status:", error)
+      }
+    }
+
+    async function fetchProofOfPlay() {
+      try {
+        const response = await fetch("/api/proof-of-play/stats?timeRange=24h")
+        if (response.ok) {
+          const data = await response.json()
+          setProofOfPlay({
+            totalPlays: data.summary.total_plays,
+            successRate: data.summary.success_rate,
+          })
+        }
+      } catch (error) {
+        console.error("[v0] Error fetching proof of play:", error)
+      }
+    }
+
     fetchStats()
+    fetchDeviceStatus()
+    fetchProofOfPlay()
   }, [])
 
   useEffect(() => {
@@ -68,6 +99,13 @@ export function DashboardOverview({ user, showWelcome = false }: DashboardOvervi
 
   const statsData = [
     {
+      title: "Online Devices",
+      value: loading ? "..." : deviceStatus?.online.toString() || "0",
+      change: deviceStatus ? `${deviceStatus.offline} offline` : "Loading...",
+      icon: Wifi,
+      color: "text-green-500",
+    },
+    {
       title: "Active Screens",
       value: loading ? "..." : stats?.activeScreens.value.toString() || "0",
       change: loading ? "Loading..." : stats?.activeScreens.change || "No change",
@@ -75,11 +113,11 @@ export function DashboardOverview({ user, showWelcome = false }: DashboardOvervi
       color: "text-primary",
     },
     {
-      title: "Media Files",
-      value: loading ? "..." : stats?.mediaFiles.value.toString() || "0",
-      change: loading ? "Loading..." : stats?.mediaFiles.change || "No change",
-      icon: ImageIcon,
-      color: "text-secondary",
+      title: "Media Plays Today",
+      value: loading ? "..." : proofOfPlay?.totalPlays.toString() || "0",
+      change: proofOfPlay ? `${proofOfPlay.successRate}% success rate` : "Loading...",
+      icon: CheckCircle,
+      color: "text-cyan-500",
     },
     {
       title: "Active Playlists",
@@ -87,13 +125,6 @@ export function DashboardOverview({ user, showWelcome = false }: DashboardOvervi
       change: loading ? "Loading..." : stats?.activePlaylists.change || "No change",
       icon: PlayCircle,
       color: "text-accent",
-    },
-    {
-      title: "Total Views",
-      value: loading ? "..." : stats?.totalViews.value.toLocaleString() || "0",
-      change: loading ? "Loading..." : stats?.totalViews.change || "No change",
-      icon: Activity,
-      color: "text-chart-4",
     },
   ]
 

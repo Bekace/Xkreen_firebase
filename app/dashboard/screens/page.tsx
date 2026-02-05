@@ -115,6 +115,7 @@ export default function ScreensPage() {
   const [editingContentType, setEditingContentType] = useState<"playlist" | "asset">("playlist")
   const [previewingScreen, setPreviewingScreen] = useState<Screen | null>(null)
   const [editingSelectedContentIds, setEditingSelectedContentIds] = useState<string[]>([])
+  const [deviceOnlineStatus, setDeviceOnlineStatus] = useState<Record<string, boolean>>({})
 
   const [screenLimits, setScreenLimits] = useState<{
     current: number
@@ -157,10 +158,12 @@ export default function ScreensPage() {
     fetchPlaylists()
     fetchMediaItems()
     fetchSchedules()
+    fetchDeviceStatus()
 
     // Poll for screen status updates every 30 seconds
     const pollInterval = setInterval(() => {
       fetchScreens()
+      fetchDeviceStatus()
     }, 30000)
 
     // Cleanup interval on unmount
@@ -176,6 +179,24 @@ export default function ScreensPage() {
       }
     } catch (error) {
       console.error("Error fetching screen limits:", error)
+    }
+  }
+
+  const fetchDeviceStatus = async () => {
+    try {
+      const response = await fetch("/api/devices/status")
+      if (response.ok) {
+        const data = await response.json()
+        const statusMap: Record<string, boolean> = {}
+        data.devices.forEach((device: any) => {
+          if (device.screen_id) {
+            statusMap[device.screen_id] = device.is_online
+          }
+        })
+        setDeviceOnlineStatus(statusMap)
+      }
+    } catch (error) {
+      console.error("[v0] Error fetching device status:", error)
     }
   }
 
@@ -1252,15 +1273,19 @@ export default function ScreensPage() {
                       </div>
                     )}
                     <div
-                      className={`px-2 py-1 rounded text-xs font-medium ${
-                        screen.status === "online"
+                      className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1.5 ${
+                        deviceOnlineStatus[screen.id]
                           ? "bg-green-100 text-green-700"
-                          : screen.status === "paired"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-gray-100 text-gray-700"
+                          : "bg-gray-100 text-gray-700"
                       }`}
+                      title={deviceOnlineStatus[screen.id] ? "Device online" : "Device offline"}
                     >
-                      {screen.status}
+                      <div
+                        className={`h-2 w-2 rounded-full ${
+                          deviceOnlineStatus[screen.id] ? "bg-green-500 animate-pulse" : "bg-gray-400"
+                        }`}
+                      />
+                      {deviceOnlineStatus[screen.id] ? "Online" : "Offline"}
                     </div>
                   </div>
                 </div>

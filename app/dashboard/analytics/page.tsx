@@ -48,6 +48,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
+import { ProofOfPlay } from "@/components/analytics/proof-of-play"
 
 interface AnalyticsData {
   overview: {
@@ -588,6 +589,9 @@ export default function AnalyticsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Proof of Play Analytics */}
+      <ProofOfPlay />
 
       {/* Sheet (slide-over) for detailed screen analytics */}
       <Sheet open={!!selectedScreen} onOpenChange={(open) => !open && setSelectedScreen(null)}>
