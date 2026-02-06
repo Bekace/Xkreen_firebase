@@ -694,8 +694,9 @@ export default function SchedulesPage() {
     if (item.recurrence_rule?.includes("WEEKLY") && item.days_of_week) {
       return item.days_of_week.includes(dayIndex)
     }
-    // No recurrence - show on all days for now
-    return true
+    // No recurrence - show on first day only (Sunday = 0)
+    // One-time events should appear only once in the week view
+    return dayIndex === 0
   }
 
   // Get color for an item - use dark teal matching the reference design
