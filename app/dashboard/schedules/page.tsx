@@ -1413,7 +1413,14 @@ export default function SchedulesPage() {
             >
               Delete
             </Button>
-              <Button onClick={handleEditScheduleItem} disabled={savingItem} className="bg-cyan-500 hover:bg-cyan-600">
+              <Button 
+                onClick={() => {
+                  console.log("[v0] Save button clicked!")
+                  handleEditScheduleItem()
+                }} 
+                disabled={savingItem} 
+                className="bg-cyan-500 hover:bg-cyan-600"
+              >
                 {savingItem ? "Saving..." : "Save"}
               </Button>
           </DialogFooter>
