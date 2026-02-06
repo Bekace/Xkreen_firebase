@@ -448,9 +448,19 @@ export default function SchedulesPage() {
   }
 
   const handleEditScheduleItem = async () => {
-    if (!selectedSchedule || !editingItem) return
+    console.log("[v0] handleEditScheduleItem called")
+    console.log("[v0] selectedSchedule:", selectedSchedule)
+    console.log("[v0] editingItem:", editingItem)
+    
+    if (!selectedSchedule || !editingItem) {
+      console.log("[v0] Early return: missing selectedSchedule or editingItem")
+      return
+    }
 
+    console.log("[v0] Form values:", { itemContentId, itemStartTime, itemEndTime, itemContentType })
+    
     if (!itemContentId || !itemStartTime || !itemEndTime) {
+      console.log("[v0] Validation failed: missing required fields")
       toast({
         title: "Error",
         description: "Please fill in all fields",
@@ -459,9 +469,13 @@ export default function SchedulesPage() {
       return
     }
 
+    console.log("[v0] Starting save operation...")
     setSavingItem(true)
     try {
-      const response = await fetch(`/api/schedules/${selectedSchedule.id}/items/${editingItem.id}`, {
+      const url = `/api/schedules/${selectedSchedule.id}/items/${editingItem.id}`
+      console.log("[v0] API URL:", url)
+      
+      const response = await fetch(url, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -475,7 +489,10 @@ export default function SchedulesPage() {
         }),
       })
 
+      console.log("[v0] Response status:", response.status)
+      
       if (response.ok) {
+        console.log("[v0] Update successful")
         toast({
           title: "Success",
           description: "Time slot updated successfully",
@@ -486,6 +503,7 @@ export default function SchedulesPage() {
         fetchScheduleItems(selectedSchedule.id)
       } else {
         const data = await response.json()
+        console.log("[v0] Update failed:", data)
         toast({
           title: "Error",
           description: data.error || "Failed to update time slot",
@@ -493,6 +511,7 @@ export default function SchedulesPage() {
         })
       }
     } catch (error) {
+      console.log("[v0] Exception caught:", error)
       toast({
         title: "Error",
         description: "Failed to update time slot",
