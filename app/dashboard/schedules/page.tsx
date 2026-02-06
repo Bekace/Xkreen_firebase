@@ -471,6 +471,20 @@ export default function SchedulesPage() {
 
     console.log("[v0] Starting save operation...")
     setSavingItem(true)
+    
+    // Build recurrence rule based on itemRecurrence
+    let recurrenceRule = null
+    let daysOfWeek = null
+
+    if (itemRecurrence === "daily") {
+      recurrenceRule = "FREQ=DAILY"
+    } else if (itemRecurrence === "weekly" && itemDaysOfWeek.length > 0) {
+      const days = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"]
+      const byDay = itemDaysOfWeek.map((d) => days[d]).join(",")
+      recurrenceRule = `FREQ=WEEKLY;BYDAY=${byDay}`
+      daysOfWeek = itemDaysOfWeek
+    }
+    
     try {
       const url = `/api/schedules/${selectedSchedule.id}/items/${editingItem.id}`
       console.log("[v0] API URL:", url)
