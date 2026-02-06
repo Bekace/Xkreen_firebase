@@ -765,8 +765,9 @@ export default function SchedulesPage() {
       if (days && days.length > 0) {
         return new Set(days)
       }
-      // No recurrence - consider all days
-      return new Set([0, 1, 2, 3, 4, 5, 6])
+      // No recurrence and no days specified - only show on Sunday (day 0)
+      // This handles existing items in database with null days_of_week and null recurrence_rule
+      return new Set([0])
     }
 
     const days1Set = getDaysSet(days1, rule1)
