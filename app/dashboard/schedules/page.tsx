@@ -656,7 +656,9 @@ export default function SchedulesPage() {
 
   const handleAllDayClick = (dayIndex: number) => {
     if (!selectedSchedule) return
-    // Set all-day times (12:00 AM to 11:59 PM)
+    // Reset form first to clear any previous values
+    resetItemForm()
+    // Then set all-day times (12:00 AM to 11:59 PM)
     setItemStartTime("00:00")
     setItemEndTime("23:59")
     // Set weekly recurrence with the selected day
@@ -1324,9 +1326,12 @@ export default function SchedulesPage() {
 
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddItemDialogOpen(false)}>
-              Close
-            </Button>
+              <Button variant="outline" onClick={() => {
+                setIsAddItemDialogOpen(false)
+                resetItemForm()
+              }}>
+                Close
+              </Button>
             <Button onClick={handleAddScheduleItem} className="bg-cyan-500 hover:bg-cyan-600">
               Save
             </Button>
@@ -1443,9 +1448,12 @@ export default function SchedulesPage() {
             )}
           </div>
           <DialogFooter className="flex gap-2">
-            <Button variant="outline" onClick={() => setIsEditItemDialogOpen(false)}>
-              Close
-            </Button>
+              <Button variant="outline" onClick={() => {
+                setIsEditItemDialogOpen(false)
+                resetItemForm()
+              }}>
+                Close
+              </Button>
             <Button
               variant="destructive"
               onClick={() => {
