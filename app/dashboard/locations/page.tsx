@@ -90,6 +90,7 @@ export default function LocationsPage() {
   const [currentLocation, setCurrentLocation] = useState<Location | null>(null)
   const [selectedScreenIds, setSelectedScreenIds] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
+  const [deviceOnlineStatus, setDeviceOnlineStatus] = useState<Record<string, boolean>>({})
 
   const [formData, setFormData] = useState({
     name: "",
@@ -116,6 +117,14 @@ export default function LocationsPage() {
   useEffect(() => {
     fetchLocations()
     fetchScreens()
+    fetchDeviceStatus()
+
+    // Poll device status every 30 seconds
+    const pollInterval = setInterval(() => {
+      fetchDeviceStatus()
+    }, 30000)
+
+    return () => clearInterval(pollInterval)
   }, [])
 
   const fetchLocations = async () => {
@@ -160,6 +169,24 @@ export default function LocationsPage() {
       }
     } catch (error) {
       console.error("Error fetching screens:", error)
+    }
+  }
+
+  const fetchDeviceStatus = async () => {
+    try {
+      const response = await fetch("/api/devices/status")
+      if (response.ok) {
+        const data = await response.json()
+        const statusMap: Record<string, boolean> = {}
+        data.devices.forEach((device: any) => {
+          if (device.screen_id) {
+            statusMap[device.screen_id] = device.is_online
+          }
+        })
+        setDeviceOnlineStatus(statusMap)
+      }
+    } catch (error) {
+      console.error("[v0] Error fetching device status:", error)
     }
   }
 
@@ -830,8 +857,8 @@ export default function LocationsPage() {
                             <div className="font-medium">{screen.name}</div>
                             <div className="text-sm text-muted-foreground">{screen.screen_code}</div>
                           </div>
-                          <Badge variant={screen.status === "online" ? "default" : "secondary"}>
-                            {screen.status}
+                          <Badge variant={deviceOnlineStatus[screen.id] ? "default" : "secondary"}>
+                            {deviceOnlineStatus[screen.id] ? "online" : "offline"}
                           </Badge>
                         </div>
                       </CardContent>
