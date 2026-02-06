@@ -1373,9 +1373,9 @@ export default function SchedulesPage() {
                   </div>
                   <div className="text-sm space-y-1">
                     {overlapWarnings.map((item, index) => {
-                      const contentName = item.playlist_id 
-                        ? playlists.find(p => p.id === item.playlist_id)?.name || 'Unknown'
-                        : media.find(m => m.id === item.media_id)?.name || 'Unknown'
+                      const contentName = item.content_type === 'playlist'
+                        ? playlists.find(p => p.id === item.content_id)?.name || 'Unknown'
+                        : mediaItems.find(m => m.id === item.content_id)?.name || 'Unknown'
                       const days = item.days_of_week
                         ? item.days_of_week.map(d => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d]).join(', ')
                         : 'All days'
