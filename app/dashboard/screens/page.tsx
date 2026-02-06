@@ -184,15 +184,23 @@ export default function ScreensPage() {
 
   const fetchDeviceStatus = async () => {
     try {
+      console.log("[v0] Fetching device status...")
       const response = await fetch("/api/devices/status")
+      console.log("[v0] Device status response:", response.status)
+      
       if (response.ok) {
         const data = await response.json()
+        console.log("[v0] Device status data:", data)
+        
         const statusMap: Record<string, boolean> = {}
         data.devices.forEach((device: any) => {
           if (device.screen_id) {
+            console.log(`[v0] Device ${device.device_code} for screen ${device.screen_id}: is_online=${device.is_online}`)
             statusMap[device.screen_id] = device.is_online
           }
         })
+        
+        console.log("[v0] Final status map:", statusMap)
         setDeviceOnlineStatus(statusMap)
       }
     } catch (error) {
