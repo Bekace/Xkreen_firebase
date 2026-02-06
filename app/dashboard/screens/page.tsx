@@ -108,6 +108,7 @@ export default function ScreensPage() {
   const [editingScreen, setEditingScreen] = useState<Screen | null>(null)
   const [creating, setCreating] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [updating, setUpdating] = useState(false)
   const [repairingScreen, setRepairingScreen] = useState<Screen | null>(null)
   const [newPairingCode, setNewPairingCode] = useState("")
@@ -169,6 +170,17 @@ export default function ScreensPage() {
     // Cleanup interval on unmount
     return () => clearInterval(pollInterval)
   }, [])
+
+  // Update elapsed seconds counter every second
+  useEffect(() => {
+    setElapsedSeconds(0) // Reset when lastUpdated changes
+    
+    const timerInterval = setInterval(() => {
+      setElapsedSeconds(Math.floor((new Date().getTime() - lastUpdated.getTime()) / 1000))
+    }, 1000)
+
+    return () => clearInterval(timerInterval)
+  }, [lastUpdated])
 
   const fetchScreenLimits = async () => {
     try {
@@ -1198,13 +1210,17 @@ export default function ScreensPage() {
           <div className="flex items-center gap-1.5">
             <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
             <span className="text-xs text-muted-foreground">
-              Monitoring status · Last updated {Math.floor((new Date().getTime() - lastUpdated.getTime()) / 1000)}s ago
+              Monitoring status · Last updated {elapsedSeconds}s ago
             </span>
           </div>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => fetchScreens()}
+            onClick={() => {
+              fetchScreens()
+              fetchDeviceStatus()
+              setLastUpdated(new Date())
+            }}
             className="h-6 px-2 text-xs"
           >
             <RotateCw className="h-3 w-3 mr-1" />
