@@ -168,22 +168,26 @@ export default function SchedulesPage() {
     }
   }, [selectedSchedule])
 
-  // Check for overlaps in real-time when form values change
+  // Check for overlaps in real-time when form values change (Add or Edit dialog)
   useEffect(() => {
-    if (isAddItemDialogOpen && itemStartTime && itemEndTime) {
+    if ((isAddItemDialogOpen || isEditItemDialogOpen) && itemStartTime && itemEndTime) {
       const overlaps = getOverlappingItems(
         itemStartTime,
         itemEndTime,
         itemRecurrence,
         itemDaysOfWeek
       )
-      setOverlapWarnings(overlaps)
-      setShowOverlapWarning(overlaps.length > 0)
+      // For edit dialog, exclude the current item being edited from overlap check
+      const filteredOverlaps = isEditItemDialogOpen && editingItem
+        ? overlaps.filter(item => item.id !== editingItem.id)
+        : overlaps
+      setOverlapWarnings(filteredOverlaps)
+      setShowOverlapWarning(filteredOverlaps.length > 0)
     } else {
       setOverlapWarnings([])
       setShowOverlapWarning(false)
     }
-  }, [isAddItemDialogOpen, itemStartTime, itemEndTime, itemRecurrence, itemDaysOfWeek, scheduleItems])
+  }, [isAddItemDialogOpen, isEditItemDialogOpen, itemStartTime, itemEndTime, itemRecurrence, itemDaysOfWeek, scheduleItems, editingItem])
 
   const fetchSchedules = async () => {
     try {
@@ -1514,6 +1518,40 @@ export default function SchedulesPage() {
                 </div>
               </div>
             )}
+
+            {/* Overlap Warning */}
+            {showOverlapWarning && (
+              <Alert className="border-orange-500 bg-orange-50 dark:bg-orange-950/20">
+                <AlertCircle className="h-4 w-4 text-orange-600" />
+                <AlertDescription className="text-orange-800 dark:text-orange-200">
+                  <div className="font-semibold mb-2">
+                    Time Conflict Detected ({overlapWarnings.length} conflict{overlapWarnings.length > 1 ? 's' : ''})
+                  </div>
+                  <div className="text-sm space-y-1">
+                    {overlapWarnings.map((item, index) => {
+                      const contentName = item.content_type === 'playlist'
+                        ? playlists.find(p => p.id === item.content_id)?.name || 'Unknown'
+                        : mediaItems.find(m => m.id === item.content_id)?.name || 'Unknown'
+                      const days = item.days_of_week
+                        ? item.days_of_week.map(d => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d]).join(', ')
+                        : 'All days'
+                      return (
+                        <div key={index} className="flex items-start gap-2">
+                          <span className="text-orange-600 dark:text-orange-400">•</span>
+                          <span>
+                            {days} {item.start_time.slice(0, 5)} - {item.end_time.slice(0, 5)} ({contentName})
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <div className="mt-2 text-xs italic">
+                    You can still save this time slot, but it will overlap with the content above.
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
           </div>
           <DialogFooter className="flex gap-2">
               <Button variant="outline" onClick={() => {
