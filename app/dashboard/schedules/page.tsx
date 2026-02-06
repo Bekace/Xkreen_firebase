@@ -377,15 +377,18 @@ export default function SchedulesPage() {
 
     if (itemRecurrence === "daily") {
       recurrenceRule = "FREQ=DAILY"
+      daysOfWeek = [0, 1, 2, 3, 4, 5, 6] // All days for daily recurrence
     } else if (itemRecurrence === "weekly" && itemDaysOfWeek.length > 0) {
       const days = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"]
       const byDay = itemDaysOfWeek.map((d) => days[d]).join(",")
       recurrenceRule = `FREQ=WEEKLY;BYDAY=${byDay}`
       daysOfWeek = itemDaysOfWeek
     }
+    // For "none" (Does not repeat), recurrenceRule and daysOfWeek remain null
 
     // Check for time overlaps with existing items
-    const hasOverlap = scheduleItems.some(existingItem => 
+    // Skip overlap check for non-recurring events (one-time events)
+    const hasOverlap = itemRecurrence !== "none" && scheduleItems.some(existingItem => 
       checkTimeOverlap(
         itemStartTime,
         itemEndTime,
