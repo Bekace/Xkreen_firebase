@@ -46,6 +46,8 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { TimePicker } from "@/components/time-picker"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { AlertCircle } from "lucide-react"
 
 interface Schedule {
   id: string
@@ -105,6 +107,8 @@ export default function SchedulesPage() {
   const [loading, setLoading] = useState(true)
   const [savingItem, setSavingItem] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [overlapWarnings, setOverlapWarnings] = useState<ScheduleItem[]>([])
+  const [showOverlapWarning, setShowOverlapWarning] = useState(false)
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => {
     const today = new Date()
     const dayOfWeek = today.getDay()
@@ -163,6 +167,23 @@ export default function SchedulesPage() {
       fetchScheduleItems(selectedSchedule.id)
     }
   }, [selectedSchedule])
+
+  // Check for overlaps in real-time when form values change
+  useEffect(() => {
+    if (isAddItemDialogOpen && itemStartTime && itemEndTime) {
+      const overlaps = getOverlappingItems(
+        itemStartTime,
+        itemEndTime,
+        itemRecurrence,
+        itemDaysOfWeek
+      )
+      setOverlapWarnings(overlaps)
+      setShowOverlapWarning(overlaps.length > 0)
+    } else {
+      setOverlapWarnings([])
+      setShowOverlapWarning(false)
+    }
+  }, [isAddItemDialogOpen, itemStartTime, itemEndTime, itemRecurrence, itemDaysOfWeek, scheduleItems])
 
   const fetchSchedules = async () => {
     try {
@@ -385,30 +406,7 @@ export default function SchedulesPage() {
       daysOfWeek = itemDaysOfWeek
     }
     // For "none" (Does not repeat), recurrenceRule and daysOfWeek remain null
-
-    // Check for time overlaps with existing items
-    // Skip overlap check for non-recurring events (one-time events)
-    const hasOverlap = itemRecurrence !== "none" && scheduleItems.some(existingItem => 
-      checkTimeOverlap(
-        itemStartTime,
-        itemEndTime,
-        existingItem.start_time.slice(0, 5),
-        existingItem.end_time.slice(0, 5),
-        daysOfWeek,
-        existingItem.days_of_week,
-        recurrenceRule,
-        existingItem.recurrence_rule
-      )
-    )
-
-    if (hasOverlap) {
-      toast({
-        title: "Time Conflict",
-        description: "This time slot overlaps with an existing schedule",
-        variant: "destructive",
-      })
-      return
-    }
+    // Overlap warnings are now shown in real-time in the dialog, so users can proceed if they choose
 
     try {
       const response = await fetch(`/api/schedules/${selectedSchedule.id}/items`, {
@@ -684,6 +682,42 @@ export default function SchedulesPage() {
       top: `${(startOffset / 60) * 48}px`,
       height: `${(duration / 60) * 48}px`,
     }
+  }
+
+  // Get list of overlapping items for real-time warning
+  const getOverlappingItems = (
+    startTime: string,
+    endTime: string,
+    recurrence: string,
+    daysOfWeek: number[]
+  ): ScheduleItem[] => {
+    if (!startTime || !endTime) return []
+
+    let recurrenceRule = null
+    let days = null
+
+    if (recurrence === "daily") {
+      recurrenceRule = "FREQ=DAILY"
+      days = [0, 1, 2, 3, 4, 5, 6]
+    } else if (recurrence === "weekly" && daysOfWeek.length > 0) {
+      const dayNames = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"]
+      const byDay = daysOfWeek.map((d) => dayNames[d]).join(",")
+      recurrenceRule = `FREQ=WEEKLY;BYDAY=${byDay}`
+      days = daysOfWeek
+    }
+
+    return scheduleItems.filter((existingItem) =>
+      checkTimeOverlap(
+        startTime,
+        endTime,
+        existingItem.start_time.slice(0, 5),
+        existingItem.end_time.slice(0, 5),
+        days,
+        existingItem.days_of_week,
+        recurrenceRule,
+        existingItem.recurrence_rule
+      )
+    )
   }
 
   // Check if an item should display on a given day
@@ -1323,6 +1357,39 @@ export default function SchedulesPage() {
                   ))}
                 </div>
               </div>
+            )}
+
+            {/* Overlap Warning */}
+            {showOverlapWarning && (
+              <Alert className="border-orange-500 bg-orange-50 dark:bg-orange-950/20">
+                <AlertCircle className="h-4 w-4 text-orange-600" />
+                <AlertDescription className="text-orange-800 dark:text-orange-200">
+                  <div className="font-semibold mb-2">
+                    Time Conflict Detected ({overlapWarnings.length} conflict{overlapWarnings.length > 1 ? 's' : ''})
+                  </div>
+                  <div className="text-sm space-y-1">
+                    {overlapWarnings.map((item, index) => {
+                      const contentName = item.playlist_id 
+                        ? playlists.find(p => p.id === item.playlist_id)?.name || 'Unknown'
+                        : media.find(m => m.id === item.media_id)?.name || 'Unknown'
+                      const days = item.days_of_week
+                        ? item.days_of_week.map(d => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d]).join(', ')
+                        : 'All days'
+                      return (
+                        <div key={index} className="flex items-start gap-2">
+                          <span className="text-orange-600 dark:text-orange-400">•</span>
+                          <span>
+                            {days} {item.start_time.slice(0, 5)} - {item.end_time.slice(0, 5)} ({contentName})
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <div className="mt-2 text-xs italic">
+                    You can still add this time slot, but it will overlap with the content above.
+                  </div>
+                </AlertDescription>
+              </Alert>
             )}
 
           </div>
