@@ -16,13 +16,14 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Failed to fetch devices" }, { status: 500 })
     }
 
-    // Calculate online status (online if heartbeat within last 2 minutes)
+    // Calculate online status (online if heartbeat within last 90 seconds)
+    // Since devices send heartbeats every 30 seconds, 90 seconds allows for 2 missed heartbeats
     const now = new Date()
-    const twoMinutesAgo = new Date(now.getTime() - 2 * 60 * 1000)
+    const ninetySecondsAgo = new Date(now.getTime() - 90 * 1000)
 
     const devicesWithStatus = devices.map((device) => {
       const lastHeartbeat = device.last_heartbeat ? new Date(device.last_heartbeat) : null
-      const isOnline = lastHeartbeat && lastHeartbeat > twoMinutesAgo
+      const isOnline = lastHeartbeat && lastHeartbeat > ninetySecondsAgo
 
       return {
         ...device,
