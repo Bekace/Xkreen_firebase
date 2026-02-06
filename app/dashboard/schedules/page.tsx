@@ -651,6 +651,17 @@ export default function SchedulesPage() {
     setIsAddItemDialogOpen(true)
   }
 
+  const handleAllDayClick = (dayIndex: number) => {
+    if (!selectedSchedule) return
+    // Set all-day times (12:00 AM to 11:59 PM)
+    setItemStartTime("00:00")
+    setItemEndTime("23:59")
+    // Set weekly recurrence with the selected day
+    setItemRecurrence("weekly")
+    setItemDaysOfWeek([dayIndex])
+    setIsAddItemDialogOpen(true)
+  }
+
   const filteredSchedules = schedules.filter((schedule) =>
     schedule.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
@@ -917,6 +928,22 @@ export default function SchedulesPage() {
                     </div>
                   )
                 })}
+              </div>
+
+              {/* All-Day Row */}
+              <div className="flex border-b bg-background">
+                <div className="w-16 shrink-0 border-r p-2 text-xs font-medium text-muted-foreground flex items-center justify-end pr-2">
+                  all-day
+                </div>
+                {weekDays.map((date, index) => (
+                  <div
+                    key={index}
+                    onClick={() => handleAllDayClick(index)}
+                    className="flex-1 p-2 border-r last:border-r-0 cursor-pointer hover:bg-accent/50 transition-colors min-h-[40px]"
+                  >
+                    {/* Show any all-day events here if needed */}
+                  </div>
+                ))}
               </div>
 
               {/* Time Grid */}
