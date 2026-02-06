@@ -138,8 +138,8 @@ export default function SchedulesPage() {
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [mediaItems, setMediaItems] = useState<Media[]>([])
 
-  // Hours for calendar grid (6 AM to 10 PM)
-  const hours = Array.from({ length: 17 }, (_, i) => i + 6)
+  // Hours for calendar grid (12 AM to 11 PM - full 24 hours)
+  const hours = Array.from({ length: 24 }, (_, i) => i)
 
   // Generate week days
   const weekDays = useMemo(() => {
@@ -660,8 +660,8 @@ export default function SchedulesPage() {
     const [startHour, startMin] = item.start_time.split(":").map(Number)
     const [endHour, endMin] = item.end_time.split(":").map(Number)
 
-    const startOffset = (startHour - 6) * 60 + startMin
-    const endOffset = (endHour - 6) * 60 + endMin
+    const startOffset = startHour * 60 + startMin
+    const endOffset = endHour * 60 + endMin
     const duration = endOffset - startOffset
 
     return {
@@ -813,7 +813,7 @@ export default function SchedulesPage() {
                       schedule.is_active ? "bg-cyan-500" : "bg-gray-300"
                     )}
                   />
-                  <span className="flex-1 text-sm font-medium truncate">
+                  <span className="flex-1 text-sm font-medium truncate text-foreground">
                     {schedule.name}
                   </span>
                   <DropdownMenu>
@@ -926,9 +926,9 @@ export default function SchedulesPage() {
                   {hours.map((hour) => (
                     <div
                       key={hour}
-                      className="h-12 border-b text-xs text-muted-foreground pr-2 text-right pt-0 -mt-2"
+                      className="h-12 border-b text-xs text-muted-foreground pr-2 text-right flex items-start pt-1"
                     >
-                      {hour === 12 ? "12PM" : hour > 12 ? `${hour - 12}PM` : `${hour}AM`}
+                      {hour === 0 ? "12AM" : hour === 12 ? "12PM" : hour > 12 ? `${hour - 12}PM` : `${hour}AM`}
                     </div>
                   ))}
                 </div>
