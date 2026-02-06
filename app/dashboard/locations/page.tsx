@@ -1,6 +1,7 @@
 "use client"
 
 // Locations management with map view, screen assignments, and auto-geocoding
+// Updated with real-time device status integration
 import { useState, useEffect } from "react"
 import { LocationsMap } from "@/components/locations/locations-map"
 import { Button } from "@/components/ui/button"
