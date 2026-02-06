@@ -708,6 +708,10 @@ export default function SchedulesPage() {
       const byDay = daysOfWeek.map((d) => dayNames[d]).join(",")
       recurrenceRule = `FREQ=WEEKLY;BYDAY=${byDay}`
       days = daysOfWeek
+    } else if (recurrence === "none") {
+      // Non-recurring events only appear on Sunday (day 0) in the week view
+      // So only check for overlaps on that specific day
+      days = [0]
     }
 
     return scheduleItems.filter((existingItem) =>
