@@ -566,7 +566,6 @@ export default function MediaLibraryPage() {
   const handleUploadThumbnail = async (file: File) => {
     if (!editDialog.item) return
 
-    setUploadingThumbnail(true)
     try {
       const formData = new FormData()
       formData.append("mediaId", editDialog.item.id)
@@ -608,15 +607,12 @@ export default function MediaLibraryPage() {
         description: "Failed to upload thumbnail",
         variant: "destructive",
       })
-    } finally {
-      setUploadingThumbnail(false)
     }
   }
 
   const handleGenerateVideoThumbnail = async () => {
     if (!editDialog.item) return
 
-    setUploadingThumbnail(true)
     try {
       const response = await fetch("/api/media/generate-thumbnail", {
         method: "POST",
@@ -660,8 +656,6 @@ export default function MediaLibraryPage() {
         description: "Failed to generate thumbnail",
         variant: "destructive",
       })
-    } finally {
-      setUploadingThumbnail(false)
     }
   }
 
