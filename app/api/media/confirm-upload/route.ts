@@ -59,31 +59,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to save media metadata" }, { status: 500 })
     }
 
-    // Auto-generate thumbnail for videos (but not for Google Slides)
-    if (fileType.startsWith("video/") && !fileType.includes("youtube")) {
-      try {
-        // Trigger thumbnail generation asynchronously
-        fetch(`${process.env.NEXTAUTH_URL || "http://localhost:3000"}/api/media/generate-thumbnail`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            mediaId: mediaData.id,
-            fileUrl: publicUrl,
-          }),
-        }).catch((err) => console.error("[v0] Background thumbnail generation error:", err))
-      } catch (err) {
-        console.error("[v0] Failed to trigger thumbnail generation:", err)
-        // Don't fail the upload if thumbnail generation fails
-      }
-    }
-
     return NextResponse.json({
       id: mediaData.id,
       name: fileName,
       mime_type: fileType,
       file_size: fileSize,
       file_path: publicUrl,
-      thumbnail_path: mediaData.thumbnail_path,
       tags: mediaData.tags,
       created_at: mediaData.created_at,
     })

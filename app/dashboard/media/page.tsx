@@ -30,7 +30,6 @@ interface MediaItem {
   mime_type: string
   file_size: number
   file_path: string
-  thumbnail_path?: string
   tags: string[] | null
   created_at: string
 }
@@ -461,8 +460,6 @@ export default function MediaLibraryPage() {
     }
   }
 
-  console.log("[v0] Before filteredMedia")
-
   const filteredMedia = media.filter((item) => {
     if (!item || !item.name) return false
 
@@ -474,8 +471,6 @@ export default function MediaLibraryPage() {
 
     return nameMatch || tagMatch
   })
-
-  console.log("[v0] After filteredMedia")
 
   if (loading) {
     return (
@@ -660,13 +655,7 @@ export default function MediaLibraryPage() {
               {viewMode === "grid" ? (
                 <div>
                   <div className="aspect-video bg-gray-100 rounded-t-lg overflow-hidden relative">
-                    {item.thumbnail_path ? (
-                      <img
-                        src={item.thumbnail_path}
-                        alt={item.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : item.mime_type && item.mime_type.startsWith("image/") ? (
+                    {item.mime_type && item.mime_type.startsWith("image/") ? (
                       <img
                         src={item.file_path || "/placeholder.svg"}
                         alt={item.name}
