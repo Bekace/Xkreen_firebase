@@ -39,7 +39,7 @@ function extractYouTubeId(url: string): string | null {
 }
 
 function getGoogleSlidesEmbedUrl(id: string): string {
-  return `https://docs.google.com/presentation/d/${id}/embed?start=false&loop=false&delayms=3000&rm=minimal`
+  return `https://docs.google.com/presentation/d/${id}/embed?start=true&loop=false&delayms=3000&rm=minimal`
 }
 
 function getYouTubeEmbedUrl(id: string): string {
