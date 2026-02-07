@@ -461,6 +461,8 @@ export default function MediaLibraryPage() {
     }
   }
 
+  console.log("[v0] Before filteredMedia")
+
   const filteredMedia = media.filter((item) => {
     if (!item || !item.name) return false
 
@@ -472,6 +474,8 @@ export default function MediaLibraryPage() {
 
     return nameMatch || tagMatch
   })
+
+  console.log("[v0] After filteredMedia")
 
   if (loading) {
     return (
