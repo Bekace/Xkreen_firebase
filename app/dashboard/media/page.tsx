@@ -480,7 +480,6 @@ export default function MediaLibraryPage() {
       </div>
     )
   }
-  }
 
   return (
     <div className="space-y-6">
