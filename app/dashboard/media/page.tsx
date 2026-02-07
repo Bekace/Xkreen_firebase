@@ -464,7 +464,6 @@ export default function MediaLibraryPage() {
   const handleUploadThumbnail = async (file: File) => {
     if (!editDialog.item) return
 
-    setUploadingThumbnail(true)
     try {
       const formData = new FormData()
       formData.append("mediaId", editDialog.item.id)
