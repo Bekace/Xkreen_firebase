@@ -30,6 +30,7 @@ interface MediaItem {
   mime_type: string
   file_size: number
   file_path: string
+  thumbnail_path?: string
   tags: string[] | null
   created_at: string
 }
@@ -234,6 +235,7 @@ export default function MediaLibraryPage() {
   const [editName, setEditName] = useState("")
   const [editTags, setEditTags] = useState("")
   const [updating, setUpdating] = useState(false)
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false)
   const { toast } = useToast()
   const uploadLimits = useUploadLimits()
 
@@ -460,6 +462,108 @@ export default function MediaLibraryPage() {
     }
   }
 
+  const handleUploadThumbnail = async (file: File) => {
+    if (!editDialog.item) return
+
+    setUploadingThumbnail(true)
+    try {
+      const formData = new FormData()
+      formData.append("mediaId", editDialog.item.id)
+      formData.append("thumbnail", file)
+
+      const response = await fetch("/api/media/upload-thumbnail", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setMedia((prev) =>
+          prev.map((m) =>
+            m.id === editDialog.item!.id
+              ? { ...m, thumbnail_path: data.thumbnail_path }
+              : m
+          )
+        )
+        setEditDialog((prev) =>
+          prev.item
+            ? {
+                ...prev,
+                item: { ...prev.item, thumbnail_path: data.thumbnail_path },
+              }
+            : prev
+        )
+        toast({
+          title: "Success",
+          description: "Thumbnail uploaded successfully",
+        })
+      } else {
+        throw new Error("Failed to upload thumbnail")
+      }
+    } catch (error) {
+      console.error("Error uploading thumbnail:", error)
+      toast({
+        title: "Error",
+        description: "Failed to upload thumbnail",
+        variant: "destructive",
+      })
+    } finally {
+      setUploadingThumbnail(false)
+    }
+  }
+
+  const handleGenerateVideoThumbnail = async () => {
+    if (!editDialog.item) return
+
+    setUploadingThumbnail(true)
+    try {
+      const response = await fetch("/api/media/generate-thumbnail", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          mediaId: editDialog.item.id,
+          fileUrl: editDialog.item.file_path,
+        }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setMedia((prev) =>
+          prev.map((m) =>
+            m.id === editDialog.item!.id
+              ? { ...m, thumbnail_path: data.thumbnail_path }
+              : m
+          )
+        )
+        setEditDialog((prev) =>
+          prev.item
+            ? {
+                ...prev,
+                item: { ...prev.item, thumbnail_path: data.thumbnail_path },
+              }
+            : prev
+        )
+        toast({
+          title: "Success",
+          description: "Thumbnail generated successfully",
+        })
+      } else {
+        throw new Error("Failed to generate thumbnail")
+      }
+    } catch (error) {
+      console.error("Error generating thumbnail:", error)
+      toast({
+        title: "Error",
+        description: "Failed to generate thumbnail",
+        variant: "destructive",
+      })
+    } finally {
+      setUploadingThumbnail(false)
+    }
+  }
+
   const filteredMedia = media.filter((item) => {
     if (!item || !item.name) return false
 
@@ -655,7 +759,13 @@ export default function MediaLibraryPage() {
               {viewMode === "grid" ? (
                 <div>
                   <div className="aspect-video bg-gray-100 rounded-t-lg overflow-hidden relative">
-                    {item.mime_type && item.mime_type.startsWith("image/") ? (
+                    {item.thumbnail_path ? (
+                      <img
+                        src={item.thumbnail_path}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : item.mime_type && item.mime_type.startsWith("image/") ? (
                       <img
                         src={item.file_path || "/placeholder.svg"}
                         alt={item.name}
@@ -805,8 +915,56 @@ export default function MediaLibraryPage() {
               />
               <p className="text-sm text-gray-500">Separate multiple tags with commas</p>
             </div>
+            <div className="space-y-2">
+              <Label>Thumbnail</Label>
+              {editDialog.item?.thumbnail_path && (
+                <div className="mb-3">
+                  <img
+                    src={editDialog.item.thumbnail_path}
+                    alt="Thumbnail preview"
+                    className="w-full h-32 object-cover rounded-lg"
+                  />
+                </div>
+              )}
+              <div className="flex gap-2">
+                <label className="flex-1">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) handleUploadThumbnail(file)
+                    }}
+                    disabled={uploadingThumbnail}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full cursor-pointer"
+                    disabled={uploadingThumbnail}
+                  >
+                    {uploadingThumbnail ? "Uploading..." : "Upload Custom Thumbnail"}
+                  </Button>
+                </label>
+                {editDialog.item && 
+                 !editDialog.item.mime_type?.startsWith("image/") && 
+                 !editDialog.item.file_path?.includes("docs.google.com") && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleGenerateVideoThumbnail}
+                    disabled={uploadingThumbnail}
+                  >
+                    {uploadingThumbnail ? "Generating..." : "Auto-Generate"}
+                  </Button>
+                )}
+              </div>
+              <p className="text-sm text-gray-500">
+                Upload a custom thumbnail image or auto-generate from video
+              </p>
+            </div>
           </div>
-          <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialog({ open: false, item: null })} disabled={updating}>
               Cancel
             </Button>
