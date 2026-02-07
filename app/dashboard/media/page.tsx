@@ -506,8 +506,6 @@ export default function MediaLibraryPage() {
         description: "Failed to upload thumbnail",
         variant: "destructive",
       })
-    } finally {
-      setUploadingThumbnail(false)
     }
   }
 
