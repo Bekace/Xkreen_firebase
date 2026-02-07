@@ -6,6 +6,7 @@ import { Monitor, ImageIcon, PlayCircle, Activity, Plus, TrendingUp, Zap, CheckC
 import type { User } from "@supabase/supabase-js"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 interface DashboardOverviewProps {
   user: User
@@ -19,6 +20,13 @@ interface DashboardStats {
   totalViews: { value: number; change: string }
 }
 
+interface ActivityItem {
+  action: string
+  time: string
+  icon: React.ComponentType<any>
+  type?: "screen_online" | "screen_offline" | "media_upload" | "playlist_update"
+}
+
 export function DashboardOverview({ user, showWelcome = false }: DashboardOverviewProps) {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
@@ -26,6 +34,7 @@ export function DashboardOverview({ user, showWelcome = false }: DashboardOvervi
   const [subscription, setSubscription] = useState<{ planName: string } | null>(null)
   const [deviceStatus, setDeviceStatus] = useState<{ online: number; offline: number; total: number } | null>(null)
   const [proofOfPlay, setProofOfPlay] = useState<{ totalPlays: number; successRate: string } | null>(null)
+  const [recentActivities, setRecentActivities] = useState<ActivityItem[]>([])
   const router = useRouter()
 
   useEffect(() => {
@@ -70,9 +79,49 @@ export function DashboardOverview({ user, showWelcome = false }: DashboardOvervi
       }
     }
 
+    async function fetchRecentActivities() {
+      try {
+        const response = await fetch("/api/dashboard/recent-activities")
+        if (response.ok) {
+          const data = await response.json()
+          setRecentActivities(data.activities || [])
+        }
+      } catch (error) {
+        console.error("[v0] Error fetching recent activities:", error)
+        // Fallback to default activities if API fails
+        setRecentActivities([
+          {
+            action: "Screen 'Lobby Display' went online",
+            time: "2 minutes ago",
+            icon: Monitor,
+            type: "screen_online",
+          },
+          {
+            action: "New media file 'summer-promo.mp4' uploaded",
+            time: "15 minutes ago",
+            icon: ImageIcon,
+            type: "media_upload",
+          },
+          {
+            action: "Playlist 'Morning Announcements' updated",
+            time: "1 hour ago",
+            icon: PlayCircle,
+            type: "playlist_update",
+          },
+          {
+            action: "Screen 'Cafeteria Display' went offline",
+            time: "2 hours ago",
+            icon: Monitor,
+            type: "screen_offline",
+          },
+        ])
+      }
+    }
+
     fetchStats()
     fetchDeviceStatus()
     fetchProofOfPlay()
+    fetchRecentActivities()
   }, [])
 
   useEffect(() => {
@@ -146,29 +195,6 @@ export function DashboardOverview({ user, showWelcome = false }: DashboardOvervi
       description: "Build a new content playlist",
       icon: PlayCircle,
       href: "/dashboard/playlists/new",
-    },
-  ]
-
-  const recentActivity = [
-    {
-      action: "Screen 'Lobby Display' went online",
-      time: "2 minutes ago",
-      icon: Monitor,
-    },
-    {
-      action: "New media file 'summer-promo.mp4' uploaded",
-      time: "15 minutes ago",
-      icon: ImageIcon,
-    },
-    {
-      action: "Playlist 'Morning Announcements' updated",
-      time: "1 hour ago",
-      icon: PlayCircle,
-    },
-    {
-      action: "Screen 'Cafeteria Display' went offline",
-      time: "2 hours ago",
-      icon: Monitor,
     },
   ]
 
@@ -252,23 +278,20 @@ export function DashboardOverview({ user, showWelcome = false }: DashboardOvervi
             {quickActions.map((action) => {
               const Icon = action.icon
               return (
-                <div
-                  key={action.title}
-                  className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                      <Icon className="w-5 h-5 text-primary" />
+                <Link key={action.title} href={action.href} className="block">
+                  <div className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                        <Icon className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-foreground">{action.title}</h4>
+                        <p className="text-sm text-muted-foreground">{action.description}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-medium text-foreground">{action.title}</h4>
-                      <p className="text-sm text-muted-foreground">{action.description}</p>
-                    </div>
+                    <Plus className="w-4 h-4 text-muted-foreground" />
                   </div>
-                  <Button variant="ghost" size="sm">
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
+                </Link>
               )
             })}
           </CardContent>
@@ -284,20 +307,26 @@ export function DashboardOverview({ user, showWelcome = false }: DashboardOvervi
             <CardDescription>Latest updates from your network</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {recentActivity.map((activity, index) => {
-              const Icon = activity.icon
-              return (
-                <div key={index} className="flex items-start gap-3">
-                  <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center flex-shrink-0">
-                    <Icon className="w-4 h-4 text-muted-foreground" />
+            {recentActivities.length > 0 ? (
+              recentActivities.map((activity, index) => {
+                const Icon = activity.icon
+                return (
+                  <div key={index} className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center flex-shrink-0">
+                      <Icon className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-foreground">{activity.action}</p>
+                      <p className="text-xs text-muted-foreground">{activity.time}</p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-foreground">{activity.action}</p>
-                    <p className="text-xs text-muted-foreground">{activity.time}</p>
-                  </div>
-                </div>
-              )
-            })}
+                )
+              })
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-sm text-muted-foreground">No recent activity</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
