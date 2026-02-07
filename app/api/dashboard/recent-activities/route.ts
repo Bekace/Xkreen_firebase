@@ -1,11 +1,10 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
-import { Monitor, ImageIcon, PlayCircle } from "lucide-react"
 
 interface Activity {
   action: string
   time: string
-  icon: any
+  icon: string // String instead of component - will be mapped on frontend
   type: "screen_online" | "screen_offline" | "media_upload" | "playlist_update"
 }
 
@@ -34,7 +33,7 @@ export async function GET() {
           activities.push({
             action: `Screen '${log.devices.screens.name}' went ${isOnline ? "online" : "offline"}`,
             time: timeAgo,
-            icon: Monitor,
+            icon: "monitor",
             type: isOnline ? "screen_online" : "screen_offline",
           })
         }
@@ -54,7 +53,7 @@ export async function GET() {
         activities.push({
           action: `New media file '${media.name}' uploaded`,
           time: timeAgo,
-          icon: ImageIcon,
+          icon: "image",
           type: "media_upload",
         })
       })
@@ -73,7 +72,7 @@ export async function GET() {
         activities.push({
           action: `Playlist '${playlist.name}' updated`,
           time: timeAgo,
-          icon: PlayCircle,
+          icon: "play-circle",
           type: "playlist_update",
         })
       })

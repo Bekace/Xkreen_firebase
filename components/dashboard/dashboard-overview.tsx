@@ -23,8 +23,18 @@ interface DashboardStats {
 interface ActivityItem {
   action: string
   time: string
-  icon: React.ComponentType<any>
+  icon: string // Now a string that will be mapped to a component
   type?: "screen_online" | "screen_offline" | "media_upload" | "playlist_update"
+}
+
+// Map icon strings to lucide-react components
+function getIconComponent(iconName: string) {
+  const iconMap: Record<string, React.ComponentType<any>> = {
+    monitor: Monitor,
+    image: ImageIcon,
+    "play-circle": PlayCircle,
+  }
+  return iconMap[iconName] || Monitor
 }
 
 export function DashboardOverview({ user, showWelcome = false }: DashboardOverviewProps) {
@@ -93,25 +103,25 @@ export function DashboardOverview({ user, showWelcome = false }: DashboardOvervi
           {
             action: "Screen 'Lobby Display' went online",
             time: "2 minutes ago",
-            icon: Monitor,
+            icon: "monitor",
             type: "screen_online",
           },
           {
             action: "New media file 'summer-promo.mp4' uploaded",
             time: "15 minutes ago",
-            icon: ImageIcon,
+            icon: "image",
             type: "media_upload",
           },
           {
             action: "Playlist 'Morning Announcements' updated",
             time: "1 hour ago",
-            icon: PlayCircle,
+            icon: "play-circle",
             type: "playlist_update",
           },
           {
             action: "Screen 'Cafeteria Display' went offline",
             time: "2 hours ago",
-            icon: Monitor,
+            icon: "monitor",
             type: "screen_offline",
           },
         ])
@@ -309,7 +319,7 @@ export function DashboardOverview({ user, showWelcome = false }: DashboardOvervi
           <CardContent className="space-y-4">
             {recentActivities.length > 0 ? (
               recentActivities.map((activity, index) => {
-                const Icon = activity.icon
+                const Icon = getIconComponent(activity.icon)
                 return (
                   <div key={index} className="flex items-start gap-3">
                     <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center flex-shrink-0">
