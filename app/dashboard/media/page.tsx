@@ -471,6 +471,9 @@ export default function MediaLibraryPage() {
 
     return nameMatch || tagMatch
   })
+  
+  // DEBUG: Force close any unclosed functions
+  }
 
   if (loading) {
     return (
@@ -806,6 +809,7 @@ export default function MediaLibraryPage() {
               <p className="text-sm text-gray-500">Separate multiple tags with commas</p>
             </div>
           </div>
+          <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialog({ open: false, item: null })} disabled={updating}>
               Cancel
             </Button>
