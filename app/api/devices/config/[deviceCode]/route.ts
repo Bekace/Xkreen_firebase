@@ -1,6 +1,26 @@
 import { createClient } from "@supabase/supabase-js"
 import { type NextRequest, NextResponse } from "next/server"
 
+// Función para procesar URLs de Google Slides - añade parámetro rm=minimal para ocultar controles
+function processGoogleSlidesUrl(filePath: string): string {
+  if (!filePath) return filePath
+  
+  // Detectar si es una URL de Google Slides
+  if (filePath.includes("docs.google.com/presentation")) {
+    // Si ya tiene el parámetro rm=minimal, no agregarlo de nuevo
+    if (filePath.includes("rm=minimal")) {
+      return filePath
+    }
+    
+    // Agregar el parámetro rm=minimal al final de la URL
+    return filePath.includes("?") 
+      ? `${filePath}&rm=minimal`
+      : `${filePath}?rm=minimal`
+  }
+  
+  return filePath
+}
+
 export async function GET(request: NextRequest, { params }: { params: { deviceCode: string } }) {
   try {
     const { deviceCode } = params
@@ -219,7 +239,7 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
             id: mediaData.id,
             name: mediaData.name,
             duration: mediaData.duration,
-            file_path: mediaData.file_path,
+            file_path: processGoogleSlidesUrl(mediaData.file_path),
             file_size: mediaData.file_size,
             mime_type: mediaData.mime_type,
           }
