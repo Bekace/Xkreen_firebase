@@ -6,6 +6,7 @@ import Image from "next/image"
 import { useMediaSwitcher } from "@/hooks/use-media-switcher"
 import { useMediaPreloader } from "@/hooks/use-media-preloader"
 import { usePlaylistTimer } from "@/hooks/use-playlist-timer"
+import YouTubePlayerWithFallback from "@/components/youtube-player-with-fallback"
 import "@/components/ui/spinner.css"
 
 interface MediaItem {
@@ -83,39 +84,7 @@ const isRegularVideo = (media: MediaItem["media"]) => {
   return media.mime_type.startsWith("video/") && !isYouTubeVideo(media)
 }
 
-const getYouTubeUrlWithAutoplay = (url: string) => {
-  try {
-    let embedUrl = url
 
-    if (url.includes("youtube.com/watch")) {
-      const urlObj = new URL(url)
-      const videoId = urlObj.searchParams.get("v")
-      if (videoId) {
-        embedUrl = `https://www.youtube-nocookie.com/embed/${videoId}`
-      }
-    } else if (url.includes("youtu.be/")) {
-      const videoId = url.split("youtu.be/")[1]?.split("?")[0]
-      if (videoId) {
-        embedUrl = `https://www.youtube-nocookie.com/embed/${videoId}`
-      }
-    } else if (url.includes("youtube.com/embed/")) {
-      embedUrl = url.replace("youtube.com", "youtube-nocookie.com")
-    }
-
-    const urlObj = new URL(embedUrl)
-    urlObj.searchParams.set("autoplay", "1")
-    urlObj.searchParams.set("mute", "1")
-    urlObj.searchParams.set("controls", "0")
-    urlObj.searchParams.set("showinfo", "0")
-    urlObj.searchParams.set("fs", "0")
-    urlObj.searchParams.set("modestbranding", "1")
-    urlObj.searchParams.set("iv_load_policy", "3")
-    return urlObj.toString()
-  } catch (error) {
-    console.error("[v0] Error parsing YouTube URL:", error)
-    return url
-  }
-}
 
 const getMediaObjectFit = (mediaType: "image" | "video" | "document", playlist: any) => {
   if (!playlist) return "object-contain"
@@ -261,7 +230,34 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                 </>
               )}
 
-              {(isGoogleSlides(currentMedia.media) || isYouTubeVideo(currentMedia.media)) && (
+              {isYouTubeVideo(currentMedia.media) && (
+                <>
+                  <YouTubePlayerWithFallback
+                    ref={iframeARef}
+                    videoUrl={currentMedia.media.file_path}
+                    mediaId={currentMedia.media.id}
+                    mediaName={currentMedia.media.name}
+                    isActive={activeElement === "A"}
+                    onVideoEnd={advanceToNext}
+                    className={`absolute inset-0 w-full h-full border-0 transition-opacity duration-300 ${
+                      activeElement === "A" ? "opacity-100 z-10" : "opacity-0 z-0"
+                    }`}
+                  />
+                  <YouTubePlayerWithFallback
+                    ref={iframeBRef}
+                    videoUrl={currentMedia.media.file_path}
+                    mediaId={currentMedia.media.id}
+                    mediaName={currentMedia.media.name}
+                    isActive={activeElement === "B"}
+                    onVideoEnd={advanceToNext}
+                    className={`absolute inset-0 w-full h-full border-0 transition-opacity duration-300 ${
+                      activeElement === "B" ? "opacity-100 z-10" : "opacity-0 z-0"
+                    }`}
+                  />
+                </>
+              )}
+
+              {isGoogleSlides(currentMedia.media) && (
                 <>
                   <iframe
                     ref={iframeARef}
@@ -271,11 +267,7 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                     allow="autoplay; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
                     title={currentMedia.media.name}
-                    src={
-                      isYouTubeVideo(currentMedia.media)
-                        ? getYouTubeUrlWithAutoplay(currentMedia.media.file_path)
-                        : currentMedia.media.file_path
-                    }
+                    src={currentMedia.media.file_path}
                   />
                   <iframe
                     ref={iframeBRef}
@@ -285,11 +277,7 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                     allow="autoplay; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
                     title={currentMedia.media.name}
-                    src={
-                      isYouTubeVideo(currentMedia.media)
-                        ? getYouTubeUrlWithAutoplay(currentMedia.media.file_path)
-                        : currentMedia.media.file_path
-                    }
+                    src={currentMedia.media.file_path}
                   />
                 </>
               )}
