@@ -471,9 +471,6 @@ export default function MediaLibraryPage() {
 
     return nameMatch || tagMatch
   })
-  
-  // DEBUG: Force close any unclosed functions
-  }
 
   if (loading) {
     return (
