@@ -43,7 +43,8 @@ function getGoogleSlidesEmbedUrl(id: string): string {
 }
 
 function getYouTubeEmbedUrl(id: string): string {
-  return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&rel=0&modestbranding=1&fs=0&disablekb=1&playsinline=1`
+  // Removed fs=0 as it causes Error 153 when combined with controls=0
+  return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&rel=0&modestbranding=1&disablekb=1&playsinline=1`
 }
 
 export async function POST(request: NextRequest) {
