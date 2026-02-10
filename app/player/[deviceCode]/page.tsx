@@ -266,6 +266,7 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                     }`}
                     allow="autoplay; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
+                    referrerPolicy="strict-origin-when-cross-origin"
                     title={currentMedia.media.name}
                     src={currentMedia.media.file_path}
                   />
@@ -276,6 +277,7 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                     }`}
                     allow="autoplay; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
+                    referrerPolicy="strict-origin-when-cross-origin"
                     title={currentMedia.media.name}
                     src={currentMedia.media.file_path}
                   />

@@ -180,6 +180,7 @@ const YouTubePlayerWithFallback = forwardRef<HTMLIFrameElement, YouTubePlayerPro
         className={className}
         allow="autoplay; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowFullScreen
+        referrerPolicy="strict-origin-when-cross-origin"
         title={mediaName}
       />
     )
