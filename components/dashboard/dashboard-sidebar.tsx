@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { useUser } from "@/lib/hooks/use-user"
+import { usePlanLimits } from "@/hooks/use-plan-limits"
 import {
   LayoutDashboard,
   Monitor,
@@ -17,10 +18,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Shield,
-  Users,
+  Users as UsersIcon,
   CreditCard,
   Zap,
   MapPin,
+  UserPlus,
 } from "lucide-react"
 
 const navigation = [
@@ -60,6 +62,11 @@ const navigation = [
     icon: BarChart3,
   },
   {
+    name: "Team",
+    href: "/dashboard/team",
+    icon: UserPlus,
+  },
+  {
     name: "Settings",
     href: "/dashboard/settings",
     icon: Settings,
@@ -75,7 +82,7 @@ const adminNavigation = [
   {
     name: "User Management",
     href: "/dashboard/user-management",
-    icon: Users,
+    icon: UsersIcon,
   },
   {
     name: "Plan Management",
@@ -93,8 +100,18 @@ export function DashboardSidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
   const { profile, loading } = useUser()
+  const { features, loading: limitsLoading } = usePlanLimits()
 
   const isAdmin = profile?.role === "admin" || profile?.role === "superadmin"
+
+  // Filter navigation based on plan features
+  const filteredNavigation = navigation.filter((item) => {
+    if (item.href === "/dashboard/schedules") return features?.scheduling
+    if (item.href === "/dashboard/locations") return features?.locations
+    if (item.href === "/dashboard/analytics") return features?.analytics
+    if (item.href === "/dashboard/team") return features?.multiUser
+    return true
+  })
 
   return (
     <div
@@ -123,7 +140,7 @@ export function DashboardSidebar() {
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-2">
-          {navigation.map((item) => {
+          {filteredNavigation.map((item) => {
             const isActive = pathname === item.href
             const Icon = item.icon
 
