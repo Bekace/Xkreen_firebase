@@ -38,6 +38,11 @@ export async function GET() {
         screen_media(
           media_id,
           media(id, name, mime_type, file_path)
+        ),
+        screen_schedules(
+          schedule_id,
+          is_active,
+          schedules(id, name)
         )
       `)
       .eq("user_id", user.id)
