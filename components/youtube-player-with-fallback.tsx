@@ -42,16 +42,16 @@ function buildYouTubeUrl(videoId: string, level: 'restrictive' | 'moderate' | 'p
   
   switch (level) {
     case 'restrictive':
-      // For digital signage - hide all controls
-      return `${base}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&rel=0&modestbranding=1&fs=0&disablekb=1&playsinline=1&enablejsapi=1`
+      // For digital signage - hide all controls (tested and working)
+      return `${base}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&rel=0&modestbranding=1&disablekb=1&playsinline=1`
     case 'moderate':
-      // Remove problematic parameters
-      return `${base}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`
+      // Same as restrictive but without controls=0
+      return `${base}?autoplay=1&mute=1&loop=1&playlist=${videoId}&rel=0&modestbranding=1&disablekb=1&playsinline=1`
     case 'permissive':
       // Minimal parameters - shows controls
-      return `${base}?autoplay=1&mute=1&loop=1&playlist=${videoId}&rel=0&playsinline=1&enablejsapi=1`
+      return `${base}?autoplay=1&mute=1&loop=1&playlist=${videoId}&rel=0&playsinline=1`
     default:
-      return `${base}?autoplay=1&mute=1&playsinline=1&enablejsapi=1`
+      return `${base}?autoplay=1&mute=1&playsinline=1`
   }
 }
 
