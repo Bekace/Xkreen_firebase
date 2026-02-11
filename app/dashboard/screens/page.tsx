@@ -669,112 +669,183 @@ export default function ScreensPage() {
     </div>
   )
 
-  const renderStep2 = () => (
-    <div className="space-y-4">
-      <div className="text-center mb-6">
-        <h3 className="text-lg font-semibold mb-2">Select Content</h3>
-        <p className="text-gray-600">Choose playlists and/or media assets to display on this screen.</p>
-      </div>
+  const renderStep2 = () => {
+    // Determine which content type tab is active based on selected content
+    let contentTab: "playlist" | "asset" | "schedule" = "playlist"
+    if (wizardState.selectedContentIds.length > 0) {
+      const selectedId = wizardState.selectedContentIds[0]
+      if (schedules.some((s) => s.id === selectedId)) {
+        contentTab = "schedule"
+      } else if (mediaItems.some((m) => m.id === selectedId)) {
+        contentTab = "asset"
+      }
+    }
 
-      <div className="space-y-6">
-        {/* Playlists Section */}
-        <div className="space-y-3">
-          <h4 className="font-semibold flex items-center gap-2">
-            <PlayCircle className="h-5 w-5 text-cyan-500" />
+    const [activeTab, setActiveTab] = useState<"playlist" | "asset" | "schedule">(contentTab)
+
+    return (
+      <div className="space-y-4">
+        <div className="text-center mb-6">
+          <h3 className="text-lg font-semibold mb-2">Select Content</h3>
+          <p className="text-gray-600">Choose one playlist, media asset, or schedule to display on this screen.</p>
+        </div>
+
+        {/* Content Type Tabs */}
+        <div className="flex gap-4">
+          <Button
+            variant={activeTab === "playlist" ? "default" : "outline"}
+            className={activeTab === "playlist" ? "bg-cyan-500 hover:bg-cyan-600" : ""}
+            onClick={() => setActiveTab("playlist")}
+          >
             Playlists
-          </h4>
-          <div className="space-y-2 max-h-48 overflow-y-auto border rounded-lg p-3">
-            {playlists.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-4">No playlists available</p>
-            ) : (
-              playlists.map((playlist) => (
-                <Card
-                  key={playlist.id}
-                  className={`cursor-pointer transition-colors ${
-                    wizardState.selectedContentIds.includes(playlist.id)
-                      ? "ring-2 ring-cyan-500 bg-cyan-50"
-                      : "hover:bg-gray-50"
-                  }`}
-                  onClick={() => {
-                    setWizardState((prev) => ({
-                      ...prev,
-                      selectedContentIds: prev.selectedContentIds.includes(playlist.id)
-                        ? prev.selectedContentIds.filter((id) => id !== playlist.id)
-                        : [...prev.selectedContentIds, playlist.id],
-                    }))
-                  }}
-                >
-                  <CardContent className="p-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {wizardState.selectedContentIds.includes(playlist.id) ? (
-                          <CheckCircle2 className="h-5 w-5 text-cyan-500" />
-                        ) : (
-                          <Circle className="h-5 w-5 text-gray-300" />
-                        )}
-                        <div>
-                          <h4 className="font-medium">{playlist.name}</h4>
-                          {playlist.description && <p className="text-sm text-gray-600">{playlist.description}</p>}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
+          </Button>
+          <Button
+            variant={activeTab === "asset" ? "default" : "outline"}
+            className={activeTab === "asset" ? "bg-cyan-500 hover:bg-cyan-600" : ""}
+            onClick={() => setActiveTab("asset")}
+          >
+            Media Assets
+          </Button>
+          <Button
+            variant={activeTab === "schedule" ? "default" : "outline"}
+            className={activeTab === "schedule" ? "bg-cyan-500 hover:bg-cyan-600" : ""}
+            onClick={() => setActiveTab("schedule")}
+          >
+            Schedules
+          </Button>
         </div>
 
-        {/* Media Assets Section */}
-        <div className="space-y-3">
-          <h4 className="font-semibold flex items-center gap-2">
-            <ImageIcon className="h-5 w-5 text-cyan-500" />
-            Media Assets
-          </h4>
-          <div className="space-y-2 max-h-48 overflow-y-auto border rounded-lg p-3">
-            {mediaItems.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-4">No media assets available</p>
-            ) : (
-              mediaItems.map((media) => (
-                <Card
-                  key={media.id}
-                  className={`cursor-pointer transition-colors ${
-                    wizardState.selectedContentIds.includes(media.id)
-                      ? "ring-2 ring-cyan-500 bg-cyan-50"
-                      : "hover:bg-gray-50"
-                  }`}
-                  onClick={() => {
-                    setWizardState((prev) => ({
-                      ...prev,
-                      selectedContentIds: prev.selectedContentIds.includes(media.id)
-                        ? prev.selectedContentIds.filter((id) => id !== media.id)
-                        : [...prev.selectedContentIds, media.id],
-                    }))
-                  }}
-                >
-                  <CardContent className="p-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {wizardState.selectedContentIds.includes(media.id) ? (
-                          <CheckCircle2 className="h-5 w-5 text-cyan-500" />
-                        ) : (
-                          <Circle className="h-5 w-5 text-gray-300" />
-                        )}
-                        <div>
-                          <h4 className="font-medium">{media.name}</h4>
-                          <p className="text-xs text-gray-500">{media.mime_type}</p>
-                        </div>
+        {/* Playlists Tab */}
+        {activeTab === "playlist" && (
+          <div className="space-y-3">
+            <h4 className="font-semibold flex items-center gap-2">
+              <PlayCircle className="h-5 w-5 text-cyan-500" />
+              Playlists
+            </h4>
+            <div className="space-y-2 max-h-64 overflow-y-auto border rounded-lg p-3 bg-gray-50/50 scrollbar-hide">
+              {playlists.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-4">No playlists available</p>
+              ) : (
+                playlists.map((playlist) => (
+                  <div
+                    key={playlist.id}
+                    className={`p-3 rounded-lg cursor-pointer transition-all ${
+                      wizardState.selectedContentIds.includes(playlist.id)
+                        ? "bg-cyan-50 ring-2 ring-cyan-500"
+                        : "bg-white hover:bg-gray-50"
+                    }`}
+                    onClick={() => {
+                      setWizardState((prev) => ({
+                        ...prev,
+                        selectedContentIds: [playlist.id],
+                      }))
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      {wizardState.selectedContentIds.includes(playlist.id) ? (
+                        <CheckCircle2 className="h-5 w-5 text-cyan-500" />
+                      ) : (
+                        <Circle className="h-5 w-5 text-gray-300" />
+                      )}
+                      <div>
+                        <h4 className="font-medium">{playlist.name}</h4>
+                        {playlist.description && <p className="text-sm text-gray-600">{playlist.description}</p>}
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
+                  </div>
+                ))
+              )}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Media Assets Tab */}
+        {activeTab === "asset" && (
+          <div className="space-y-3">
+            <h4 className="font-semibold flex items-center gap-2">
+              <ImageIcon className="h-5 w-5 text-cyan-500" />
+              Media Assets
+            </h4>
+            <div className="space-y-2 max-h-64 overflow-y-auto border rounded-lg p-3 bg-gray-50/50 scrollbar-hide">
+              {mediaItems.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-4">No media assets available</p>
+              ) : (
+                mediaItems.map((media) => (
+                  <div
+                    key={media.id}
+                    className={`p-3 rounded-lg cursor-pointer transition-all ${
+                      wizardState.selectedContentIds.includes(media.id)
+                        ? "bg-cyan-50 ring-2 ring-cyan-500"
+                        : "bg-white hover:bg-gray-50"
+                    }`}
+                    onClick={() => {
+                      setWizardState((prev) => ({
+                        ...prev,
+                        selectedContentIds: [media.id],
+                      }))
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      {wizardState.selectedContentIds.includes(media.id) ? (
+                        <CheckCircle2 className="h-5 w-5 text-cyan-500" />
+                      ) : (
+                        <Circle className="h-5 w-5 text-gray-300" />
+                      )}
+                      <div>
+                        <h4 className="font-medium">{media.name}</h4>
+                        <p className="text-xs text-gray-500">{media.mime_type}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Schedules Tab */}
+        {activeTab === "schedule" && (
+          <div className="space-y-3">
+            <h4 className="font-semibold flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-cyan-500" />
+              Schedules
+            </h4>
+            <div className="space-y-2 max-h-64 overflow-y-auto border rounded-lg p-3 bg-gray-50/50 scrollbar-hide">
+              {schedules.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-4">No schedules available</p>
+              ) : (
+                schedules.map((schedule) => (
+                  <div
+                    key={schedule.id}
+                    className={`p-3 rounded-lg cursor-pointer transition-all ${
+                      wizardState.selectedContentIds.includes(schedule.id)
+                        ? "bg-cyan-50 ring-2 ring-cyan-500"
+                        : "bg-white hover:bg-gray-50"
+                    }`}
+                    onClick={() => {
+                      setWizardState((prev) => ({
+                        ...prev,
+                        selectedContentIds: [schedule.id],
+                      }))
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      {wizardState.selectedContentIds.includes(schedule.id) ? (
+                        <CheckCircle2 className="h-5 w-5 text-cyan-500" />
+                      ) : (
+                        <Circle className="h-5 w-5 text-gray-300" />
+                      )}
+                      <span className="text-sm font-medium">{schedule.name}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
       </div>
-    </div>
-  )
+    )
+  }
 
   const renderStep3 = () => (
     <div className="space-y-4">
