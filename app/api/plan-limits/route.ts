@@ -1,0 +1,143 @@
+import { NextRequest, NextResponse } from "next/server"
+import { createClient } from "@/lib/supabase/server"
+
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = await createClient()
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    // Get user subscription and plan
+    const { data: subscription, error: subError } = await supabase
+      .from("user_subscriptions")
+      .select(
+        `
+        *,
+        subscription_plans (
+          id,
+          name,
+          max_screens,
+          max_playlists,
+          max_media_storage,
+          max_analytics_screens,
+          max_team_members
+        )
+      `,
+      )
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .maybeSingle()
+
+    if (subError) {
+      console.error("[v0] Error fetching subscription:", subError)
+      return NextResponse.json({ error: "Failed to fetch subscription" }, { status: 500 })
+    }
+
+    // Default to Free plan if no subscription
+    const plan = subscription?.subscription_plans || {
+      name: "Free",
+      max_screens: 3,
+      max_playlists: 5,
+      max_media_storage: 1073741824, // 1GB
+      max_analytics_screens: 0,
+      max_team_members: 0,
+    }
+
+    // Get current usage counts
+    const { count: screensCount } = await supabase
+      .from("screens")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+
+    const { count: playlistsCount } = await supabase
+      .from("playlists")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+
+    const { data: profile } = await supabase.from("profiles").select("current_storage_used_mb").eq("id", user.id).single()
+
+    const { count: analyticsScreensCount } = await supabase
+      .from("analytics_settings")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("enabled", true)
+
+    // Get feature permissions
+    const { data: features, error: featuresError } = await supabase
+      .from("feature_permissions")
+      .select("feature_key, is_enabled")
+      .eq("plan_id", plan.id)
+
+    const featureMap: Record<string, boolean> = {}
+    if (features && !featuresError) {
+      features.forEach((f) => {
+        featureMap[f.feature_key] = f.is_enabled
+      })
+    }
+
+    // Calculate current storage in bytes
+    const currentStorageBytes = (profile?.current_storage_used_mb || 0) * 1024 * 1024
+    const maxStorageBytes = Number(plan.max_media_storage)
+
+    // Build response
+    const response = {
+      planName: plan.name,
+
+      // Numeric limits with current usage
+      screens: {
+        current: screensCount || 0,
+        limit: plan.max_screens,
+        canCreate: plan.max_screens === -1 || (screensCount || 0) < plan.max_screens,
+      },
+
+      playlists: {
+        current: playlistsCount || 0,
+        limit: plan.max_playlists,
+        canCreate: plan.max_playlists === -1 || (playlistsCount || 0) < plan.max_playlists,
+      },
+
+      storage: {
+        currentBytes: currentStorageBytes,
+        limitBytes: maxStorageBytes,
+        currentMB: profile?.current_storage_used_mb || 0,
+        limitMB: maxStorageBytes / (1024 * 1024),
+        canUpload: maxStorageBytes === -1 || currentStorageBytes < maxStorageBytes,
+        percentUsed: maxStorageBytes > 0 ? (currentStorageBytes / maxStorageBytes) * 100 : 0,
+      },
+
+      analyticsScreens: {
+        current: analyticsScreensCount || 0,
+        limit: plan.max_analytics_screens,
+        canEnable: plan.max_analytics_screens === -1 || (analyticsScreensCount || 0) < plan.max_analytics_screens,
+      },
+
+      teamMembers: {
+        current: 1, // TODO: Implement actual team members count when multi-user is developed
+        limit: plan.max_team_members,
+        canInvite: plan.max_team_members === -1 || 1 < plan.max_team_members,
+      },
+
+      // Binary features (on/off)
+      features: {
+        youtubeVideos: featureMap["media_youtube"] || false,
+        googleSlides: featureMap["media_google_slides"] || false,
+        scheduling: featureMap["scheduling"] || false,
+        locations: featureMap["locations"] || false,
+        analytics: featureMap["analytics"] || false,
+        aiAnalytics: featureMap["ai_analytics"] || false,
+      },
+    }
+
+    return NextResponse.json(response)
+  } catch (error) {
+    console.error("[v0] Error in plan-limits:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
