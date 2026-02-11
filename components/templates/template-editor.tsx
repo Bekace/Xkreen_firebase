@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { fabric } from "fabric"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -26,21 +25,25 @@ import { cn } from "@/lib/utils"
 
 export function TemplateEditor() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [canvas, setCanvas] = useState<fabric.Canvas | null>(null)
+  const [canvas, setCanvas] = useState<any>(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [selectedObject, setSelectedObject] = useState<fabric.Object | null>(null)
+  const [selectedObject, setSelectedObject] = useState<any>(null)
+  const [fabricLoaded, setFabricLoaded] = useState(false)
 
-  // Initialize Fabric.js canvas
+  // Initialize Fabric.js canvas with dynamic import
   useEffect(() => {
     if (!canvasRef.current) return
 
-    const fabricCanvas = new fabric.Canvas(canvasRef.current, {
-      width: 1920,
-      height: 1080,
-      backgroundColor: "#ffffff",
-    })
+    // Dynamically import fabric.js to reduce initial bundle
+    import("fabric").then(({ fabric }) => {
+      const fabricCanvas = new fabric.Canvas(canvasRef.current, {
+        width: 1920,
+        height: 1080,
+        backgroundColor: "#ffffff",
+      })
 
-    setCanvas(fabricCanvas)
+      setCanvas(fabricCanvas)
+      setFabricLoaded(true)
 
     // Handle object selection
     fabricCanvas.on("selection:created", (e) => {
@@ -51,19 +54,23 @@ export function TemplateEditor() {
       setSelectedObject(e.selected?.[0] || null)
     })
 
-    fabricCanvas.on("selection:cleared", () => {
-      setSelectedObject(null)
+      fabricCanvas.on("selection:cleared", () => {
+        setSelectedObject(null)
+      })
     })
 
     return () => {
-      fabricCanvas.dispose()
+      if (canvas) {
+        canvas.dispose()
+      }
     }
   }, [])
 
   // Add text to canvas
-  const addText = () => {
+  const addText = async () => {
     if (!canvas) return
 
+    const { fabric } = await import("fabric")
     const text = new fabric.IText("Double click to edit", {
       left: 100,
       top: 100,
@@ -78,9 +85,10 @@ export function TemplateEditor() {
   }
 
   // Add rectangle
-  const addRectangle = () => {
+  const addRectangle = async () => {
     if (!canvas) return
 
+    const { fabric } = await import("fabric")
     const rect = new fabric.Rect({
       left: 150,
       top: 150,
@@ -95,9 +103,10 @@ export function TemplateEditor() {
   }
 
   // Add circle
-  const addCircle = () => {
+  const addCircle = async () => {
     if (!canvas) return
 
+    const { fabric } = await import("fabric")
     const circle = new fabric.Circle({
       left: 200,
       top: 200,
@@ -111,9 +120,10 @@ export function TemplateEditor() {
   }
 
   // Upload and add image
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!canvas || !e.target.files?.[0]) return
 
+    const { fabric } = await import("fabric")
     const file = e.target.files[0]
     const reader = new FileReader()
 
