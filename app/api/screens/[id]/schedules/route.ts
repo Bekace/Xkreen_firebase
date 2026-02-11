@@ -1,10 +1,10 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextRequest, NextResponse } from "next/server"
 
-export async function POST(request: NextRequest, { params }: { params: Promise<{ screenId: string }> }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const supabase = await createClient()
-    const { screenId } = await params
+    const { id: screenId } = await params
     const body = await request.json()
     const { schedule_id, is_active = true } = body
 
@@ -70,10 +70,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 }
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ screenId: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const supabase = await createClient()
-    const { screenId } = await params
+    const { id: screenId } = await params
 
     // Verify user is authenticated
     const {
@@ -102,10 +102,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ screenId: string }> }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const supabase = await createClient()
-    const { screenId } = await params
+    const { id: screenId } = await params
     const { searchParams } = new URL(request.url)
     const scheduleId = searchParams.get("schedule_id")
 
