@@ -21,7 +21,6 @@ import {
   CreditCard,
   Zap,
   MapPin,
-  Palette,
 } from "lucide-react"
 
 const navigation = [
@@ -44,11 +43,6 @@ const navigation = [
     name: "Media Library",
     href: "/dashboard/media",
     icon: ImageIcon,
-  },
-  {
-    name: "Templates",
-    href: "/dashboard/templates",
-    icon: Palette,
   },
   {
     name: "Playlists",
