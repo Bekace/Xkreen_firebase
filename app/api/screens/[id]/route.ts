@@ -122,10 +122,12 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     const { error: deletePlaylistsError } = await supabase.from("screen_playlists").delete().eq("screen_id", params.id)
     const { error: deleteMediaError } = await supabase.from("screen_media").delete().eq("screen_id", params.id)
+    const { error: deleteSchedulesError } = await supabase.from("screen_schedules").delete().eq("screen_id", params.id)
 
     console.log("[v0] - Deleted existing assignments")
     if (deletePlaylistsError) console.error("[v0] - Error deleting playlists:", deletePlaylistsError)
     if (deleteMediaError) console.error("[v0] - Error deleting media:", deleteMediaError)
+    if (deleteSchedulesError) console.error("[v0] - Error deleting schedules:", deleteSchedulesError)
 
     if (content_type === "playlist" && selectedContentIds && selectedContentIds.length > 0) {
       updateData.content_type = "playlist"
@@ -173,10 +175,29 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         console.error("[v0] - Error inserting media:", mediaInsertError)
         return NextResponse.json({ error: "Failed to assign media: " + mediaInsertError.message }, { status: 500 })
       }
-    } else if (content_type === "schedule") {
+    } else if (content_type === "schedule" && selectedContentIds && selectedContentIds.length > 0) {
       updateData.content_type = "schedule"
       updateData.media_id = null
-      // TODO: Schedule logic placeholder
+
+      const scheduleAssignment = {
+        screen_id: params.id,
+        schedule_id: selectedContentIds[0],
+        is_active: true,
+      }
+
+      const { data: insertedSchedule, error: scheduleInsertError } = await supabase
+        .from("screen_schedules")
+        .insert([scheduleAssignment])
+        .select()
+
+      console.log(`[v0] - Inserted schedule assignment:`, insertedSchedule)
+      if (scheduleInsertError) {
+        console.error("[v0] - Error inserting schedule:", scheduleInsertError)
+        return NextResponse.json(
+          { error: "Failed to assign schedule: " + scheduleInsertError.message },
+          { status: 500 },
+        )
+      }
     } else {
       updateData.content_type = "none"
       updateData.media_id = null

@@ -405,6 +405,21 @@ export default function ScreensPage() {
         contentCount: wizardState.selectedContentIds.length,
       })
 
+      // Determine content type based on selected content
+      let contentType = "none"
+      if (wizardState.selectedContentIds.length > 0) {
+        const selectedId = wizardState.selectedContentIds[0]
+        if (playlists.some((p) => p.id === selectedId)) {
+          contentType = "playlist"
+        } else if (schedules.some((s) => s.id === selectedId)) {
+          contentType = "schedule"
+        } else if (mediaItems.some((m) => m.id === selectedId)) {
+          contentType = "asset"
+        }
+      }
+
+      console.log("[v0] Detected content type:", contentType)
+
       const screenResponse = await fetch("/api/screens", {
         method: "POST",
         headers: {
@@ -416,7 +431,7 @@ export default function ScreensPage() {
           location: wizardState.location,
           orientation: wizardState.orientation,
           resolution: wizardState.resolution,
-          content_type: wizardState.selectedContentIds.length > 0 ? "playlist" : "none",
+          content_type: contentType,
           enable_audio_management: wizardState.advancedOptions.mute,
           default_transition: wizardState.advancedOptions.defaultTransition,
         }),
@@ -455,10 +470,14 @@ export default function ScreensPage() {
 
         const assignmentPromises = wizardState.selectedContentIds.map(async (contentId, index) => {
           const isPlaylist = playlists.some((p) => p.id === contentId)
+          const isSchedule = schedules.some((s) => s.id === contentId)
+          const isMedia = mediaItems.some((m) => m.id === contentId)
 
           console.log(`[v0] Assigning content ${index + 1}/${wizardState.selectedContentIds.length}:`, {
             contentId,
             isPlaylist,
+            isSchedule,
+            isMedia,
           })
 
           if (isPlaylist) {
@@ -480,7 +499,26 @@ export default function ScreensPage() {
             }
 
             console.log("[v0] Playlist assigned successfully")
-          } else {
+          } else if (isSchedule) {
+            const response = await fetch(`/api/screens/${screenData.screen.id}/schedules`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                schedule_id: contentId,
+                is_active: true,
+              }),
+            })
+
+            if (!response.ok) {
+              const errorData = await response.json()
+              console.error("[v0] Failed to assign schedule:", errorData)
+              throw new Error(errorData.error || "Failed to assign schedule")
+            }
+
+            console.log("[v0] Schedule assigned successfully")
+          } else if (isMedia) {
             // It's a media item - update screen's media_id
             const response = await fetch(`/api/screens/${screenData.screen.id}`, {
               method: "PUT",

@@ -140,6 +140,114 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
         }
       }
     }
+    // If content type is schedule, check for active schedule
+    else if (screen.content_type === "schedule") {
+      console.log("[v0] Content type is schedule, checking for active schedule for screen:", screen.id)
+
+      const { data: screenSchedule, error: scheduleError } = await supabase
+        .from("screen_schedules")
+        .select(`
+          schedule_id,
+          schedules!screen_schedules_schedule_id_fkey (
+            id,
+            name,
+            is_active
+          )
+        `)
+        .eq("screen_id", screen.id)
+        .eq("is_active", true)
+        .maybeSingle()
+
+      console.log("[v0] Screen schedule lookup:", { screenSchedule, scheduleError })
+
+      const scheduleData = screenSchedule?.schedules
+
+      if (scheduleData) {
+        console.log("[v0] Active schedule found:", {
+          scheduleId: scheduleData.id,
+          scheduleName: scheduleData.name,
+        })
+
+        // Fetch schedule items
+        const { data: scheduleItems, error: scheduleItemsError } = await supabase
+          .from("schedule_items")
+          .select(`
+            id,
+            start_time,
+            end_time,
+            days_of_week,
+            playlist_id,
+            playlists (
+              id,
+              name,
+              is_active
+            )
+          `)
+          .eq("schedule_id", scheduleData.id)
+
+        console.log("[v0] Schedule items lookup:", { count: scheduleItems?.length, scheduleItemsError })
+
+        if (!scheduleItemsError && scheduleItems && scheduleItems.length > 0) {
+          // Determine which schedule item is active based on current time
+          const now = new Date()
+          const currentDay = now.getDay() // 0 = Sunday, 6 = Saturday
+          const currentTime = now.toTimeString().slice(0, 5) // HH:MM format
+
+          const activeScheduleItem = scheduleItems.find((item) => {
+            // Check if current day is in days_of_week array
+            const daysActive = item.days_of_week && Array.isArray(item.days_of_week) && item.days_of_week.includes(currentDay)
+            // Check if current time is between start_time and end_time
+            const timeActive = currentTime >= item.start_time && currentTime <= item.end_time
+
+            return daysActive && timeActive
+          })
+
+          console.log("[v0] Active schedule item:", activeScheduleItem)
+
+          if (activeScheduleItem && activeScheduleItem.playlists) {
+            // Load the playlist content from the active schedule item
+            const playlistId = activeScheduleItem.playlist_id
+            activePlaylist = activeScheduleItem.playlists
+
+            console.log("[v0] Loading playlist from schedule:", {
+              playlistId,
+              playlistName: activePlaylist.name,
+            })
+
+            const { data: playlistItems, error: itemsError } = await supabase
+              .from("playlist_items")
+              .select(`
+                id,
+                position,
+                duration_override,
+                transition_type,
+                transition_duration,
+                media (
+                  id,
+                  name,
+                  file_path,
+                  mime_type,
+                  file_size,
+                  duration
+                )
+              `)
+              .eq("playlist_id", playlistId)
+              .order("position")
+
+            console.log("[v0] Playlist items from schedule:", { itemsCount: playlistItems?.length, itemsError })
+
+            if (!itemsError && playlistItems) {
+              playlistContent = playlistItems.filter((item) => item.media)
+              console.log("[v0] Filtered playlist content count from schedule:", playlistContent.length)
+            }
+          } else {
+            console.log("[v0] No active schedule item found for current time/day")
+          }
+        }
+      } else {
+        console.log("[v0] No active schedule found for screen")
+      }
+    }
     // If content type is playlist, check for active playlist
     else if (screen.content_type === "playlist" || !screen.content_type) {
       console.log("[v0] Content type is playlist, checking for active playlist for screen:", screen.id)
