@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>YouTube Embed Test</title>
+  <style>
+    body { margin: 0; background: #111; color: white; font-family: sans-serif; padding: 20px; }
+    h2 { margin-top: 30px; }
+    .test { margin: 10px 0 30px; }
+    iframe { border: 1px solid #333; }
+  </style>
+</head>
+<body>
+  <h1>YouTube Embed Test - Error 153 Debug</h1>
+
+  <h2>Test 1: Con referrerpolicy + controls=0 (ideal para digital signage)</h2>
+  <div class="test">
+    <iframe
+      width="640"
+      height="360"
+      src="https://www.youtube-nocookie.com/embed/M6gWY5lS9KU?autoplay=1&mute=1&loop=1&playlist=M6gWY5lS9KU&controls=0&rel=0&modestbranding=1&disablekb=1&playsinline=1"
+      referrerpolicy="strict-origin-when-cross-origin"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowfullscreen>
+    </iframe>
+  </div>
+
+  <h2>Test 2: Con referrerpolicy + con controles (fallback)</h2>
+  <div class="test">
+    <iframe
+      width="640"
+      height="360"
+      src="https://www.youtube-nocookie.com/embed/M6gWY5lS9KU?autoplay=1&mute=1&loop=1&playlist=M6gWY5lS9KU&rel=0&modestbranding=1&playsinline=1"
+      referrerpolicy="strict-origin-when-cross-origin"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowfullscreen>
+    </iframe>
+  </div>
+
+  <h2>Test 3: SIN referrerpolicy (deberia dar Error 153)</h2>
+  <div class="test">
+    <iframe
+      width="640"
+      height="360"
+      src="https://www.youtube-nocookie.com/embed/M6gWY5lS9KU?autoplay=1&mute=1&playsinline=1"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowfullscreen>
+    </iframe>
+  </div>
+
+  <h2>Test 4: youtube.com regular (no nocookie) + referrerpolicy + controls=0</h2>
+  <div class="test">
+    <iframe
+      width="640"
+      height="360"
+      src="https://www.youtube.com/embed/M6gWY5lS9KU?autoplay=1&mute=1&loop=1&playlist=M6gWY5lS9KU&controls=0&rel=0&modestbranding=1&disablekb=1&playsinline=1"
+      referrerpolicy="strict-origin-when-cross-origin"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowfullscreen>
+    </iframe>
+  </div>
+</body>
+</html>
