@@ -35,8 +35,8 @@ export function TemplateEditor() {
     if (!canvasRef.current) return
 
     // Dynamically import fabric.js to reduce initial bundle
-    import("fabric").then(({ fabric }) => {
-      const fabricCanvas = new fabric.Canvas(canvasRef.current, {
+    import("fabric").then((fabricModule) => {
+      const fabricCanvas = new fabricModule.Canvas(canvasRef.current, {
         width: 1920,
         height: 1080,
         backgroundColor: "#ffffff",
@@ -70,8 +70,8 @@ export function TemplateEditor() {
   const addText = async () => {
     if (!canvas) return
 
-    const { fabric } = await import("fabric")
-    const text = new fabric.IText("Double click to edit", {
+    const fabricModule = await import("fabric")
+    const text = new fabricModule.IText("Double click to edit", {
       left: 100,
       top: 100,
       fontFamily: "Arial",
@@ -88,8 +88,8 @@ export function TemplateEditor() {
   const addRectangle = async () => {
     if (!canvas) return
 
-    const { fabric } = await import("fabric")
-    const rect = new fabric.Rect({
+    const fabricModule = await import("fabric")
+    const rect = new fabricModule.Rect({
       left: 150,
       top: 150,
       fill: "#3b82f6",
@@ -106,8 +106,8 @@ export function TemplateEditor() {
   const addCircle = async () => {
     if (!canvas) return
 
-    const { fabric } = await import("fabric")
-    const circle = new fabric.Circle({
+    const fabricModule = await import("fabric")
+    const circle = new fabricModule.Circle({
       left: 200,
       top: 200,
       radius: 75,
@@ -123,13 +123,13 @@ export function TemplateEditor() {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!canvas || !e.target.files?.[0]) return
 
-    const { fabric } = await import("fabric")
+    const fabricModule = await import("fabric")
     const file = e.target.files[0]
     const reader = new FileReader()
 
     reader.onload = (event) => {
       const imgUrl = event.target?.result as string
-      fabric.Image.fromURL(imgUrl, (img) => {
+      fabricModule.Image.fromURL(imgUrl, (img) => {
         img.scaleToWidth(400)
         canvas.add(img)
         canvas.setActiveObject(img)
