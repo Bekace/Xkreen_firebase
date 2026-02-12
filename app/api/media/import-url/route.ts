@@ -71,6 +71,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "URL is required" }, { status: 400 })
     }
 
+    // Check plan feature permissions
+    const { data: subscription } = await supabase
+      .from("user_subscriptions")
+      .select("plan_id, subscription_plans(id, name)")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .maybeSingle()
+
+    const planName = (subscription?.subscription_plans as any)?.name || "Free"
+    const planId = subscription?.plan_id
+
+    if (planId) {
+      const isYouTube = isYouTubeUrl(url)
+      const isGoogleSlides = isGoogleSlidesUrl(url)
+
+      const featureKey = isYouTube ? "media_youtube" : isGoogleSlides ? "media_google_slides" : null
+
+      if (featureKey) {
+        const { data: permission } = await supabase
+          .from("feature_permissions")
+          .select("is_enabled")
+          .eq("plan_id", planId)
+          .eq("feature_key", featureKey)
+          .maybeSingle()
+
+        if (permission && !permission.is_enabled) {
+          return NextResponse.json(
+            { error: `This feature is not available on your ${planName} plan. Please upgrade to Pro.` },
+            { status: 403 },
+          )
+        }
+      }
+    }
+
     let mediaType: string
     let embedUrl: string
     let mediaName: string

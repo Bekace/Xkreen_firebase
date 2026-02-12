@@ -47,6 +47,8 @@ import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { TimePicker } from "@/components/time-picker"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { usePlanLimits } from "@/hooks/use-plan-limits"
+import { UpgradeBanner } from "@/components/upgrade-banner"
 import { AlertCircle } from "lucide-react"
 
 interface Schedule {
@@ -95,6 +97,7 @@ const SLOT_COLORS = [
 ]
 
 export default function SchedulesPage() {
+  const { features, loading: limitsLoading } = usePlanLimits()
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
@@ -807,16 +810,28 @@ export default function SchedulesPage() {
     return `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${year}`
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <p className="text-muted-foreground">Loading schedules...</p>
-      </div>
-    )
+  if (loading || limitsLoading) {
+  return (
+  <div className="flex items-center justify-center h-screen">
+  <p className="text-muted-foreground">Loading schedules...</p>
+  </div>
+  )
   }
 
+  if (!features?.scheduling) {
   return (
-    <div className="flex h-[calc(100vh-64px)]">
+  <div className="p-6">
+    <UpgradeBanner
+      feature="Advanced Scheduling"
+      description="Create schedules to automatically switch content on your screens based on time and day of the week."
+      planRequired="Pro"
+    />
+  </div>
+  )
+  }
+  
+  return (
+  <div className="flex h-[calc(100vh-64px)]">
       {/* Sidebar */}
       <div
         className={cn(

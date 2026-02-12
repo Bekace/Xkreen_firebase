@@ -18,7 +18,9 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { useUploadLimits } from "@/hooks/use-upload-limits"
+import { usePlanLimits } from "@/hooks/use-plan-limits"
 import { StorageUsageBar } from "@/components/ui/storage-usage-bar"
+import { UpgradeBanner } from "@/components/upgrade-banner"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
 import { SmartFileUploader } from "@/components/media/smart-file-uploader"
@@ -236,6 +238,8 @@ export default function MediaLibraryPage() {
   const [updating, setUpdating] = useState(false)
   const { toast } = useToast()
   const uploadLimits = useUploadLimits()
+  const { features } = usePlanLimits()
+  const canImportUrl = features?.youtubeVideos || features?.googleSlides
 
   useEffect(() => {
     fetchMedia()
@@ -305,6 +309,28 @@ export default function MediaLibraryPage() {
       toast({
         title: "Error",
         description: "Please enter a URL",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Check if URL type is allowed by plan
+    const isYouTube = importUrl.includes("youtube.com") || importUrl.includes("youtu.be")
+    const isGoogleSlides = importUrl.includes("docs.google.com/presentation")
+
+    if (isYouTube && !features?.youtubeVideos) {
+      toast({
+        title: "Feature Restricted",
+        description: "YouTube video import is not available on your current plan. Please upgrade to Pro.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (isGoogleSlides && !features?.googleSlides) {
+      toast({
+        title: "Feature Restricted",
+        description: "Google Slides import is not available on your current plan. Please upgrade to Pro.",
         variant: "destructive",
       })
       return
@@ -572,44 +598,54 @@ export default function MediaLibraryPage() {
             </TabsContent>
 
             <TabsContent value="import" className="space-y-4 mt-4">
-              <div className="space-y-3">
-                <Input
-                  placeholder="Google Slides or YouTube URL"
-                  value={importUrl}
-                  onChange={(e) => setImportUrl(e.target.value)}
-                  className="w-full"
+              {!canImportUrl ? (
+                <UpgradeBanner
+                  feature="Google Slides & YouTube Import"
+                  description="Import content directly from Google Slides and YouTube to display on your screens."
+                  planRequired="Pro"
                 />
-                <div className="flex items-center gap-4">
-                  <Input
-                    placeholder="Name (optional)"
-                    value={importName}
-                    onChange={(e) => setImportName(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Input
-                    placeholder="Tags (comma separated)"
-                    value={importTags}
-                    onChange={(e) => setImportTags(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button
-                    onClick={handleImportUrl}
-                    disabled={!importUrl || importing}
-                    className="bg-cyan-500 hover:bg-cyan-600"
-                  >
-                    {importing ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    ) : (
-                      <Plus className="h-4 w-4" />
-                    )}
-                    Import
-                  </Button>
-                </div>
-              </div>
-              <p className="text-sm text-gray-600">
-                Supported: Google Slides presentations and YouTube videos. External URLs don't count toward your storage
-                limit.
-              </p>
+              ) : (
+                <>
+                  <div className="space-y-3">
+                    <Input
+                      placeholder="Google Slides or YouTube URL"
+                      value={importUrl}
+                      onChange={(e) => setImportUrl(e.target.value)}
+                      className="w-full"
+                    />
+                    <div className="flex items-center gap-4">
+                      <Input
+                        placeholder="Name (optional)"
+                        value={importName}
+                        onChange={(e) => setImportName(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Input
+                        placeholder="Tags (comma separated)"
+                        value={importTags}
+                        onChange={(e) => setImportTags(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button
+                        onClick={handleImportUrl}
+                        disabled={!importUrl || importing}
+                        className="bg-cyan-500 hover:bg-cyan-600"
+                      >
+                        {importing ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        ) : (
+                          <Plus className="h-4 w-4" />
+                        )}
+                        Import
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    Supported: Google Slides presentations and YouTube videos. External URLs don't count toward your storage
+                    limit.
+                  </p>
+                </>
+              )}
             </TabsContent>
           </Tabs>
         </CardContent>
