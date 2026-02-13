@@ -47,6 +47,8 @@ import {
   X,
   Loader2,
 } from "lucide-react"
+import { usePlanLimits } from "@/hooks/use-plan-limits"
+import { UpgradeBanner } from "@/components/upgrade-banner"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter, useSearchParams } from "next/navigation"
 
@@ -81,6 +83,7 @@ interface Screen {
 }
 
 export default function LocationsPage() {
+  const { features, loading: limitsLoading } = usePlanLimits()
   const [locations, setLocations] = useState<Location[]>([])
   const [screens, setScreens] = useState<Screen[]>([])
   const [loading, setLoading] = useState(true)
@@ -463,12 +466,24 @@ export default function LocationsPage() {
     return screens.filter((screen) => !allAssignedScreenIds.includes(screen.id))
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    )
+  if (loading || limitsLoading) {
+  return (
+  <div className="flex items-center justify-center h-96">
+  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+  </div>
+  )
+  }
+
+  if (!features?.locations) {
+  return (
+  <div className="p-6">
+    <UpgradeBanner
+      feature="Location Management"
+      description="Organize your screens by physical location, view them on a map, and manage multi-site deployments."
+      planRequired="Pro"
+    />
+  </div>
+  )
   }
 
   return (
