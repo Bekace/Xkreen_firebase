@@ -115,9 +115,9 @@ export async function GET(request: NextRequest) {
       },
 
       analyticsScreens: {
-        current: analyticsScreensCount || 0,
+        current: 0, // TODO: Count analytics-enabled screens when analytics feature is fully implemented
         limit: plan.max_analytics_screens,
-        canEnable: plan.max_analytics_screens === -1 || (analyticsScreensCount || 0) < plan.max_analytics_screens,
+        canEnable: plan.max_analytics_screens === -1 || 0 < plan.max_analytics_screens,
       },
 
       teamMembers: {
