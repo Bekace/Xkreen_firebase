@@ -159,11 +159,8 @@ export async function signUp(prevState: { error?: string; success?: boolean; mes
         return { error: "Failed to create account" }
       }
 
-      // For free plan, return success message to check email
-      return {
-        success: true,
-        message: "Please check your email to verify your account before logging in.",
-      }
+      // For free plan, redirect to confirmation page
+      redirect(`/auth/confirmation?email=${encodeURIComponent(email.toString())}`)
     }
   } catch (error) {
     console.error("Signup error:", error)
