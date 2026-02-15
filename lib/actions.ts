@@ -162,7 +162,11 @@ export async function signUp(prevState: { error?: string; success?: boolean; mes
       // For free plan, redirect to confirmation page
       redirect(`/auth/confirmation?email=${encodeURIComponent(email.toString())}`)
     }
-  } catch (error) {
+  } catch (error: any) {
+    // Re-throw redirect errors (Next.js uses thrown errors for redirects)
+    if (error?.digest?.startsWith("NEXT_REDIRECT")) {
+      throw error
+    }
     console.error("Signup error:", error)
     return { error: "An unexpected error occurred. Please try again." }
   }
