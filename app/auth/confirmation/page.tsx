@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import { Mail, ArrowLeft, RefreshCw, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { useSearchParams } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 
-export default function ConfirmationPage() {
+function ConfirmationContent() {
   const searchParams = useSearchParams()
   const email = searchParams.get("email")
   const [resending, setResending] = useState(false)
@@ -150,5 +150,19 @@ export default function ConfirmationPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function ConfirmationPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cyan-50 via-white to-blue-50">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
+        </div>
+      }
+    >
+      <ConfirmationContent />
+    </Suspense>
   )
 }
