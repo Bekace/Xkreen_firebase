@@ -26,25 +26,34 @@ export default async function BillingSettingsPage() {
   let subscription = null
   let plan = null
   let allPlans = []
+  let currentPrice = null
+
+  console.log("[v0] Fetching subscription for user:", user.id)
 
   try {
-    const { data: subData } = await supabase
+    const { data: subData, error: subError } = await supabase
       .from("user_subscriptions")
       .select(`
         *,
         subscription_plans (
-          *,
-          subscription_prices (*)
+          *
+        ),
+        subscription_prices (
+          *
         )
       `)
       .eq("user_id", user.id)
       .in("status", ["active", "trialing"])
       .single()
 
+    console.log("[v0] Subscription query result:", { subscription: subData, error: subError })
+
     subscription = subData
     plan = subscription?.subscription_plans
+    currentPrice = subscription?.subscription_prices
 
     if (!subscription || !plan) {
+      console.log("[v0] No active subscription found, defaulting to Free plan")
       const { data: freePlan } = await supabase
         .from("subscription_plans")
         .select(`
@@ -58,6 +67,13 @@ export default async function BillingSettingsPage() {
       if (freePlan) {
         plan = freePlan
       }
+    } else {
+      console.log("[v0] Found subscription:", {
+        plan_name: plan?.name,
+        status: subscription.status,
+        price_id: subscription.price_id,
+        billing_cycle: currentPrice?.billing_cycle,
+      })
     }
 
     const { data: plans } = await supabase
@@ -87,10 +103,19 @@ export default async function BillingSettingsPage() {
     console.error("[v0] Billing page error:", err)
   }
 
-  const userBillingCycle = subscription?.billing_cycle || "monthly"
-  const currentPrice = plan?.subscription_prices?.find((p: any) => p.billing_cycle === userBillingCycle && p.is_active)
+  const userBillingCycle = currentPrice?.billing_cycle || "monthly"
   const displayPrice = currentPrice?.price ? Number(currentPrice.price).toFixed(0) : "0"
   const billingCycle = userBillingCycle === "yearly" ? "year" : "month"
+
+  console.log("[v0] Billing display info:", {
+    planName: plan?.name,
+    displayPrice,
+    billingCycle,
+    hasActiveSubscription: !!(
+      subscription?.stripe_subscription_id &&
+      (subscription?.status === "active" || subscription?.status === "trialing")
+    ),
+  })
 
   const storageGB = plan?.max_media_storage ? Math.round(plan.max_media_storage / 1024 / 1024 / 1024) : 0
 

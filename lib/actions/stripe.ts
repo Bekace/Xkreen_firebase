@@ -202,6 +202,8 @@ export async function createUpgradeCheckoutSession(planId: string, priceId: stri
     }
   }
 
+  console.log("[v0] Creating upgrade checkout for:", { user_id: user.id, plan_id: planId, price_id: priceId, billing_cycle: price.billing_cycle })
+
   // Create checkout session for upgrade (no trial for upgrades)
   const session = await stripe.checkout.sessions.create({
     customer: customerId,
@@ -217,6 +219,7 @@ export async function createUpgradeCheckoutSession(planId: string, priceId: stri
         user_id: user.id,
         plan_id: planId,
         price_id: priceId,
+        billing_cycle: price.billing_cycle,
       },
     },
     success_url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://v0-xkreen-ai.vercel.app"}/dashboard/settings/billing?upgraded=true`,
@@ -225,8 +228,11 @@ export async function createUpgradeCheckoutSession(planId: string, priceId: stri
       user_id: user.id,
       plan_id: planId,
       price_id: priceId,
+      billing_cycle: price.billing_cycle,
     },
   })
+
+  console.log("[v0] Checkout session created:", session.id)
 
   if (!session.url) {
     return { error: "Failed to create checkout session" }

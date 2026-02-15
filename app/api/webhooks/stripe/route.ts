@@ -208,6 +208,7 @@ export async function POST(req: NextRequest) {
             console.log("[v0] Existing subscription found, updating for upgrade")
             console.log("[v0] Old stripe_subscription_id:", existingSub.stripe_subscription_id)
             console.log("[v0] New stripe_subscription_id:", session.subscription.toString())
+            console.log("[v0] Updating to plan_id:", planId, "price_id:", priceId)
 
             // Get trial info from price if available
             const { data: priceData } = await supabase
@@ -220,19 +221,26 @@ export async function POST(req: NextRequest) {
             const now = new Date()
             const trialEnd = trialDays > 0 ? new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000) : null
 
-            const { error: updateError } = await supabase
+            const updateData = {
+              plan_id: planId,
+              price_id: priceId,
+              stripe_subscription_id: session.subscription.toString(),
+              stripe_customer_id: session.customer?.toString(),
+              status: trialDays > 0 ? "trialing" : "active",
+              trial_ends_at: trialEnd?.toISOString() || null,
+              started_at: now.toISOString(),
+              expires_at: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+              updated_at: now.toISOString(),
+            }
+
+            console.log("[v0] Update data:", JSON.stringify(updateData, null, 2))
+
+            const { data: updatedSub, error: updateError } = await supabase
               .from("user_subscriptions")
-              .update({
-                plan_id: planId,
-                price_id: priceId,
-                stripe_subscription_id: session.subscription.toString(),
-                stripe_customer_id: session.customer?.toString(),
-                status: trialDays > 0 ? "trialing" : "active",
-                trial_ends_at: trialEnd?.toISOString() || null,
-                started_at: now.toISOString(),
-                expires_at: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-              })
+              .update(updateData)
               .eq("id", existingSub.id)
+              .select()
+              .single()
 
             if (updateError) {
               console.error("[v0] Failed to update subscription:", updateError)
@@ -240,10 +248,8 @@ export async function POST(req: NextRequest) {
               console.log(
                 "[v0] Successfully updated subscription for user:",
                 userId,
-                "to plan:",
-                planId,
-                "price:",
-                priceId,
+                "New subscription data:",
+                JSON.stringify(updatedSub, null, 2),
               )
             }
           } else {
