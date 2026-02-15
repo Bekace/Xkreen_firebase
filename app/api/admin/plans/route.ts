@@ -78,6 +78,8 @@ export async function POST(request: NextRequest) {
         max_media_storage: planData.max_media_storage,
         storage_unit: planData.storage_unit,
         max_playlists: planData.max_playlists,
+        max_analytics_screens: planData.max_analytics_screens ?? 0,
+        max_team_members: planData.max_team_members ?? 0,
         is_active: planData.is_active,
       })
       .select()

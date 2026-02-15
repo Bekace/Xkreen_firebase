@@ -61,6 +61,8 @@ interface PlanFormData {
   max_media_storage: string
   storage_unit: string
   max_playlists: string
+  max_analytics_screens: string
+  max_team_members: string
   is_active: boolean
 }
 
@@ -81,6 +83,8 @@ export function PlanManagement() {
     max_media_storage: "1",
     storage_unit: "GB",
     max_playlists: "1",
+    max_analytics_screens: "0",
+    max_team_members: "0",
     is_active: true,
   })
   const { toast } = useToast()
@@ -157,6 +161,8 @@ export function PlanManagement() {
         max_media_storage: storageInBytes,
         storage_unit: formData.storage_unit,
         max_playlists: formData.max_playlists === "-1" ? -1 : Number.parseInt(formData.max_playlists),
+        max_analytics_screens: formData.max_analytics_screens === "-1" ? -1 : Number.parseInt(formData.max_analytics_screens),
+        max_team_members: formData.max_team_members === "-1" ? -1 : Number.parseInt(formData.max_team_members),
         is_active: formData.is_active,
       }
 
@@ -211,6 +217,8 @@ export function PlanManagement() {
         max_media_storage: storageInBytes,
         storage_unit: formData.storage_unit,
         max_playlists: formData.max_playlists === "-1" ? -1 : Number.parseInt(formData.max_playlists),
+        max_analytics_screens: formData.max_analytics_screens === "-1" ? -1 : Number.parseInt(formData.max_analytics_screens),
+        max_team_members: formData.max_team_members === "-1" ? -1 : Number.parseInt(formData.max_team_members),
         is_active: formData.is_active,
       }
 
@@ -287,6 +295,8 @@ export function PlanManagement() {
       max_media_storage: "1",
       storage_unit: "GB",
       max_playlists: "1",
+      max_analytics_screens: "0",
+      max_team_members: "0",
       is_active: true,
     })
   }
@@ -309,6 +319,8 @@ export function PlanManagement() {
       max_media_storage: displayValue.toString(),
       storage_unit: plan.storage_unit || "GB",
       max_playlists: plan.max_playlists.toString(),
+      max_analytics_screens: (plan.max_analytics_screens ?? 0).toString(),
+      max_team_members: (plan.max_team_members ?? 0).toString(),
       is_active: plan.is_active,
     })
     setEditingPlan(plan)
@@ -389,6 +401,14 @@ export function PlanManagement() {
                     <span className="font-medium">{plan.max_playlists === -1 ? "Unlimited" : plan.max_playlists}</span>
                   </div>
                   <div className="flex justify-between">
+                    <span className="text-muted-foreground">Analytics Screens:</span>
+                    <span className="font-medium">{plan.max_analytics_screens === -1 ? "Unlimited" : (plan.max_analytics_screens ?? 0)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Team Members:</span>
+                    <span className="font-medium">{plan.max_team_members === -1 ? "Unlimited" : (plan.max_team_members ?? 0)}</span>
+                  </div>
+                  <div className="flex justify-between">
                     <span className="text-muted-foreground">Subscribers:</span>
                     <span className="font-medium">{plan.subscriber_count || 0}</span>
                   </div>
@@ -429,6 +449,8 @@ export function PlanManagement() {
                   <TableHead>Max Screens</TableHead>
                   <TableHead>Storage</TableHead>
                   <TableHead>Max Playlists</TableHead>
+                  <TableHead>Analytics</TableHead>
+                  <TableHead>Team</TableHead>
                   <TableHead>Subscribers</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
@@ -446,6 +468,8 @@ export function PlanManagement() {
                       {plan.storage_unit || "GB"}
                     </TableCell>
                     <TableCell>{plan.max_playlists === -1 ? "Unlimited" : plan.max_playlists}</TableCell>
+                    <TableCell>{plan.max_analytics_screens === -1 ? "Unlimited" : (plan.max_analytics_screens ?? 0)}</TableCell>
+                    <TableCell>{plan.max_team_members === -1 ? "Unlimited" : (plan.max_team_members ?? 0)}</TableCell>
                     <TableCell>{plan.subscriber_count || 0}</TableCell>
                     <TableCell>
                       <Badge
@@ -563,6 +587,7 @@ export function PlanManagement() {
 
             <div className="space-y-2">
               <Label className="text-base font-semibold">Plan Limits</Label>
+              <p className="text-xs text-muted-foreground">Use -1 for unlimited. Use 0 to disable.</p>
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <Label className="text-sm text-muted-foreground">Max Screens</Label>
@@ -609,6 +634,26 @@ export function PlanManagement() {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+                <div>
+                  <Label className="text-sm text-muted-foreground">Analytics Screens</Label>
+                  <Input
+                    type="number"
+                    min="-1"
+                    value={formData.max_analytics_screens}
+                    onChange={(e) => setFormData({ ...formData, max_analytics_screens: e.target.value })}
+                    placeholder="e.g., 2 (-1 for unlimited)"
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm text-muted-foreground">Team Members</Label>
+                  <Input
+                    type="number"
+                    min="-1"
+                    value={formData.max_team_members}
+                    onChange={(e) => setFormData({ ...formData, max_team_members: e.target.value })}
+                    placeholder="e.g., 2 (-1 for unlimited)"
+                  />
                 </div>
               </div>
             </div>

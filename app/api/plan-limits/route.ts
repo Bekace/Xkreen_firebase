@@ -41,7 +41,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Default to Free plan if no subscription
-    const plan = subscription?.subscription_plans || {
+    const plan = (subscription?.subscription_plans as any) || {
+      id: null,
       name: "Free",
       max_screens: 3,
       max_playlists: 5,
@@ -63,17 +64,18 @@ export async function GET(request: NextRequest) {
 
     const { data: profile } = await supabase.from("profiles").select("current_storage_used_mb").eq("id", user.id).single()
 
-    const { count: analyticsScreensCount } = await supabase
-      .from("analytics_settings")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .eq("enabled", true)
+    // Get feature permissions (only if plan has an id)
+    let features: any[] | null = null
+    let featuresError: any = null
 
-    // Get feature permissions
-    const { data: features, error: featuresError } = await supabase
-      .from("feature_permissions")
-      .select("feature_key, is_enabled")
-      .eq("plan_id", plan.id)
+    if (plan.id) {
+      const result = await supabase
+        .from("feature_permissions")
+        .select("feature_key, is_enabled")
+        .eq("plan_id", plan.id)
+      features = result.data
+      featuresError = result.error
+    }
 
     const featureMap: Record<string, boolean> = {}
     if (features && !featuresError) {
@@ -132,6 +134,7 @@ export async function GET(request: NextRequest) {
         locations: featureMap["locations"] || false,
         analytics: featureMap["analytics"] || false,
         aiAnalytics: featureMap["ai_analytics"] || false,
+        multiUser: (plan.max_team_members ?? 0) > 0 || plan.max_team_members === -1,
       },
     }
 

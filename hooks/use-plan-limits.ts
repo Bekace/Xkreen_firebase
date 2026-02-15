@@ -37,6 +37,7 @@ export interface PlanLimits {
     locations: boolean
     analytics: boolean
     aiAnalytics: boolean
+    multiUser: boolean
   }
 }
 
@@ -69,5 +70,12 @@ export function usePlanLimits() {
     fetchLimits()
   }, [])
 
-  return { limits, loading, error, refresh: () => setLimits(null) }
+  return {
+    limits,
+    loading,
+    error,
+    features: limits?.features || null,
+    planName: limits?.planName || null,
+    refresh: () => setLimits(null),
+  }
 }
