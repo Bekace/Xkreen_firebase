@@ -225,12 +225,12 @@ export function DashboardOverview({ user, showWelcome = false }: DashboardOvervi
               </div>
               <CardTitle className="text-2xl">Welcome to XKREEN!</CardTitle>
               <CardDescription className="text-base">
-                Your {subscription?.planName || "Pro"} subscription is now active.
+                Your {subscription?.planName || "Free"} subscription is now active.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 text-center pb-8">
               <p className="text-muted-foreground">
-                Thank you for subscribing! You now have full access to all {subscription?.planName || "Pro"} features.
+                Thank you for {subscription?.planName === "Free" ? "signing up" : "subscribing"}! You now have {subscription?.planName === "Free" ? "access to" : "full access to all"} {subscription?.planName || "Free"} features.
               </p>
               <Button onClick={closeWelcome} className="w-full">
                 Get Started
