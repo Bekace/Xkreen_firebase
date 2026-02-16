@@ -64,14 +64,39 @@ export default function BillingClient({
   const router = useRouter()
 
   useEffect(() => {
-    if (searchParams.get("upgraded") === "true") {
-      toast({
-        title: "Success!",
-        description: "Your plan has been upgraded successfully.",
-      })
-      window.history.replaceState({}, "", "/dashboard/settings/billing")
-      router.refresh()
+    const verifyPayment = async () => {
+      if (searchParams.get("upgraded") === "true") {
+        console.log("[v0] Returned from checkout, verifying payment...")
+        
+        try {
+          const response = await fetch("/api/verify-payment", {
+            method: "POST",
+          })
+          const data = await response.json()
+
+          if (response.ok && data.updated) {
+            console.log("[v0] Payment verified, plan updated")
+            toast({
+              title: "Success!",
+              description: "Your plan has been upgraded successfully.",
+            })
+          } else {
+            console.error("[v0] Payment verification failed:", data)
+            toast({
+              title: "Processing...",
+              description: "Your payment is being processed. Please refresh in a moment.",
+            })
+          }
+        } catch (error) {
+          console.error("[v0] Verify payment error:", error)
+        }
+
+        window.history.replaceState({}, "", "/dashboard/settings/billing")
+        setTimeout(() => router.refresh(), 1500)
+      }
     }
+
+    verifyPayment()
   }, [searchParams, toast, router])
 
   const handleSync = async () => {
@@ -175,19 +200,7 @@ export default function BillingClient({
 
   return (
     <>
-      <div className="billing-actions-upgrade flex gap-2">
-        {renderUpgradeButton()}
-        <Button size="sm" variant="outline" onClick={handleSync} disabled={isSyncing}>
-          {isSyncing ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Syncing...
-            </>
-          ) : (
-            "Sync Subscription"
-          )}
-        </Button>
-      </div>
+      <div className="billing-actions-upgrade">{renderUpgradeButton()}</div>
 
       <div className="billing-actions-cancel">{renderCancelLink()}</div>
 
