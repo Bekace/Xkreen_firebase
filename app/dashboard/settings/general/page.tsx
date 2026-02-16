@@ -94,11 +94,15 @@ export default async function GeneralSettingsPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div className="bg-background/50 rounded-md p-3">
               <p className="text-xs text-muted-foreground mb-1">Screens</p>
-              <p className="text-lg font-semibold">{plan.max_screens === -1 ? "Unlimited" : plan.max_screens}</p>
+              <p className="text-lg font-semibold">
+                {plan.max_screens === -1 || plan.max_screens >= 999999 ? "Unlimited" : plan.max_screens}
+              </p>
             </div>
             <div className="bg-background/50 rounded-md p-3">
               <p className="text-xs text-muted-foreground mb-1">Playlists</p>
-              <p className="text-lg font-semibold">{plan.max_playlists === -1 ? "Unlimited" : plan.max_playlists}</p>
+              <p className="text-lg font-semibold">
+                {plan.max_playlists === -1 || plan.max_playlists >= 999999 ? "Unlimited" : plan.max_playlists}
+              </p>
             </div>
             <div className="bg-background/50 rounded-md p-3">
               <p className="text-xs text-muted-foreground mb-1">Storage</p>

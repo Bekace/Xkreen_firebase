@@ -1269,7 +1269,7 @@ export default function PlaylistsPage() {
           </Button>
         </div>
 
-        {playlistLimits.maxPlaylists > 0 && (
+        {playlistLimits.maxPlaylists > 0 && playlistLimits.maxPlaylists < 999999 && (
           <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
             <div className="flex justify-between items-center">
               <span>Playlists:</span>
