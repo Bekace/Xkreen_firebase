@@ -40,6 +40,8 @@ type Plan = {
 interface BillingClientProps {
   plans: Plan[]
   currentPlanId?: string
+  currentPriceId?: string
+  currentBillingCycle?: "monthly" | "yearly" | "quarterly" | "lifetime"
   hasActiveSubscription?: boolean
   stripeCustomerId?: string | null
   cancelAtPeriodEnd?: boolean
@@ -50,6 +52,8 @@ interface BillingClientProps {
 export default function BillingClient({
   plans,
   currentPlanId,
+  currentPriceId,
+  currentBillingCycle,
   hasActiveSubscription,
   cancelAtPeriodEnd,
   planName,
@@ -59,6 +63,7 @@ export default function BillingClient({
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
   const [isReactivating, setIsReactivating] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
+  const [isChangingCycle, setIsChangingCycle] = useState(false)
   const { toast } = useToast()
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -131,6 +136,48 @@ export default function BillingClient({
     }
   }
 
+  const handleChangeBillingCycle = async () => {
+    if (!currentPlanId || !hasActiveSubscription) return
+    
+    setIsChangingCycle(true)
+    try {
+      // Find the current plan
+      const currentPlan = plans.find(p => p.id === currentPlanId)
+      if (!currentPlan) {
+        throw new Error("Current plan not found")
+      }
+
+      // Find the price for the opposite billing cycle
+      const targetCycle = currentBillingCycle === "monthly" ? "yearly" : "monthly"
+      const targetPrice = currentPlan.prices.find(p => p.billing_cycle === targetCycle && p.is_active)
+      
+      if (!targetPrice) {
+        throw new Error(`${targetCycle} billing not available for this plan`)
+      }
+
+      // Call the upgrade checkout with the new price
+      const { createUpgradeCheckoutSession } = await import("@/lib/actions/stripe")
+      const result = await createUpgradeCheckoutSession(currentPlanId, targetPrice.id)
+
+      if (result.error) {
+        throw new Error(result.error)
+      }
+
+      if (result.url) {
+        window.location.href = result.url
+      }
+    } catch (error) {
+      console.error("[v0] Change billing cycle error:", error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to change billing cycle",
+        variant: "destructive",
+      })
+    } finally {
+      setIsChangingCycle(false)
+    }
+  }
+
   const handleReactivate = async () => {
     setIsReactivating(true)
     try {
@@ -178,7 +225,42 @@ export default function BillingClient({
 
     return (
       <Button size="sm" variant="default" onClick={() => setIsDialogOpen(true)}>
-        Upgrade Plan
+        Upgrade plan
+      </Button>
+    )
+  }
+
+  const renderChangeBillingCycleButton = () => {
+    if (!hasActiveSubscription || cancelAtPeriodEnd || !currentBillingCycle) {
+      return null
+    }
+
+    // Don't show for Free plan or if current plan doesn't support the other billing cycle
+    const currentPlan = plans.find(p => p.id === currentPlanId)
+    const targetCycle = currentBillingCycle === "monthly" ? "yearly" : "monthly"
+    const hasTargetCycle = currentPlan?.prices.some(p => p.billing_cycle === targetCycle && p.is_active)
+
+    if (!hasTargetCycle) {
+      return null
+    }
+
+    const buttonText = currentBillingCycle === "monthly" ? "Change to annual billing" : "Change to monthly billing"
+
+    return (
+      <Button 
+        size="sm" 
+        variant="outline" 
+        onClick={handleChangeBillingCycle} 
+        disabled={isChangingCycle}
+      >
+        {isChangingCycle ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Processing...
+          </>
+        ) : (
+          buttonText
+        )}
       </Button>
     )
   }
@@ -200,7 +282,10 @@ export default function BillingClient({
 
   return (
     <>
-      <div className="billing-actions-upgrade">{renderUpgradeButton()}</div>
+      <div className="billing-actions-upgrade flex gap-2">
+        {renderUpgradeButton()}
+        {renderChangeBillingCycleButton()}
+      </div>
 
       <div className="billing-actions-cancel">{renderCancelLink()}</div>
 

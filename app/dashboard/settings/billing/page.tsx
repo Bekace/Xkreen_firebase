@@ -152,6 +152,15 @@ export default async function BillingSettingsPage() {
       })
     : undefined
 
+  // Calculate next payment date (30 days from started_at or last renewal)
+  const nextPaymentDate = subscription?.started_at
+    ? new Date(new Date(subscription.started_at).getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : undefined
+
   return (
     <div className="space-y-6">
       {/* Current Plan */}
@@ -165,13 +174,26 @@ export default async function BillingSettingsPage() {
             <p className="text-sm text-muted-foreground mb-4">Your current subscription plan and usage limits.</p>
             <div className="bg-muted/30 rounded-md p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="font-medium">{plan?.name || "Free"} Plan</span>
-                <span className="text-primary font-semibold">
-                  ${displayPrice}/{billingCycle}
-                </span>
+                <div>
+                  <div className="font-medium">{plan?.name || "Free"} Plan</div>
+                  <div className="text-sm text-muted-foreground mt-1">
+                    ${displayPrice}/{billingCycle}
+                  </div>
+                  {hasActiveSubscription && (
+                    <div className="text-xs text-muted-foreground mt-1">(VAT or sales tax may apply)</div>
+                  )}
+                </div>
               </div>
+              {hasActiveSubscription && (
+                <div className="mt-3 pt-3 border-t border-border/30 space-y-1">
+                  <p className="text-sm font-medium">Billed {userBillingCycle === "yearly" ? "annually" : "monthly"}</p>
+                  {nextPaymentDate && (
+                    <p className="text-sm text-muted-foreground">Next payment: {nextPaymentDate}</p>
+                  )}
+                </div>
+              )}
               {plan && (
-                <div className="text-sm text-muted-foreground space-y-1">
+                <div className="text-sm text-muted-foreground space-y-1 mt-3 pt-3 border-t border-border/30">
                   <p>Max Screens: {plan.max_screens === -1 ? "Unlimited" : plan.max_screens || 0}</p>
                   <p>
                     Max Playlists:{" "}
@@ -189,6 +211,8 @@ export default async function BillingSettingsPage() {
             <BillingClient
               plans={allPlans}
               currentPlanId={plan?.id}
+              currentPriceId={subscription?.price_id}
+              currentBillingCycle={userBillingCycle}
               hasActiveSubscription={hasActiveSubscription}
               stripeCustomerId={subscription?.stripe_customer_id}
               cancelAtPeriodEnd={subscription?.cancel_at_period_end}
@@ -243,6 +267,8 @@ export default async function BillingSettingsPage() {
             <BillingClient
               plans={allPlans}
               currentPlanId={plan?.id}
+              currentPriceId={subscription?.price_id}
+              currentBillingCycle={userBillingCycle}
               hasActiveSubscription={hasActiveSubscription}
               stripeCustomerId={subscription?.stripe_customer_id}
               cancelAtPeriodEnd={subscription?.cancel_at_period_end}
