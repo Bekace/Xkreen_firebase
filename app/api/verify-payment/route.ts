@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { getStripe } from "@/lib/stripe"
 
+// Automatic payment verification - polls Stripe after checkout to update plan
 export async function POST(req: NextRequest) {
   console.log("[v0] verify-payment called")
   
