@@ -58,6 +58,7 @@ export default function BillingClient({
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
   const [isReactivating, setIsReactivating] = useState(false)
+  const [isSyncing, setIsSyncing] = useState(false)
   const { toast } = useToast()
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -72,6 +73,38 @@ export default function BillingClient({
       router.refresh()
     }
   }, [searchParams, toast, router])
+
+  const handleSync = async () => {
+    setIsSyncing(true)
+    try {
+      const response = await fetch("/api/sync-subscription", {
+        method: "POST",
+      })
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to sync")
+      }
+
+      toast({
+        title: "Success!",
+        description: "Subscription synced successfully. Refreshing...",
+      })
+
+      setTimeout(() => {
+        router.refresh()
+      }, 1000)
+    } catch (error) {
+      console.error("[v0] Sync error:", error)
+      toast({
+        title: "Sync Failed",
+        description: error instanceof Error ? error.message : "Failed to sync subscription",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSyncing(false)
+    }
+  }
 
   const handleReactivate = async () => {
     setIsReactivating(true)
@@ -142,7 +175,19 @@ export default function BillingClient({
 
   return (
     <>
-      <div className="billing-actions-upgrade">{renderUpgradeButton()}</div>
+      <div className="billing-actions-upgrade flex gap-2">
+        {renderUpgradeButton()}
+        <Button size="sm" variant="outline" onClick={handleSync} disabled={isSyncing}>
+          {isSyncing ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Syncing...
+            </>
+          ) : (
+            "Sync Subscription"
+          )}
+        </Button>
+      </div>
 
       <div className="billing-actions-cancel">{renderCancelLink()}</div>
 

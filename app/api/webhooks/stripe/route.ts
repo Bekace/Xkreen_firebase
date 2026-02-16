@@ -4,17 +4,34 @@ import { createServiceRoleClient } from "@/lib/supabase/server"
 import type Stripe from "stripe"
 
 export async function POST(req: NextRequest) {
+  console.log("[v0] ==========================================")
+  console.log("[v0] 🔔 Stripe webhook received at:", new Date().toISOString())
+  
   const stripe = getStripe()
   const body = await req.text()
-  const sig = req.headers.get("stripe-signature")!
+  const sig = req.headers.get("stripe-signature")
+
+  console.log("[v0] Signature present:", !!sig)
+  console.log("[v0] Body length:", body.length)
+  console.log("[v0] Webhook secret configured:", !!process.env.STRIPE_WEBHOOK_SECRET)
+
+  if (!sig) {
+    console.error("[v0] ❌ ERROR: No stripe-signature header")
+    return NextResponse.json({ error: "No signature" }, { status: 400 })
+  }
 
   let event: Stripe.Event
 
   try {
+    console.log("[v0] Verifying webhook signature...")
     event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!)
+    console.log("[v0] ✅ Signature verified successfully")
+    console.log("[v0] Event type:", event.type)
+    console.log("[v0] Event ID:", event.id)
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : "Unknown error"
-    console.error("[v0] Webhook signature verification failed:", errorMessage)
+    console.error("[v0] ❌ Webhook signature verification FAILED")
+    console.error("[v0] Error:", errorMessage)
     return NextResponse.json({ error: `Webhook Error: ${errorMessage}` }, { status: 400 })
   }
 
@@ -243,14 +260,16 @@ export async function POST(req: NextRequest) {
               .single()
 
             if (updateError) {
-              console.error("[v0] Failed to update subscription:", updateError)
+              console.error("[v0] ❌ Failed to update subscription:", updateError)
+              return NextResponse.json({ error: "Failed to update subscription" }, { status: 500 })
             } else {
-              console.log(
-                "[v0] Successfully updated subscription for user:",
-                userId,
-                "New subscription data:",
-                JSON.stringify(updatedSub, null, 2),
-              )
+              console.log("[v0] ✅✅✅ SUBSCRIPTION UPGRADED SUCCESSFULLY ✅✅✅")
+              console.log("[v0] User ID:", userId)
+              console.log("[v0] New Plan ID:", planId)
+              console.log("[v0] New Price ID:", priceId)
+              console.log("[v0] Stripe Subscription ID:", session.subscription)
+              console.log("[v0] Status:", updatedSub.status)
+              console.log("[v0] Full subscription:", JSON.stringify(updatedSub, null, 2))
             }
           } else {
             console.log("[v0] No existing subscription, creating new one")
@@ -366,9 +385,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    console.log("[v0] ✅ Webhook processed successfully")
+    console.log("[v0] ==========================================")
     return NextResponse.json({ received: true })
   } catch (error) {
-    console.error("[v0] Webhook handler error:", error)
+    console.error("[v0] ❌ Webhook handler error:", error)
+    console.error("[v0] Error details:", JSON.stringify(error, null, 2))
+    console.log("[v0] ==========================================")
     return NextResponse.json({ error: "Webhook handler failed" }, { status: 500 })
   }
 }
