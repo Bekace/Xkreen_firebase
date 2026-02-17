@@ -105,7 +105,9 @@ export function DashboardSidebar() {
   const isAdmin = profile?.role === "admin" || profile?.role === "superadmin"
   const isSuperAdmin = limits?.isSuperAdmin || false
 
-  console.log("[v0] Sidebar - Super admin:", isSuperAdmin, "Features:", features)
+  console.log("[v0] Sidebar - Super admin:", isSuperAdmin)
+  console.log("[v0] Sidebar - Analytics feature:", features?.analytics)
+  console.log("[v0] Sidebar - All features:", features)
 
   // Filter navigation based on plan features (super admin sees everything)
   const filteredNavigation = navigation.filter((item) => {

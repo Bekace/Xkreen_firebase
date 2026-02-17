@@ -109,6 +109,8 @@ export async function GET(request: NextRequest) {
         featureMap[f.feature_key] = f.is_enabled
       })
     }
+    console.log("[v0] Feature permissions loaded:", features)
+    console.log("[v0] Feature map:", featureMap)
 
     // Calculate current storage in bytes
     const currentStorageBytes = (profile?.current_storage_used_mb || 0) * 1024 * 1024
@@ -159,7 +161,9 @@ export async function GET(request: NextRequest) {
       },
     }
 
-    console.log("[v0] plan-limits response - Plan:", plan.name, "Features:", response.features)
+    console.log("[v0] plan-limits response - Plan:", plan.name)
+    console.log("[v0] Analytics feature check: featureMap['analytics']=", featureMap["analytics"])
+    console.log("[v0] All features:", response.features)
     return NextResponse.json(response)
   } catch (error) {
     console.error("[v0] Error in plan-limits:", error)
