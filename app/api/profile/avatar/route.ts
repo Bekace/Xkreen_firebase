@@ -1,6 +1,7 @@
-import { put } from "@vercel/blob"
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { uploadToGCS } from "@/lib/gcs/rest-client"
+import { Buffer } from "buffer"
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,18 +32,21 @@ export async function POST(req: NextRequest) {
     console.log("[v0] Uploading avatar for user:", user.id)
     console.log("[v0] File name:", file.name, "Size:", file.size, "Type:", file.type)
 
-    // Upload to Vercel Blob
-    const blob = await put(`avatars/${user.id}-${Date.now()}.${file.name.split(".").pop()}`, file, {
-      access: "public",
-      addRandomSuffix: false,
-    })
+    // Upload to Google Cloud Storage
+    const bucketName = process.env.GCS_BUCKET_NAME || "xkreen-web-app"
+    const filename = `avatars/${user.id}/${Date.now()}-${file.name}`
 
-    console.log("[v0] Avatar uploaded to:", blob.url)
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+
+    const publicUrl = await uploadToGCS(bucketName, filename, buffer, file.type)
+
+    console.log("[v0] Avatar uploaded to:", publicUrl)
 
     // Update profile with avatar URL
     const { data, error } = await supabase
       .from("profiles")
-      .update({ avatar_url: blob.url })
+      .update({ avatar_url: publicUrl })
       .eq("id", user.id)
       .select()
       .single()
@@ -53,7 +57,7 @@ export async function POST(req: NextRequest) {
     }
 
     console.log("[v0] Profile updated with avatar URL")
-    return NextResponse.json({ success: true, url: blob.url, profile: data })
+    return NextResponse.json({ success: true, url: publicUrl, profile: data })
   } catch (error) {
     console.error("[v0] Avatar upload exception:", error)
     return NextResponse.json(
