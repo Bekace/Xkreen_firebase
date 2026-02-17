@@ -61,9 +61,14 @@ interface PlanFormData {
   max_media_storage: string
   storage_unit: string
   max_playlists: string
-  max_analytics_screens: string
   max_team_members: string
   is_active: boolean
+  // Feature toggles
+  feature_scheduling: boolean
+  feature_analytics: boolean
+  feature_locations: boolean
+  feature_youtube: boolean
+  feature_google_slides: boolean
 }
 
 export function PlanManagement() {
@@ -83,9 +88,13 @@ export function PlanManagement() {
     max_media_storage: "1",
     storage_unit: "GB",
     max_playlists: "1",
-    max_analytics_screens: "0",
     max_team_members: "0",
     is_active: true,
+    feature_scheduling: false,
+    feature_analytics: false,
+    feature_locations: false,
+    feature_youtube: false,
+    feature_google_slides: false,
   })
   const { toast } = useToast()
 
@@ -401,10 +410,6 @@ export function PlanManagement() {
                     <span className="font-medium">{plan.max_playlists === -1 ? "Unlimited" : plan.max_playlists}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Analytics Screens:</span>
-                    <span className="font-medium">{plan.max_analytics_screens === -1 ? "Unlimited" : (plan.max_analytics_screens ?? 0)}</span>
-                  </div>
-                  <div className="flex justify-between">
                     <span className="text-muted-foreground">Team Members:</span>
                     <span className="font-medium">{plan.max_team_members === -1 ? "Unlimited" : (plan.max_team_members ?? 0)}</span>
                   </div>
@@ -449,7 +454,6 @@ export function PlanManagement() {
                   <TableHead>Max Screens</TableHead>
                   <TableHead>Storage</TableHead>
                   <TableHead>Max Playlists</TableHead>
-                  <TableHead>Analytics</TableHead>
                   <TableHead>Team</TableHead>
                   <TableHead>Subscribers</TableHead>
                   <TableHead>Status</TableHead>
@@ -468,7 +472,6 @@ export function PlanManagement() {
                       {plan.storage_unit || "GB"}
                     </TableCell>
                     <TableCell>{plan.max_playlists === -1 ? "Unlimited" : plan.max_playlists}</TableCell>
-                    <TableCell>{plan.max_analytics_screens === -1 ? "Unlimited" : (plan.max_analytics_screens ?? 0)}</TableCell>
                     <TableCell>{plan.max_team_members === -1 ? "Unlimited" : (plan.max_team_members ?? 0)}</TableCell>
                     <TableCell>{plan.subscriber_count || 0}</TableCell>
                     <TableCell>
@@ -636,16 +639,6 @@ export function PlanManagement() {
                   </div>
                 </div>
                 <div>
-                  <Label className="text-sm text-muted-foreground">Analytics Screens</Label>
-                  <Input
-                    type="number"
-                    min="-1"
-                    value={formData.max_analytics_screens}
-                    onChange={(e) => setFormData({ ...formData, max_analytics_screens: e.target.value })}
-                    placeholder="e.g., 2 (-1 for unlimited)"
-                  />
-                </div>
-                <div>
                   <Label className="text-sm text-muted-foreground">Team Members</Label>
                   <Input
                     type="number"
@@ -653,6 +646,68 @@ export function PlanManagement() {
                     value={formData.max_team_members}
                     onChange={(e) => setFormData({ ...formData, max_team_members: e.target.value })}
                     placeholder="e.g., 2 (-1 for unlimited)"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Feature Toggles</Label>
+              <p className="text-xs text-muted-foreground">Control which features appear in the navigation</p>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="scheduling" className="font-normal">Scheduling</Label>
+                    <p className="text-xs text-muted-foreground">Content scheduling and calendar</p>
+                  </div>
+                  <Switch
+                    id="scheduling"
+                    checked={formData.feature_scheduling}
+                    onCheckedChange={(checked) => setFormData({ ...formData, feature_scheduling: checked })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="analytics" className="font-normal">Analytics</Label>
+                    <p className="text-xs text-muted-foreground">Analytics dashboard</p>
+                  </div>
+                  <Switch
+                    id="analytics"
+                    checked={formData.feature_analytics}
+                    onCheckedChange={(checked) => setFormData({ ...formData, feature_analytics: checked })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="locations" className="font-normal">Locations</Label>
+                    <p className="text-xs text-muted-foreground">Location management</p>
+                  </div>
+                  <Switch
+                    id="locations"
+                    checked={formData.feature_locations}
+                    onCheckedChange={(checked) => setFormData({ ...formData, feature_locations: checked })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="youtube" className="font-normal">YouTube Videos</Label>
+                    <p className="text-xs text-muted-foreground">Enable YouTube media support</p>
+                  </div>
+                  <Switch
+                    id="youtube"
+                    checked={formData.feature_youtube}
+                    onCheckedChange={(checked) => setFormData({ ...formData, feature_youtube: checked })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="slides" className="font-normal">Google Slides</Label>
+                    <p className="text-xs text-muted-foreground">Enable Google Slides support</p>
+                  </div>
+                  <Switch
+                    id="slides"
+                    checked={formData.feature_google_slides}
+                    onCheckedChange={(checked) => setFormData({ ...formData, feature_google_slides: checked })}
                   />
                 </div>
               </div>
