@@ -59,16 +59,23 @@ interface PlanFormData {
   trial_days: string
   max_screens: string
   max_media_storage: string
+  max_file_upload_size: string
   storage_unit: string
   max_playlists: string
+  max_locations: string
+  max_schedules: string
   max_team_members: string
   is_active: boolean
-  // Feature toggles
-  feature_scheduling: boolean
-  feature_analytics: boolean
-  feature_locations: boolean
-  feature_youtube: boolean
-  feature_google_slides: boolean
+  // Feature toggles - control navigation visibility
+  enable_media_library: boolean
+  enable_playlists: boolean
+  enable_screens: boolean
+  enable_locations: boolean
+  enable_schedules: boolean
+  enable_analytics: boolean
+  enable_ai_analytics: boolean
+  enable_team_members: boolean
+  enable_url_media: boolean
 }
 
 export function PlanManagement() {
@@ -86,15 +93,22 @@ export function PlanManagement() {
     trial_days: "0",
     max_screens: "1",
     max_media_storage: "1",
+    max_file_upload_size: "10",
     storage_unit: "GB",
     max_playlists: "1",
+    max_locations: "1",
+    max_schedules: "1",
     max_team_members: "0",
     is_active: true,
-    feature_scheduling: false,
-    feature_analytics: false,
-    feature_locations: false,
-    feature_youtube: false,
-    feature_google_slides: false,
+    enable_media_library: true,
+    enable_playlists: true,
+    enable_screens: true,
+    enable_locations: false,
+    enable_schedules: false,
+    enable_analytics: false,
+    enable_ai_analytics: false,
+    enable_team_members: false,
+    enable_url_media: true,
   })
   const { toast } = useToast()
 
@@ -588,127 +602,232 @@ export function PlanManagement() {
               <Label>Active Plan</Label>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-base font-semibold">Plan Limits</Label>
-              <p className="text-xs text-muted-foreground">Use -1 for unlimited. Use 0 to disable.</p>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Label className="text-sm text-muted-foreground">Max Screens</Label>
-                  <Input
-                    type="number"
-                    min="-1"
-                    value={formData.max_screens}
-                    onChange={(e) => setFormData({ ...formData, max_screens: e.target.value })}
-                    placeholder="e.g., 5 (-1 for unlimited)"
-                  />
-                </div>
-                <div>
-                  <Label className="text-sm text-muted-foreground">Max Playlists</Label>
-                  <Input
-                    type="number"
-                    min="-1"
-                    value={formData.max_playlists}
-                    onChange={(e) => setFormData({ ...formData, max_playlists: e.target.value })}
-                    placeholder="e.g., 10 (-1 for unlimited)"
-                  />
-                </div>
-                <div>
-                  <Label className="text-sm text-muted-foreground">Storage</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      type="number"
-                      min="0"
-                      value={formData.max_media_storage}
-                      onChange={(e) => setFormData({ ...formData, max_media_storage: e.target.value })}
-                      placeholder="e.g., 10"
-                      className="flex-1"
-                    />
-                    <Select
-                      value={formData.storage_unit}
-                      onValueChange={(value) => setFormData({ ...formData, storage_unit: value })}
-                    >
-                      <SelectTrigger className="w-20">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="MB">MB</SelectItem>
-                        <SelectItem value="GB">GB</SelectItem>
-                        <SelectItem value="TB">TB</SelectItem>
-                      </SelectContent>
-                    </Select>
+            <div className="space-y-4">
+              <div>
+                <Label className="text-base font-semibold">Plan Limits & Features</Label>
+                <p className="text-xs text-muted-foreground">Use -1 for unlimited. Toggle controls navigation visibility.</p>
+              </div>
+
+              {/* Media Library */}
+              <div className="space-y-3 pb-4 border-b">
+                <Label className="text-lg font-medium">Media Library</Label>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Max Storage</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="number"
+                        min="-1"
+                        value={formData.max_media_storage}
+                        onChange={(e) => setFormData({ ...formData, max_media_storage: e.target.value })}
+                        className="flex-1"
+                      />
+                      <Select
+                        value={formData.storage_unit}
+                        onValueChange={(value) => setFormData({ ...formData, storage_unit: value })}
+                      >
+                        <SelectTrigger className="w-20">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="MB">MB</SelectItem>
+                          <SelectItem value="GB">GB</SelectItem>
+                          <SelectItem value="TB">TB</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="flex flex-col justify-end">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm">Enable On This Plan</Label>
+                      <Switch
+                        checked={formData.enable_media_library}
+                        onCheckedChange={(checked) => setFormData({ ...formData, enable_media_library: checked })}
+                      />
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <Label className="text-sm text-muted-foreground">Team Members</Label>
-                  <Input
-                    type="number"
-                    min="-1"
-                    value={formData.max_team_members}
-                    onChange={(e) => setFormData({ ...formData, max_team_members: e.target.value })}
-                    placeholder="e.g., 2 (-1 for unlimited)"
-                  />
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">File Upload Limit</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="number"
+                        min="1"
+                        value={formData.max_file_upload_size}
+                        onChange={(e) => setFormData({ ...formData, max_file_upload_size: e.target.value })}
+                        className="flex-1"
+                      />
+                      <div className="w-20 flex items-center justify-center text-sm text-muted-foreground">GB</div>
+                    </div>
+                  </div>
+                  <div className="flex flex-col justify-end">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm">Enable URL Media</Label>
+                      <Switch
+                        checked={formData.enable_url_media}
+                        onCheckedChange={(checked) => setFormData({ ...formData, enable_url_media: checked })}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-3">
-              <Label className="text-base font-semibold">Feature Toggles</Label>
-              <p className="text-xs text-muted-foreground">Control which features appear in the navigation</p>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="scheduling" className="font-normal">Scheduling</Label>
-                    <p className="text-xs text-muted-foreground">Content scheduling and calendar</p>
+              {/* Playlists */}
+              <div className="space-y-3 pb-4 border-b">
+                <Label className="text-lg font-medium">Playlists</Label>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Max Playlists</Label>
+                    <Input
+                      type="number"
+                      min="-1"
+                      value={formData.max_playlists}
+                      onChange={(e) => setFormData({ ...formData, max_playlists: e.target.value })}
+                    />
                   </div>
-                  <Switch
-                    id="scheduling"
-                    checked={formData.feature_scheduling}
-                    onCheckedChange={(checked) => setFormData({ ...formData, feature_scheduling: checked })}
-                  />
+                  <div className="flex flex-col justify-end">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm">Enable On This Plan</Label>
+                      <Switch
+                        checked={formData.enable_playlists}
+                        onCheckedChange={(checked) => setFormData({ ...formData, enable_playlists: checked })}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="analytics" className="font-normal">Analytics</Label>
-                    <p className="text-xs text-muted-foreground">Analytics dashboard</p>
+              </div>
+
+              {/* Screens */}
+              <div className="space-y-3 pb-4 border-b">
+                <Label className="text-lg font-medium">Screens</Label>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Max Screens</Label>
+                    <Input
+                      type="number"
+                      min="-1"
+                      value={formData.max_screens}
+                      onChange={(e) => setFormData({ ...formData, max_screens: e.target.value })}
+                    />
                   </div>
-                  <Switch
-                    id="analytics"
-                    checked={formData.feature_analytics}
-                    onCheckedChange={(checked) => setFormData({ ...formData, feature_analytics: checked })}
-                  />
+                  <div className="flex flex-col justify-end">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm">Enable On This Plan</Label>
+                      <Switch
+                        checked={formData.enable_screens}
+                        onCheckedChange={(checked) => setFormData({ ...formData, enable_screens: checked })}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="locations" className="font-normal">Locations</Label>
-                    <p className="text-xs text-muted-foreground">Location management</p>
+              </div>
+
+              {/* Locations */}
+              <div className="space-y-3 pb-4 border-b">
+                <Label className="text-lg font-medium">Locations</Label>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Max Locations</Label>
+                    <Input
+                      type="number"
+                      min="-1"
+                      value={formData.max_locations}
+                      onChange={(e) => setFormData({ ...formData, max_locations: e.target.value })}
+                    />
                   </div>
-                  <Switch
-                    id="locations"
-                    checked={formData.feature_locations}
-                    onCheckedChange={(checked) => setFormData({ ...formData, feature_locations: checked })}
-                  />
+                  <div className="flex flex-col justify-end">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm">Enable On This Plan</Label>
+                      <Switch
+                        checked={formData.enable_locations}
+                        onCheckedChange={(checked) => setFormData({ ...formData, enable_locations: checked })}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="youtube" className="font-normal">YouTube Videos</Label>
-                    <p className="text-xs text-muted-foreground">Enable YouTube media support</p>
+              </div>
+
+              {/* Schedules */}
+              <div className="space-y-3 pb-4 border-b">
+                <Label className="text-lg font-medium">Schedules</Label>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Max Schedules</Label>
+                    <Input
+                      type="number"
+                      min="-1"
+                      value={formData.max_schedules}
+                      onChange={(e) => setFormData({ ...formData, max_schedules: e.target.value })}
+                    />
                   </div>
-                  <Switch
-                    id="youtube"
-                    checked={formData.feature_youtube}
-                    onCheckedChange={(checked) => setFormData({ ...formData, feature_youtube: checked })}
-                  />
+                  <div className="flex flex-col justify-end">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm">Enable On This Plan</Label>
+                      <Switch
+                        checked={formData.enable_schedules}
+                        onCheckedChange={(checked) => setFormData({ ...formData, enable_schedules: checked })}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="slides" className="font-normal">Google Slides</Label>
-                    <p className="text-xs text-muted-foreground">Enable Google Slides support</p>
+              </div>
+
+              {/* Analytics */}
+              <div className="space-y-3 pb-4 border-b">
+                <Label className="text-lg font-medium">Analytics</Label>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Enable On This Plan</Label>
                   </div>
-                  <Switch
-                    id="slides"
-                    checked={formData.feature_google_slides}
-                    onCheckedChange={(checked) => setFormData({ ...formData, feature_google_slides: checked })}
-                  />
+                  <div className="flex flex-col justify-end">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm">Enable On This Plan</Label>
+                      <Switch
+                        checked={formData.enable_analytics}
+                        onCheckedChange={(checked) => setFormData({ ...formData, enable_analytics: checked })}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">AI Analytics</Label>
+                  </div>
+                  <div className="flex flex-col justify-end">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm">Enable On This Plan</Label>
+                      <Switch
+                        checked={formData.enable_ai_analytics}
+                        onCheckedChange={(checked) => setFormData({ ...formData, enable_ai_analytics: checked })}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Team Members */}
+              <div className="space-y-3 pb-4">
+                <Label className="text-lg font-medium">Team Members</Label>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Max Team Members</Label>
+                    <Input
+                      type="number"
+                      min="-1"
+                      value={formData.max_team_members}
+                      onChange={(e) => setFormData({ ...formData, max_team_members: e.target.value })}
+                    />
+                  </div>
+                  <div className="flex flex-col justify-end">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm">Enable On This Plan</Label>
+                      <Switch
+                        checked={formData.enable_team_members}
+                        onCheckedChange={(checked) => setFormData({ ...formData, enable_team_members: checked })}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
