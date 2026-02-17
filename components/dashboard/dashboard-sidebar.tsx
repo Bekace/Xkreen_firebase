@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { useUser } from "@/lib/hooks/use-user"
+import { usePlanLimits } from "@/hooks/use-plan-limits"
 import {
   LayoutDashboard,
   Monitor,
@@ -99,8 +100,27 @@ export function DashboardSidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
   const { profile, loading } = useUser()
+  const { limits, features, loading: limitsLoading } = usePlanLimits()
 
   const isAdmin = profile?.role === "admin" || profile?.role === "superadmin"
+  const isSuperAdmin = limits?.isSuperAdmin || false
+
+  // Filter navigation based on feature toggles (super admin sees everything)
+  const filteredNavigation = navigation.filter((item) => {
+    if (isSuperAdmin) return true // Super admin bypasses all restrictions
+    
+    // Map navigation items to feature toggles
+    if (item.href === "/dashboard/screens") return features?.screens ?? true
+    if (item.href === "/dashboard/locations") return features?.locations ?? false
+    if (item.href === "/dashboard/media") return features?.mediaLibrary ?? true
+    if (item.href === "/dashboard/playlists") return features?.playlists ?? true
+    if (item.href === "/dashboard/schedules") return features?.schedules ?? false
+    if (item.href === "/dashboard/analytics") return features?.analytics ?? false
+    if (item.href === "/dashboard/team") return features?.teamMembers ?? false
+    
+    // Overview and Settings are always visible
+    return true
+  })
 
   return (
     <div
@@ -129,7 +149,7 @@ export function DashboardSidebar() {
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-2">
-          {navigation.map((item) => {
+          {filteredNavigation.map((item) => {
             const isActive = pathname === item.href
             const Icon = item.icon
 

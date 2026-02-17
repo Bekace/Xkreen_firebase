@@ -29,13 +29,15 @@ export async function GET(request: NextRequest) {
         storage: { currentBytes: 0, limitBytes: -1, currentMB: 0, limitMB: -1, canUpload: true, percentUsed: 0 },
         teamMembers: { current: 1, limit: -1, canInvite: true },
         features: {
-          youtubeVideos: true,
-          googleSlides: true,
-          scheduling: true,
+          mediaLibrary: true,
+          playlists: true,
+          screens: true,
           locations: true,
+          schedules: true,
           analytics: true,
           aiAnalytics: true,
-          multiUser: true,
+          teamMembers: true,
+          urlMedia: true,
         },
       })
     }
@@ -149,15 +151,17 @@ export async function GET(request: NextRequest) {
         canInvite: plan.max_team_members === -1 || 1 < plan.max_team_members,
       },
 
-      // Binary features (on/off)
+      // Binary features (on/off) - control navigation visibility
       features: {
-        youtubeVideos: featureMap["media_youtube"] || false,
-        googleSlides: featureMap["media_google_slides"] || false,
-        scheduling: featureMap["scheduling"] || false,
-        locations: featureMap["locations"] || false,
-        analytics: featureMap["analytics"] || false,
-        aiAnalytics: featureMap["ai_analytics"] || false,
-        multiUser: (plan.max_team_members ?? 0) > 0 || plan.max_team_members === -1,
+        mediaLibrary: featureMap["media_library"] ?? true,
+        playlists: featureMap["playlists"] ?? true,
+        screens: featureMap["screens"] ?? true,
+        locations: featureMap["locations"] ?? false,
+        schedules: featureMap["schedules"] ?? false,
+        analytics: featureMap["analytics"] ?? false,
+        aiAnalytics: featureMap["ai_analytics"] ?? false,
+        teamMembers: featureMap["team_members"] ?? false,
+        urlMedia: featureMap["url_media"] ?? true,
       },
     }
 
