@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { useUser } from "@/lib/hooks/use-user"
-import { usePlanLimits } from "@/hooks/use-plan-limits"
 import {
   LayoutDashboard,
   Monitor,
@@ -100,24 +99,8 @@ export function DashboardSidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
   const { profile, loading } = useUser()
-  const { limits, features, loading: limitsLoading } = usePlanLimits()
 
   const isAdmin = profile?.role === "admin" || profile?.role === "superadmin"
-  const isSuperAdmin = limits?.isSuperAdmin || false
-
-  console.log("[v0] Sidebar - Super admin:", isSuperAdmin)
-  console.log("[v0] Sidebar - Analytics feature:", features?.analytics)
-  console.log("[v0] Sidebar - All features:", features)
-
-  // Filter navigation based on plan features (super admin sees everything)
-  const filteredNavigation = navigation.filter((item) => {
-    if (isSuperAdmin) return true // Super admin sees all navigation items
-    if (item.href === "/dashboard/schedules") return features?.scheduling
-    if (item.href === "/dashboard/locations") return features?.locations
-    if (item.href === "/dashboard/analytics") return features?.analytics
-    if (item.href === "/dashboard/team") return features?.multiUser
-    return true
-  })
 
   return (
     <div
@@ -146,7 +129,7 @@ export function DashboardSidebar() {
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-2">
-          {filteredNavigation.map((item) => {
+          {navigation.map((item) => {
             const isActive = pathname === item.href
             const Icon = item.icon
 
