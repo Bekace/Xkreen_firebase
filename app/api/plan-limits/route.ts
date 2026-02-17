@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { isSuperAdmin } from "@/lib/admin/auth"
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,6 +13,32 @@ export async function GET(request: NextRequest) {
 
     if (userError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    // Check if user is super admin - bypass all restrictions
+    const userIsSuperAdmin = await isSuperAdmin()
+    console.log("[v0] plan-limits API - User is super admin:", userIsSuperAdmin)
+
+    if (userIsSuperAdmin) {
+      console.log("[v0] Super admin detected - granting unlimited access")
+      return NextResponse.json({
+        isSuperAdmin: true,
+        planName: "Super Admin",
+        screens: { current: 0, limit: -1, canCreate: true },
+        playlists: { current: 0, limit: -1, canCreate: true },
+        storage: { currentBytes: 0, limitBytes: -1, currentMB: 0, limitMB: -1, canUpload: true, percentUsed: 0 },
+        analyticsScreens: { current: 0, limit: -1, canEnable: true },
+        teamMembers: { current: 1, limit: -1, canInvite: true },
+        features: {
+          youtubeVideos: true,
+          googleSlides: true,
+          scheduling: true,
+          locations: true,
+          analytics: true,
+          aiAnalytics: true,
+          multiUser: true,
+        },
+      })
     }
 
     // Get user subscription and plan
@@ -90,6 +117,7 @@ export async function GET(request: NextRequest) {
 
     // Build response
     const response = {
+      isSuperAdmin: false,
       planName: plan.name,
 
       // Numeric limits with current usage
@@ -138,6 +166,7 @@ export async function GET(request: NextRequest) {
       },
     }
 
+    console.log("[v0] plan-limits response - Plan:", plan.name, "Features:", response.features)
     return NextResponse.json(response)
   } catch (error) {
     console.error("[v0] Error in plan-limits:", error)

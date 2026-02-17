@@ -100,12 +100,16 @@ export function DashboardSidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
   const { profile, loading } = useUser()
-  const { features, loading: limitsLoading } = usePlanLimits()
+  const { limits, features, loading: limitsLoading } = usePlanLimits()
 
   const isAdmin = profile?.role === "admin" || profile?.role === "superadmin"
+  const isSuperAdmin = limits?.isSuperAdmin || false
 
-  // Filter navigation based on plan features
+  console.log("[v0] Sidebar - Super admin:", isSuperAdmin, "Features:", features)
+
+  // Filter navigation based on plan features (super admin sees everything)
   const filteredNavigation = navigation.filter((item) => {
+    if (isSuperAdmin) return true // Super admin sees all navigation items
     if (item.href === "/dashboard/schedules") return features?.scheduling
     if (item.href === "/dashboard/locations") return features?.locations
     if (item.href === "/dashboard/analytics") return features?.analytics

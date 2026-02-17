@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 
 export interface PlanLimits {
+  isSuperAdmin?: boolean
   planName: string
   screens: {
     current: number
