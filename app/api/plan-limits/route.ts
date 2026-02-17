@@ -27,7 +27,6 @@ export async function GET(request: NextRequest) {
         screens: { current: 0, limit: -1, canCreate: true },
         playlists: { current: 0, limit: -1, canCreate: true },
         storage: { currentBytes: 0, limitBytes: -1, currentMB: 0, limitMB: -1, canUpload: true, percentUsed: 0 },
-        analyticsScreens: { current: 0, limit: -1, canEnable: true },
         teamMembers: { current: 1, limit: -1, canInvite: true },
         features: {
           youtubeVideos: true,
@@ -140,12 +139,6 @@ export async function GET(request: NextRequest) {
         limitMB: maxStorageBytes / (1024 * 1024),
         canUpload: maxStorageBytes === -1 || currentStorageBytes < maxStorageBytes,
         percentUsed: maxStorageBytes > 0 ? (currentStorageBytes / maxStorageBytes) * 100 : 0,
-      },
-
-      analyticsScreens: {
-        current: 0, // TODO: Count analytics-enabled screens when analytics feature is fully implemented
-        limit: plan.max_analytics_screens,
-        canEnable: plan.max_analytics_screens === -1 || 0 < plan.max_analytics_screens,
       },
 
       teamMembers: {
