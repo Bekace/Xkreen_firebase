@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     console.log("[v0] Update data:", { name, company_name, avatar_url, username })
 
     const updateData: any = {}
-    if (name !== undefined) updateData.name = name
+    if (name !== undefined) updateData.full_name = name  // Map 'name' to 'full_name' column
     if (company_name !== undefined) updateData.company_name = company_name
     if (avatar_url !== undefined) updateData.avatar_url = avatar_url
     if (username !== undefined) updateData.username = username
