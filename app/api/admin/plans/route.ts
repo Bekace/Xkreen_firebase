@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
 
-    const { monthly_price, yearly_price, trial_days, ...planData } = body
+    const { monthly_price, yearly_price, trial_days, features, ...planData } = body
 
     // Create the plan first
     const { data: newPlan, error: planError } = await supabase
@@ -76,9 +76,11 @@ export async function POST(request: NextRequest) {
         description: planData.description,
         max_screens: planData.max_screens,
         max_media_storage: planData.max_media_storage,
+        max_file_upload_size: planData.max_file_upload_size,
         storage_unit: planData.storage_unit,
         max_playlists: planData.max_playlists,
-        max_analytics_screens: planData.max_analytics_screens ?? 0,
+        max_locations: planData.max_locations ?? 1,
+        max_schedules: planData.max_schedules ?? 1,
         max_team_members: planData.max_team_members ?? 0,
         is_active: planData.is_active,
       })
@@ -86,6 +88,23 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (planError) throw planError
+
+    // Save feature permissions
+    if (features) {
+      const featurePermissions = Object.entries(features).map(([key, enabled]) => ({
+        plan_id: newPlan.id,
+        feature_key: key,
+        is_enabled: enabled as boolean,
+      }))
+
+      const { error: featuresError } = await supabase
+        .from("feature_permissions")
+        .insert(featurePermissions)
+
+      if (featuresError) {
+        console.error("[v0] Error saving feature permissions:", featuresError)
+      }
+    }
 
     const pricesToInsert = []
 

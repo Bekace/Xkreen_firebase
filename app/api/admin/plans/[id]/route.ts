@@ -13,7 +13,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const body = await request.json()
     const planId = params.id
 
-    const { monthly_price, yearly_price, trial_days, ...planData } = body
+    const { monthly_price, yearly_price, trial_days, features, ...planData } = body
 
     // Update the plan
     const { data: updatedPlan, error: planError } = await supabase
@@ -23,9 +23,11 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
         description: planData.description,
         max_screens: planData.max_screens,
         max_media_storage: planData.max_media_storage,
+        max_file_upload_size: planData.max_file_upload_size,
         storage_unit: planData.storage_unit,
         max_playlists: planData.max_playlists,
-        max_analytics_screens: planData.max_analytics_screens ?? 0,
+        max_locations: planData.max_locations ?? 1,
+        max_schedules: planData.max_schedules ?? 1,
         max_team_members: planData.max_team_members ?? 0,
         is_active: planData.is_active,
       })
@@ -34,6 +36,27 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       .single()
 
     if (planError) throw planError
+
+    // Update feature permissions
+    if (features) {
+      // Delete existing feature permissions for this plan
+      await supabase.from("feature_permissions").delete().eq("plan_id", planId)
+
+      // Insert new feature permissions
+      const featurePermissions = Object.entries(features).map(([key, enabled]) => ({
+        plan_id: planId,
+        feature_key: key,
+        is_enabled: enabled as boolean,
+      }))
+
+      const { error: featuresError } = await supabase
+        .from("feature_permissions")
+        .insert(featurePermissions)
+
+      if (featuresError) {
+        console.error("[v0] Error updating feature permissions:", featuresError)
+      }
+    }
 
     // First, get existing prices
     const { data: existingPrices } = await supabase.from("subscription_prices").select("*").eq("plan_id", planId)

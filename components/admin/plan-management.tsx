@@ -174,6 +174,11 @@ export function PlanManagement() {
         formData.storage_unit,
       )
 
+      const fileUploadInBytes = convertDisplayValueToBytes(
+        Number.parseInt(formData.max_file_upload_size),
+        formData.storage_unit,
+      )
+
       const planData = {
         name: formData.name,
         description: formData.description,
@@ -182,11 +187,25 @@ export function PlanManagement() {
         trial_days: Number.parseInt(formData.trial_days),
         max_screens: formData.max_screens === "-1" ? -1 : Number.parseInt(formData.max_screens),
         max_media_storage: storageInBytes,
+        max_file_upload_size: fileUploadInBytes,
         storage_unit: formData.storage_unit,
         max_playlists: formData.max_playlists === "-1" ? -1 : Number.parseInt(formData.max_playlists),
-        max_analytics_screens: formData.max_analytics_screens === "-1" ? -1 : Number.parseInt(formData.max_analytics_screens),
+        max_locations: formData.max_locations === "-1" ? -1 : Number.parseInt(formData.max_locations),
+        max_schedules: formData.max_schedules === "-1" ? -1 : Number.parseInt(formData.max_schedules),
         max_team_members: formData.max_team_members === "-1" ? -1 : Number.parseInt(formData.max_team_members),
         is_active: formData.is_active,
+        // Feature toggles
+        features: {
+          media_library: formData.enable_media_library,
+          playlists: formData.enable_playlists,
+          screens: formData.enable_screens,
+          locations: formData.enable_locations,
+          schedules: formData.enable_schedules,
+          analytics: formData.enable_analytics,
+          ai_analytics: formData.enable_ai_analytics,
+          team_members: formData.enable_team_members,
+          url_media: formData.enable_url_media,
+        },
       }
 
       const response = await fetch("/api/admin/plans", {
@@ -230,6 +249,11 @@ export function PlanManagement() {
         formData.storage_unit,
       )
 
+      const fileUploadInBytes = convertDisplayValueToBytes(
+        Number.parseInt(formData.max_file_upload_size),
+        formData.storage_unit,
+      )
+
       const planData = {
         name: formData.name,
         description: formData.description,
@@ -238,11 +262,25 @@ export function PlanManagement() {
         trial_days: Number.parseInt(formData.trial_days),
         max_screens: formData.max_screens === "-1" ? -1 : Number.parseInt(formData.max_screens),
         max_media_storage: storageInBytes,
+        max_file_upload_size: fileUploadInBytes,
         storage_unit: formData.storage_unit,
         max_playlists: formData.max_playlists === "-1" ? -1 : Number.parseInt(formData.max_playlists),
-        max_analytics_screens: formData.max_analytics_screens === "-1" ? -1 : Number.parseInt(formData.max_analytics_screens),
+        max_locations: formData.max_locations === "-1" ? -1 : Number.parseInt(formData.max_locations),
+        max_schedules: formData.max_schedules === "-1" ? -1 : Number.parseInt(formData.max_schedules),
         max_team_members: formData.max_team_members === "-1" ? -1 : Number.parseInt(formData.max_team_members),
         is_active: formData.is_active,
+        // Feature toggles
+        features: {
+          media_library: formData.enable_media_library,
+          playlists: formData.enable_playlists,
+          screens: formData.enable_screens,
+          locations: formData.enable_locations,
+          schedules: formData.enable_schedules,
+          analytics: formData.enable_analytics,
+          ai_analytics: formData.enable_ai_analytics,
+          team_members: formData.enable_team_members,
+          url_media: formData.enable_url_media,
+        },
       }
 
       const response = await fetch(`/api/admin/plans/${editingPlan.id}`, {
