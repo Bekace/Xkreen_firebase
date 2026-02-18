@@ -104,17 +104,42 @@ export async function GET(request: NextRequest) {
     }
 
     // Get current usage counts
-    const { count: screensCount } = await supabase
+    console.log("[v0] Fetching screens count...")
+    const { count: screensCount, error: screensError } = await supabase
       .from("screens")
       .select("*", { count: "exact", head: true })
       .eq("user_id", user.id)
+    
+    if (screensError) {
+      console.error("[v0] Error fetching screens count:", screensError)
+    } else {
+      console.log("[v0] Screens count:", screensCount)
+    }
 
-    const { count: playlistsCount } = await supabase
+    console.log("[v0] Fetching playlists count...")
+    const { count: playlistsCount, error: playlistsError } = await supabase
       .from("playlists")
       .select("*", { count: "exact", head: true })
       .eq("user_id", user.id)
+    
+    if (playlistsError) {
+      console.error("[v0] Error fetching playlists count:", playlistsError)
+    } else {
+      console.log("[v0] Playlists count:", playlistsCount)
+    }
 
-    const { data: profile } = await supabase.from("profiles").select("current_storage_used_mb").eq("id", user.id).single()
+    console.log("[v0] Fetching profile storage...")
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("current_storage_used_mb")
+      .eq("id", user.id)
+      .single()
+    
+    if (profileError) {
+      console.error("[v0] Error fetching profile:", profileError)
+    } else {
+      console.log("[v0] Profile storage:", profile?.current_storage_used_mb)
+    }
 
     // Get feature permissions (only if plan has an id)
     let features: any[] | null = null
@@ -154,10 +179,13 @@ export async function GET(request: NextRequest) {
     console.log("[v0] Feature map:", featureMap)
 
     // Calculate current storage in bytes
+    console.log("[v0] Building response...")
     const currentStorageBytes = (profile?.current_storage_used_mb || 0) * 1024 * 1024
     const maxStorageBytes = Number(plan.max_media_storage)
+    console.log("[v0] Storage calculation - Current:", currentStorageBytes, "Max:", maxStorageBytes)
 
     // Build response
+    console.log("[v0] Creating response object...")
     const response = {
       isSuperAdmin: false,
       planName: plan.name,
@@ -207,13 +235,22 @@ export async function GET(request: NextRequest) {
     console.log("[v0] plan-limits response - Plan:", plan.name)
     console.log("[v0] Analytics feature check: featureMap['analytics']=", featureMap["analytics"])
     console.log("[v0] All features:", response.features)
+    console.log("[v0] Response object complete, returning...")
+
     return NextResponse.json(response)
   } catch (error) {
-    console.error("[v0] Error fetching plan limits:", error)
-    console.error("[v0] Error details:", JSON.stringify(error, null, 2))
+    console.error("[v0] CRITICAL ERROR in plan-limits API:")
+    console.error("[v0] Error:", error)
+    console.error("[v0] Error type:", typeof error)
+    console.error("[v0] Error name:", error instanceof Error ? error.name : "Unknown")
+    console.error("[v0] Error message:", error instanceof Error ? error.message : String(error))
+    console.error("[v0] Error stack:", error instanceof Error ? error.stack : "No stack trace")
+    console.error("[v0] Error details:", JSON.stringify(error, Object.getOwnPropertyNames(error), 2))
+    
     return NextResponse.json({ 
       error: "Internal server error", 
-      details: error instanceof Error ? error.message : String(error) 
+      details: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
     }, { status: 500 })
   }
 }
