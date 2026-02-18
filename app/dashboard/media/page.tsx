@@ -1,11 +1,17 @@
 "use client"
 
-import type React from "react"
 import { useState, useEffect } from "react"
+import { SimpleUploader } from "@/components/media/simple-uploader"
+import { MediaGrid } from "@/components/media/media-grid"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/hooks/use-toast"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Upload, LinkIcon, Video, Presentation, Image as ImageIcon } from "lucide-react"
+import { usePlanLimits } from "@/hooks/use-plan-limits"
 import { SmartFileUploader } from "@/components/media/smart-file-uploader"
 import { SimpleUploader } from "@/components/media/simple-uploader"
 
