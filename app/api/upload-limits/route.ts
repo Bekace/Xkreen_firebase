@@ -31,8 +31,8 @@ export async function GET() {
         subscription_plans (
           name,
           max_media_storage,
-          storage_unit,
-          max_file_size
+          max_file_upload_size,
+          storage_unit
         )
       `)
       .eq("user_id", user.id)
@@ -54,7 +54,7 @@ export async function GET() {
       maxFileSize =
         uploadSettings?.enforce_globally && uploadSettings.max_file_size
           ? uploadSettings.max_file_size
-          : plan.max_file_size || 52428800
+          : plan.max_file_upload_size || 52428800
       planName = plan.name || "Free"
       console.log("[v0] Using subscription plan storage:", {
         maxStorage,
@@ -68,7 +68,7 @@ export async function GET() {
 
       const { data: freePlan, error: freePlanError } = await supabase
         .from("subscription_plans")
-        .select("max_media_storage, storage_unit, name, max_file_size")
+        .select("max_media_storage, max_file_upload_size, storage_unit, name")
         .eq("price", 0)
         .eq("is_active", true)
         .maybeSingle()
@@ -81,7 +81,7 @@ export async function GET() {
         maxFileSize =
           uploadSettings?.enforce_globally && uploadSettings.max_file_size
             ? uploadSettings.max_file_size
-            : freePlan.max_file_size || 52428800
+            : freePlan.max_file_upload_size || 52428800
         planName = freePlan.name || "Free"
         console.log("[v0] Using Free plan storage:", {
           maxStorage,

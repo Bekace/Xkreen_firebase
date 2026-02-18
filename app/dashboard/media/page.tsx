@@ -314,23 +314,11 @@ export default function MediaLibraryPage() {
       return
     }
 
-    // Check if URL type is allowed by plan
-    const isYouTube = importUrl.includes("youtube.com") || importUrl.includes("youtu.be")
-    const isGoogleSlides = importUrl.includes("docs.google.com/presentation")
-
-    if (isYouTube && !features?.youtubeVideos) {
+    // Check if URL media is allowed by plan
+    if (!features?.urlMedia) {
       toast({
         title: "Feature Restricted",
-        description: "YouTube video import is not available on your current plan. Please upgrade to Pro.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (isGoogleSlides && !features?.googleSlides) {
-      toast({
-        title: "Feature Restricted",
-        description: "Google Slides import is not available on your current plan. Please upgrade to Pro.",
+        description: "URL media import (YouTube, Google Slides) is not available on your current plan. Please upgrade.",
         variant: "destructive",
       })
       return
@@ -544,15 +532,17 @@ export default function MediaLibraryPage() {
           )}
 
           <Tabs defaultValue="upload" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className={cn("grid w-full", features?.urlMedia ? "grid-cols-2" : "grid-cols-1")}>
               <TabsTrigger value="upload">
                 <Upload className="h-4 w-4 mr-2" />
                 Upload File
               </TabsTrigger>
-              <TabsTrigger value="import">
-                <LinkIcon className="h-4 w-4 mr-2" />
-                Import URL
-              </TabsTrigger>
+              {features?.urlMedia && (
+                <TabsTrigger value="import">
+                  <LinkIcon className="h-4 w-4 mr-2" />
+                  Import URL
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="upload" className="space-y-4 mt-4">
