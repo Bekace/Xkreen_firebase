@@ -12,10 +12,13 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Upload, LinkIcon, Video, Presentation, Image as ImageIcon, Grid, List, Plus, Search, Eye, Pencil } from "lucide-react"
+import { Upload, LinkIcon, Video, Presentation, Image as ImageIcon, Grid, List, Plus, Search, Eye, Pencil, Trash2 } from "lucide-react"
 import { usePlanLimits } from "@/hooks/use-plan-limits"
 import { useUploadLimits } from "@/hooks/use-upload-limits"
 import { SmartFileUploader } from "@/components/media/smart-file-uploader"
+import { StorageUsageBar } from "@/components/ui/storage-usage-bar"
+import { UpgradeBanner } from "@/components/upgrade-banner"
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 
 interface MediaItem {
   id: string
