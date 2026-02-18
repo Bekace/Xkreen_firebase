@@ -4,16 +4,27 @@ import { isSuperAdmin } from "@/lib/admin/auth"
 
 export async function GET(request: NextRequest) {
   try {
+    console.log("[v0] plan-limits API called")
     const supabase = await createClient()
 
+    // Get current user
+    console.log("[v0] Getting user...")
     const {
       data: { user },
       error: userError,
     } = await supabase.auth.getUser()
 
-    if (userError || !user) {
+    if (userError) {
+      console.error("[v0] User error:", userError)
+      return NextResponse.json({ error: "Auth error", details: userError.message }, { status: 401 })
+    }
+    
+    if (!user) {
+      console.error("[v0] No user found")
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+    
+    console.log("[v0] User found:", user.id)
 
     // Check if user is super admin - bypass all restrictions
     const userIsSuperAdmin = await isSuperAdmin()
@@ -43,6 +54,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user subscription and plan
+    console.log("[v0] Fetching subscription for user:", user.id)
     const { data: subscription, error: subError } = await supabase
       .from("user_subscriptions")
       .select(
@@ -67,9 +79,15 @@ export async function GET(request: NextRequest) {
       .maybeSingle()
 
     if (subError) {
-      console.error("[v0] Error fetching subscription:", subError)
-      return NextResponse.json({ error: "Failed to fetch subscription" }, { status: 500 })
+      console.error("[v0] CRITICAL - Subscription query error:", subError)
+      return NextResponse.json({ 
+        error: "Database query failed", 
+        details: subError.message,
+        hint: subError.hint 
+      }, { status: 500 })
     }
+    
+    console.log("[v0] Subscription data:", subscription ? "Found" : "None")
 
     // Default to Free plan if no subscription
     const plan = (subscription?.subscription_plans as any) || {
