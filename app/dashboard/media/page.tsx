@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Upload, LinkIcon, Video, Presentation, Image as ImageIcon } from "lucide-react"
 import { usePlanLimits } from "@/hooks/use-plan-limits"
+import { useUploadLimits } from "@/hooks/use-upload-limits"
 import { SmartFileUploader } from "@/components/media/smart-file-uploader"
 
 interface MediaItem {

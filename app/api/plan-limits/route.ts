@@ -109,6 +109,10 @@ export async function GET(request: NextRequest) {
         .eq("plan_id", plan.id)
       features = result.data
       featuresError = result.error
+
+      if (featuresError) {
+        console.error("[v0] Error loading feature permissions:", featuresError)
+      }
     }
 
     const featureMap: Record<string, boolean> = {}
@@ -116,6 +120,17 @@ export async function GET(request: NextRequest) {
       features.forEach((f) => {
         featureMap[f.feature_key] = f.is_enabled
       })
+    } else if (!plan.id) {
+      // Default features for users without a plan (free tier defaults)
+      featureMap["media_library"] = true
+      featureMap["playlists"] = true
+      featureMap["screens"] = true
+      featureMap["locations"] = false
+      featureMap["schedules"] = false
+      featureMap["analytics"] = false
+      featureMap["ai_analytics"] = false
+      featureMap["team_members"] = false
+      featureMap["url_media"] = true
     }
     console.log("[v0] Feature permissions loaded:", features)
     console.log("[v0] Feature map:", featureMap)
