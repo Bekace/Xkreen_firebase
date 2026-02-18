@@ -54,8 +54,11 @@ export async function GET(request: NextRequest) {
           max_screens,
           max_playlists,
           max_media_storage,
-          max_analytics_screens,
-          max_team_members
+          max_file_upload_size,
+          max_locations,
+          max_schedules,
+          max_team_members,
+          storage_unit
         )
       `,
       )
@@ -75,8 +78,11 @@ export async function GET(request: NextRequest) {
       max_screens: 3,
       max_playlists: 5,
       max_media_storage: 1073741824, // 1GB
-      max_analytics_screens: 0,
+      max_file_upload_size: 10737418240, // 10GB
+      max_locations: 1,
+      max_schedules: 1,
       max_team_members: 0,
+      storage_unit: "GB",
     }
 
     // Get current usage counts
