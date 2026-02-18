@@ -13,7 +13,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Upload, LinkIcon, Video, Presentation, Image as ImageIcon } from "lucide-react"
 import { usePlanLimits } from "@/hooks/use-plan-limits"
 import { SmartFileUploader } from "@/components/media/smart-file-uploader"
-import { SimpleUploader } from "@/components/media/simple-uploader"
 
 interface MediaItem {
   id: string
