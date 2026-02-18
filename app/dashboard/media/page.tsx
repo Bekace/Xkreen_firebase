@@ -4,25 +4,8 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Upload, Search, Grid, List, Trash2, Plus, ImageIcon, Video, Eye, LinkIcon, Pencil } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
-import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-  DialogHeader,
-  DialogFooter,
-} from "@/components/ui/dialog"
-import { useUploadLimits } from "@/hooks/use-upload-limits"
-import { usePlanLimits } from "@/hooks/use-plan-limits"
-import { StorageUsageBar } from "@/components/ui/storage-usage-bar"
-import { UpgradeBanner } from "@/components/upgrade-banner"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
+import { cn } from "@/lib/utils"
 import { SmartFileUploader } from "@/components/media/smart-file-uploader"
 import { SimpleUploader } from "@/components/media/simple-uploader"
 

@@ -176,7 +176,11 @@ export async function GET(request: NextRequest) {
     console.log("[v0] All features:", response.features)
     return NextResponse.json(response)
   } catch (error) {
-    console.error("[v0] Error in plan-limits:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.error("[v0] Error fetching plan limits:", error)
+    console.error("[v0] Error details:", JSON.stringify(error, null, 2))
+    return NextResponse.json({ 
+      error: "Internal server error", 
+      details: error instanceof Error ? error.message : String(error) 
+    }, { status: 500 })
   }
 }

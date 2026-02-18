@@ -354,21 +354,51 @@ export function PlanManagement() {
       trial_days: "0",
       max_screens: "1",
       max_media_storage: "1",
+      max_file_upload_size: "10",
       storage_unit: "GB",
       max_playlists: "1",
-      max_analytics_screens: "0",
+      max_locations: "1",
+      max_schedules: "1",
       max_team_members: "0",
       is_active: true,
+      enable_media_library: true,
+      enable_playlists: true,
+      enable_screens: true,
+      enable_locations: false,
+      enable_schedules: false,
+      enable_analytics: false,
+      enable_ai_analytics: false,
+      enable_team_members: false,
+      enable_url_media: true,
     })
   }
 
-  const openEditDialog = (plan: SubscriptionPlan) => {
+  const openEditDialog = async (plan: SubscriptionPlan) => {
     const displayValue = convertStorageToDisplayValue(plan.max_media_storage, plan.storage_unit)
+    const fileUploadValue = convertStorageToDisplayValue(plan.max_file_upload_size || 10737418240, plan.storage_unit)
 
     // Extract monthly and yearly prices from the prices array
     const monthlyPrice = plan.prices?.find((p) => p.billing_cycle === "monthly")?.price || plan.monthly_price || 0
     const yearlyPrice = plan.prices?.find((p) => p.billing_cycle === "yearly")?.price || plan.yearly_price || 0
     const trialDays = plan.prices?.[0]?.trial_days || 0
+
+    // Fetch feature permissions for this plan
+    let features: any = {}
+    try {
+      const supabase = await import("@/lib/supabase/client").then((m) => m.createClient())
+      const { data: featurePerms } = await supabase
+        .from("feature_permissions")
+        .select("feature_key, is_enabled")
+        .eq("plan_id", plan.id)
+
+      if (featurePerms) {
+        featurePerms.forEach((fp: any) => {
+          features[fp.feature_key] = fp.is_enabled
+        })
+      }
+    } catch (error) {
+      console.error("[v0] Error loading feature permissions:", error)
+    }
 
     setFormData({
       name: plan.name,
@@ -378,11 +408,22 @@ export function PlanManagement() {
       trial_days: trialDays.toString(),
       max_screens: plan.max_screens.toString(),
       max_media_storage: displayValue.toString(),
+      max_file_upload_size: fileUploadValue.toString(),
       storage_unit: plan.storage_unit || "GB",
       max_playlists: plan.max_playlists.toString(),
-      max_analytics_screens: (plan.max_analytics_screens ?? 0).toString(),
+      max_locations: (plan.max_locations ?? 1).toString(),
+      max_schedules: (plan.max_schedules ?? 1).toString(),
       max_team_members: (plan.max_team_members ?? 0).toString(),
       is_active: plan.is_active,
+      enable_media_library: features.media_library ?? true,
+      enable_playlists: features.playlists ?? true,
+      enable_screens: features.screens ?? true,
+      enable_locations: features.locations ?? false,
+      enable_schedules: features.schedules ?? false,
+      enable_analytics: features.analytics ?? false,
+      enable_ai_analytics: features.ai_analytics ?? false,
+      enable_team_members: features.team_members ?? false,
+      enable_url_media: features.url_media ?? true,
     })
     setEditingPlan(plan)
   }
