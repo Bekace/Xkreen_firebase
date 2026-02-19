@@ -100,10 +100,15 @@ export function DashboardSidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
   const { profile, loading } = useUser()
-  const { limits, features, loading: limitsLoading } = usePlanLimits()
+  const { limits, loading: limitsLoading } = usePlanLimits()
 
   const isAdmin = profile?.role === "admin" || profile?.role === "superadmin"
   const isSuperAdmin = limits?.isSuperAdmin || false
+  const features = limits?.features
+
+  console.log("[v0] Sidebar - limits:", limits)
+  console.log("[v0] Sidebar - features:", features)
+  console.log("[v0] Sidebar - isSuperAdmin:", isSuperAdmin)
 
   // Filter navigation based on feature toggles (super admin sees everything)
   const filteredNavigation = navigation.filter((item) => {
@@ -121,6 +126,8 @@ export function DashboardSidebar() {
     // Overview and Settings are always visible
     return true
   })
+
+  console.log("[v0] Sidebar - filteredNavigation count:", filteredNavigation.length)
 
   return (
     <div
