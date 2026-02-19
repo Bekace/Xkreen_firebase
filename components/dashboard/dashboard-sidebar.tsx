@@ -100,34 +100,33 @@ export function DashboardSidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
   const { profile, loading } = useUser()
-  const { limits, loading: limitsLoading } = usePlanLimits()
+  const { limits, features, loading: limitsLoading } = usePlanLimits()
 
   const isAdmin = profile?.role === "admin" || profile?.role === "superadmin"
   const isSuperAdmin = limits?.isSuperAdmin || false
-  const features = limits?.features
-
-  console.log("[v0] Sidebar - limits:", limits)
-  console.log("[v0] Sidebar - features:", features)
-  console.log("[v0] Sidebar - isSuperAdmin:", isSuperAdmin)
 
   // Filter navigation based on feature toggles (super admin sees everything)
+  // While loading, only show Overview and Settings (safe defaults)
   const filteredNavigation = navigation.filter((item) => {
+    // Overview and Settings are always visible
+    if (item.href === "/dashboard" || item.href === "/dashboard/settings") return true
+    
+    // While limits are loading, hide feature-gated items
+    if (limitsLoading || !features) return false
+    
     if (isSuperAdmin) return true // Super admin bypasses all restrictions
     
     // Map navigation items to feature toggles
-    if (item.href === "/dashboard/screens") return features?.screens ?? true
-    if (item.href === "/dashboard/locations") return features?.locations ?? false
-    if (item.href === "/dashboard/media") return features?.mediaLibrary ?? true
-    if (item.href === "/dashboard/playlists") return features?.playlists ?? true
-    if (item.href === "/dashboard/schedules") return features?.schedules ?? false
-    if (item.href === "/dashboard/analytics") return features?.analytics ?? false
-    if (item.href === "/dashboard/team") return features?.teamMembers ?? false
+    if (item.href === "/dashboard/screens") return features.screens
+    if (item.href === "/dashboard/locations") return features.locations
+    if (item.href === "/dashboard/media") return features.mediaLibrary
+    if (item.href === "/dashboard/playlists") return features.playlists
+    if (item.href === "/dashboard/schedules") return features.schedules
+    if (item.href === "/dashboard/analytics") return features.analytics
+    if (item.href === "/dashboard/team") return features.teamMembers
     
-    // Overview and Settings are always visible
     return true
   })
-
-  console.log("[v0] Sidebar - filteredNavigation count:", filteredNavigation.length)
 
   return (
     <div
