@@ -1,45 +1,34 @@
 import { useEffect, useState } from "react"
 
+export interface PlanFeatures {
+  mediaLibrary: boolean
+  playlists: boolean
+  screens: boolean
+  locations: boolean
+  schedules: boolean
+  analytics: boolean
+  aiAnalytics: boolean
+  teamMembers: boolean
+  urlMedia: boolean
+}
+
 export interface PlanLimits {
   isSuperAdmin?: boolean
   planName: string
-  screens: {
-    current: number
-    limit: number
-    canCreate: boolean
+  limits: {
+    maxScreens: number
+    maxPlaylists: number
+    maxMediaStorage: number
+    maxLocations: number
+    maxSchedules: number
+    maxTeamMembers: number
   }
-  playlists: {
-    current: number
-    limit: number
-    canCreate: boolean
+  usage: {
+    screensUsed: number
+    playlistsUsed: number
+    storageUsed: number
   }
-  storage: {
-    currentBytes: number
-    limitBytes: number
-    currentMB: number
-    limitMB: number
-    canUpload: boolean
-    percentUsed: number
-  }
-  analyticsScreens: {
-    current: number
-    limit: number
-    canEnable: boolean
-  }
-  teamMembers: {
-    current: number
-    limit: number
-    canInvite: boolean
-  }
-  features: {
-    youtubeVideos: boolean
-    googleSlides: boolean
-    scheduling: boolean
-    locations: boolean
-    analytics: boolean
-    aiAnalytics: boolean
-    multiUser: boolean
-  }
+  features: PlanFeatures
 }
 
 export function usePlanLimits() {
