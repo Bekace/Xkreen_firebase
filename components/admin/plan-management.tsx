@@ -426,6 +426,7 @@ export function PlanManagement() {
       enable_url_media: features.url_media ?? true,
     })
     setEditingPlan(plan)
+    setIsDialogOpen(true)
   }
 
   const formatCurrency = (amount: number) => {
