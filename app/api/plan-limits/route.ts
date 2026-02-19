@@ -123,9 +123,11 @@ export async function GET(request: NextRequest) {
         .eq("plan_id", plan.id)
 
       if (!featuresError && features) {
+        console.log("[v0] Raw features from DB:", features)
         features.forEach((f) => {
           featureMap[f.feature_key] = f.is_enabled
         })
+        console.log("[v0] Feature map after processing:", featureMap)
       }
     }
 
@@ -150,15 +152,15 @@ export async function GET(request: NextRequest) {
         storageUsed: currentStorageBytes,
       },
       features: {
-        mediaLibrary: featureMap["media_library"] ?? true,
-        playlists: featureMap["playlists"] ?? true,
-        screens: featureMap["screens"] ?? true,
-        locations: featureMap["locations"] ?? false,
-        schedules: featureMap["schedules"] ?? false,
-        analytics: featureMap["analytics"] ?? false,
-        aiAnalytics: featureMap["ai_analytics"] ?? false,
-        teamMembers: featureMap["team_members"] ?? false,
-        urlMedia: featureMap["url_media"] ?? true,
+        mediaLibrary: featureMap["media_library"] !== undefined ? featureMap["media_library"] : true,
+        playlists: featureMap["playlists"] !== undefined ? featureMap["playlists"] : true,
+        screens: featureMap["screens"] !== undefined ? featureMap["screens"] : true,
+        locations: featureMap["locations"] !== undefined ? featureMap["locations"] : false,
+        schedules: featureMap["schedules"] !== undefined ? featureMap["schedules"] : false,
+        analytics: featureMap["analytics"] !== undefined ? featureMap["analytics"] : false,
+        aiAnalytics: featureMap["ai_analytics"] !== undefined ? featureMap["ai_analytics"] : false,
+        teamMembers: featureMap["team_members"] !== undefined ? featureMap["team_members"] : false,
+        urlMedia: featureMap["url_media"] !== undefined ? featureMap["url_media"] : true,
       },
     }
 
