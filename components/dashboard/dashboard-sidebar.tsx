@@ -105,7 +105,7 @@ export function DashboardSidebar() {
   const isAdmin = profile?.role === "admin" || profile?.role === "superadmin"
   const isSuperAdmin = limits?.isSuperAdmin || false
 
-  // Filter navigation based on feature toggles (super admin sees everything)
+  // Filter navigation based on feature toggles
   // While loading, only show Overview and Settings (safe defaults)
   const filteredNavigation = navigation.filter((item) => {
     // Overview and Settings are always visible
@@ -113,8 +113,6 @@ export function DashboardSidebar() {
     
     // While limits are loading, hide feature-gated items
     if (limitsLoading || !features) return false
-    
-    if (isSuperAdmin) return true // Super admin bypasses all restrictions
     
     // Map navigation items to feature toggles
     if (item.href === "/dashboard/screens") return features.screens
