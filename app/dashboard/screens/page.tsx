@@ -117,6 +117,7 @@ export default function ScreensPage() {
   const [previewingScreen, setPreviewingScreen] = useState<Screen | null>(null)
   const [editingSelectedContentIds, setEditingSelectedContentIds] = useState<string[]>([])
   const [deviceOnlineStatus, setDeviceOnlineStatus] = useState<Record<string, boolean>>({})
+  const [wizardContentTab, setWizardContentTab] = useState<"playlist" | "asset" | "schedule">("playlist")
 
   const [screenLimits, setScreenLimits] = useState<{
     current: number
@@ -708,18 +709,8 @@ export default function ScreensPage() {
   )
 
   const renderStep2 = () => {
-    // Determine which content type tab is active based on selected content
-    let contentTab: "playlist" | "asset" | "schedule" = "playlist"
-    if (wizardState.selectedContentIds.length > 0) {
-      const selectedId = wizardState.selectedContentIds[0]
-      if (schedules.some((s) => s.id === selectedId)) {
-        contentTab = "schedule"
-      } else if (mediaItems.some((m) => m.id === selectedId)) {
-        contentTab = "asset"
-      }
-    }
-
-    const [activeTab, setActiveTab] = useState<"playlist" | "asset" | "schedule">(contentTab)
+    const activeTab = wizardContentTab
+    const setActiveTab = setWizardContentTab
 
     return (
       <div className="space-y-4">
