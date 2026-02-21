@@ -105,6 +105,12 @@ export function DashboardSidebar() {
   const isAdmin = profile?.role === "admin" || profile?.role === "superadmin"
   const isSuperAdmin = limits?.isSuperAdmin || false
 
+  console.log("[v0-sidebar] features:", features)
+  console.log("[v0-sidebar] limitsLoading:", limitsLoading)
+  console.log("[v0-sidebar] isSuperAdmin:", isSuperAdmin)
+  console.log("[v0-sidebar] screens feature:", features?.screens)
+  console.log("[v0-sidebar] playlists feature:", features?.playlists)
+
   // Filter navigation based on feature toggles (super admin sees everything)
   // While loading, only show Overview and Settings (safe defaults)
   const filteredNavigation = navigation.filter((item) => {
@@ -112,20 +118,29 @@ export function DashboardSidebar() {
     if (item.href === "/dashboard" || item.href === "/dashboard/settings") return true
     
     // While limits are loading, hide feature-gated items
-    if (limitsLoading || !features) return false
+    if (limitsLoading || !features) {
+      console.log("[v0-sidebar] hiding", item.label, "- limitsLoading:", limitsLoading, "!features:", !features)
+      return false
+    }
     
-    if (isSuperAdmin) return true // Super admin bypasses all restrictions
+    if (isSuperAdmin) {
+      console.log("[v0-sidebar] showing", item.label, "- is superadmin")
+      return true
+    }
     
     // Map navigation items to feature toggles
-    if (item.href === "/dashboard/screens") return features.screens
-    if (item.href === "/dashboard/locations") return features.locations
-    if (item.href === "/dashboard/media") return features.mediaLibrary
-    if (item.href === "/dashboard/playlists") return features.playlists
-    if (item.href === "/dashboard/schedules") return features.schedules
-    if (item.href === "/dashboard/analytics") return features.analytics
-    if (item.href === "/dashboard/team") return features.teamMembers
-    
-    return true
+    let shouldShow = true
+    if (item.href === "/dashboard/screens") shouldShow = features.screens
+    else if (item.href === "/dashboard/locations") shouldShow = features.locations
+    else if (item.href === "/dashboard/media") shouldShow = features.mediaLibrary
+    else if (item.href === "/dashboard/playlists") shouldShow = features.playlists
+    else if (item.href === "/dashboard/schedules") shouldShow = features.schedules
+    else if (item.href === "/dashboard/analytics") shouldShow = features.analytics
+    else if (item.href === "/dashboard/team") shouldShow = features.teamMembers
+    else shouldShow = true
+
+    console.log("[v0-sidebar]", item.label, ":", shouldShow)
+    return shouldShow
   })
 
   return (
