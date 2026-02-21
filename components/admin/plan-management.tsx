@@ -376,7 +376,7 @@ export function PlanManagement() {
     })
   }
 
-  const openEditDialog = (plan: SubscriptionPlan) => {
+  const openEditDialog = async (plan: SubscriptionPlan) => {
     const displayValue = convertStorageToDisplayValue(plan.max_media_storage, plan.storage_unit)
     const fileUploadValue = convertStorageToDisplayValue(plan.max_file_upload_size || 10737418240, plan.storage_unit)
 
@@ -389,23 +389,18 @@ export function PlanManagement() {
     let features: any = {}
     try {
       const supabase = createClient()
-      supabase
+      const { data: featurePerms } = await supabase
         .from("feature_permissions")
         .select("feature_key, is_enabled")
         .eq("plan_id", plan.id)
-        .then((result) => {
-          const { data: featurePerms } = result
-          if (featurePerms) {
-            featurePerms.forEach((fp: any) => {
-              features[fp.feature_key] = fp.is_enabled
-            })
-          }
+
+      if (featurePerms) {
+        featurePerms.forEach((fp: any) => {
+          features[fp.feature_key] = fp.is_enabled
         })
-        .catch((error) => {
-          console.error("[v0] Error loading feature permissions:", error)
-        })
+      }
     } catch (error) {
-      console.error("[v0] Error creating Supabase client:", error)
+      console.error("[v0] Error loading feature permissions:", error)
     }
 
     setFormData({
