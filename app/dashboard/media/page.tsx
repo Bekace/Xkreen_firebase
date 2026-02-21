@@ -233,7 +233,7 @@ export default function MediaLibraryPage() {
   const { toast } = useToast()
   const uploadLimits = useUploadLimits()
   const { features } = usePlanLimits()
-  const canImportUrl = features?.youtubeVideos || features?.googleSlides
+  const canImportUrl = features?.urlMedia
 
   useEffect(() => {
     fetchMedia()
