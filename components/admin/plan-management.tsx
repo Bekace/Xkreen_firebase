@@ -84,8 +84,7 @@ export function PlanManagement() {
   const [loading, setLoading] = useState(true)
   const [editingPlan, setEditingPlan] = useState<SubscriptionPlan | null>(null)
   const [deletingPlan, setDeletingPlan] = useState<SubscriptionPlan | null>(null)
-  const [showCreateDialog, setShowCreateDialog] = useState(false)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isPlanDialogOpen, setIsPlanDialogOpen] = useState(false)
   const [deleteConfirmation, setDeleteConfirmation] = useState("")
   const [formData, setFormData] = useState<PlanFormData>({
     name: "",
@@ -294,7 +293,7 @@ export function PlanManagement() {
       if (response.ok) {
         await fetchPlans()
         setEditingPlan(null)
-        setIsDialogOpen(false)
+        setIsPlanDialogOpen(false)
         resetForm()
         toast({
           title: "Success",
@@ -429,7 +428,7 @@ export function PlanManagement() {
       enable_url_media: features.url_media ?? true,
     })
     setEditingPlan(plan)
-    setIsDialogOpen(true)
+    setIsPlanDialogOpen(true)
   }
 
   const formatCurrency = (amount: number) => {
@@ -460,7 +459,7 @@ export function PlanManagement() {
           <h1 className="text-3xl font-bold text-foreground">Plan Management</h1>
           <p className="text-muted-foreground mt-1">Manage subscription plans and pricing</p>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)} className="bg-emerald-500 hover:bg-emerald-600">
+        <Button onClick={() => setIsPlanDialogOpen(true)} className="bg-emerald-500 hover:bg-emerald-600">
           <Plus className="w-4 h-4 mr-2" />
           Add Plan
         </Button>
@@ -598,15 +597,8 @@ export function PlanManagement() {
       </Card>
 
       <Dialog
-        open={isDialogOpen || showCreateDialog}
-        onOpenChange={(open) => {
-          if (!open) {
-            setIsDialogOpen(false)
-            setShowCreateDialog(false)
-            setEditingPlan(null)
-            resetForm()
-          }
-        }}
+        open={isPlanDialogOpen}
+        onOpenChange={setIsPlanDialogOpen}
       >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
