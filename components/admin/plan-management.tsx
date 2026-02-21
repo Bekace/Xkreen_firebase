@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Plus, Edit, Trash2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { createClient } from "@/lib/supabase/client"
 import type { StorageUnit } from "@/lib/storage-utils"
 
 interface SubscriptionPrice {
@@ -375,7 +376,7 @@ export function PlanManagement() {
     })
   }
 
-  const openEditDialog = async (plan: SubscriptionPlan) => {
+  const openEditDialog = (plan: SubscriptionPlan) => {
     const displayValue = convertStorageToDisplayValue(plan.max_media_storage, plan.storage_unit)
     const fileUploadValue = convertStorageToDisplayValue(plan.max_file_upload_size || 10737418240, plan.storage_unit)
 
@@ -387,19 +388,24 @@ export function PlanManagement() {
     // Fetch feature permissions for this plan
     let features: any = {}
     try {
-      const supabase = await import("@/lib/supabase/client").then((m) => m.createClient())
-      const { data: featurePerms } = await supabase
+      const supabase = createClient()
+      supabase
         .from("feature_permissions")
         .select("feature_key, is_enabled")
         .eq("plan_id", plan.id)
-
-      if (featurePerms) {
-        featurePerms.forEach((fp: any) => {
-          features[fp.feature_key] = fp.is_enabled
+        .then((result) => {
+          const { data: featurePerms } = result
+          if (featurePerms) {
+            featurePerms.forEach((fp: any) => {
+              features[fp.feature_key] = fp.is_enabled
+            })
+          }
         })
-      }
+        .catch((error) => {
+          console.error("[v0] Error loading feature permissions:", error)
+        })
     } catch (error) {
-      console.error("[v0] Error loading feature permissions:", error)
+      console.error("[v0] Error creating Supabase client:", error)
     }
 
     setFormData({
