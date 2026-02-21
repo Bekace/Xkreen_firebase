@@ -153,8 +153,8 @@ export async function GET(request: NextRequest) {
       },
       features: {
         mediaLibrary: featureMap["media_library"] !== undefined ? featureMap["media_library"] : true,
-        playlists: featureMap["playlists"] !== undefined ? featureMap["playlists"] : true,
-        screens: featureMap["screens"] !== undefined ? featureMap["screens"] : true,
+        playlists: featureMap["playlists"] !== undefined ? featureMap["playlists"] : false,
+        screens: featureMap["screens"] !== undefined ? featureMap["screens"] : false,
         locations: featureMap["locations"] !== undefined ? featureMap["locations"] : false,
         schedules: featureMap["schedules"] !== undefined ? featureMap["schedules"] : false,
         analytics: featureMap["analytics"] !== undefined ? featureMap["analytics"] : false,
