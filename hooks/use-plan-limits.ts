@@ -40,13 +40,19 @@ export function usePlanLimits() {
     const fetchLimits = async () => {
       try {
         setLoading(true)
-        const response = await fetch("/api/plan-limits")
+        const response = await fetch("/api/plan-limits", {
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+          },
+        })
 
         if (!response.ok) {
           throw new Error("Failed to fetch plan limits")
         }
 
         const data = await response.json()
+        console.log("[v0] Fetched plan limits, features:", data.features)
         setLimits(data)
         setError(null)
       } catch (err) {
@@ -66,6 +72,9 @@ export function usePlanLimits() {
     error,
     features: limits?.features || null,
     planName: limits?.planName || null,
-    refresh: () => setLimits(null),
+    refresh: () => {
+      setLimits(null)
+      setLoading(true)
+    },
   }
 }
