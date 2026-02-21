@@ -79,7 +79,6 @@ export default function LoginPage() {
       router.push(redirectAfterLogin)
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred during login")
-    } finally {
       setIsLoading(false)
     }
   }

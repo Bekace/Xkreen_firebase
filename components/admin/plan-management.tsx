@@ -598,11 +598,14 @@ export function PlanManagement() {
       </Card>
 
       <Dialog
-        open={showCreateDialog || !!editingPlan}
-        onOpenChange={() => {
-          setShowCreateDialog(false)
-          setEditingPlan(null)
-          resetForm()
+        open={isDialogOpen || showCreateDialog}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsDialogOpen(false)
+            setShowCreateDialog(false)
+            setEditingPlan(null)
+            resetForm()
+          }
         }}
       >
         <DialogContent className="max-w-2xl">
