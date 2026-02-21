@@ -84,6 +84,7 @@ export function PlanManagement() {
   const [editingPlan, setEditingPlan] = useState<SubscriptionPlan | null>(null)
   const [deletingPlan, setDeletingPlan] = useState<SubscriptionPlan | null>(null)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [deleteConfirmation, setDeleteConfirmation] = useState("")
   const [formData, setFormData] = useState<PlanFormData>({
     name: "",
