@@ -293,6 +293,7 @@ export function PlanManagement() {
       if (response.ok) {
         await fetchPlans()
         setEditingPlan(null)
+        setIsDialogOpen(false)
         resetForm()
         toast({
           title: "Success",
