@@ -192,19 +192,19 @@ export function DashboardOverview({ user, showWelcome = false }: DashboardOvervi
       title: "Add New Screen",
       description: "Connect a new display to your network",
       icon: Monitor,
-      href: "/dashboard/screens/new",
+      href: "/dashboard/screens/",
     },
     {
       title: "Upload Media",
       description: "Add images and videos to your library",
       icon: ImageIcon,
-      href: "/dashboard/media/upload",
+      href: "/dashboard/media/",
     },
     {
       title: "Create Playlist",
       description: "Build a new content playlist",
       icon: PlayCircle,
-      href: "/dashboard/playlists/new",
+      href: "/dashboard/playlists/",
     },
   ]
 
