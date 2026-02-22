@@ -156,7 +156,7 @@ export async function GET(request: NextRequest) {
         playlists: featureMap["playlists"] !== undefined ? featureMap["playlists"] : true,
         screens: featureMap["screens"] !== undefined ? featureMap["screens"] : true,
         locations: featureMap["locations"] !== undefined ? featureMap["locations"] : true,
-        schedules: featureMap["schedules"] !== undefined ? featureMap["schedules"] : false,
+        schedules: featureMap["schedules"] !== undefined ? featureMap["schedules"] : true,
         analytics: featureMap["analytics"] !== undefined ? featureMap["analytics"] : false,
         aiAnalytics: featureMap["ai_analytics"] !== undefined ? featureMap["ai_analytics"] : false,
         teamMembers: featureMap["team_members"] !== undefined ? featureMap["team_members"] : false,
