@@ -155,7 +155,7 @@ export async function GET(request: NextRequest) {
         mediaLibrary: featureMap["media_library"] !== undefined ? featureMap["media_library"] : true,
         playlists: featureMap["playlists"] !== undefined ? featureMap["playlists"] : true,
         screens: featureMap["screens"] !== undefined ? featureMap["screens"] : true,
-        locations: featureMap["locations"] !== undefined ? featureMap["locations"] : false,
+        locations: featureMap["locations"] !== undefined ? featureMap["locations"] : true,
         schedules: featureMap["schedules"] !== undefined ? featureMap["schedules"] : false,
         analytics: featureMap["analytics"] !== undefined ? featureMap["analytics"] : false,
         aiAnalytics: featureMap["ai_analytics"] !== undefined ? featureMap["ai_analytics"] : false,
