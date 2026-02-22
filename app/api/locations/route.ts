@@ -65,12 +65,12 @@ export async function GET() {
 
     console.log("[v0] User profile role:", profile.role)
 
-    // Check subscription - Free users cannot access locations
+    // Check subscription and verify locations feature is enabled
     const { data: subscription, error: subError } = await supabase
       .from("user_subscriptions")
       .select(`
         plan_id,
-        subscription_plans!inner(name)
+        subscription_plans!inner(id, name)
       `)
       .eq("user_id", user.id)
       .eq("status", "active")
@@ -79,14 +79,22 @@ export async function GET() {
     console.log("[v0] Subscription data:", subscription)
     console.log("[v0] Subscription error:", subError)
 
-    // Allow if no subscription (for testing) or if not Free plan
-    const planName = subscription?.subscription_plans?.name
-    if (planName === "Free") {
-      console.log("[v0] Free user blocked from locations")
-      return NextResponse.json(
-        { error: "Location management is not available on the Free plan. Please upgrade." },
-        { status: 403 }
-      )
+    // Check if locations feature is enabled for the user's plan
+    if (subscription?.plan_id) {
+      const { data: featurePerms } = await supabase
+        .from("feature_permissions")
+        .select("is_enabled")
+        .eq("plan_id", subscription.plan_id)
+        .eq("feature_key", "locations")
+        .single()
+
+      if (!featurePerms?.is_enabled) {
+        console.log("[v0] Locations feature not enabled for this plan")
+        return NextResponse.json(
+          { error: "Location management is not available on your current plan. Please upgrade." },
+          { status: 403 }
+        )
+      }
     }
 
     // Fetch locations with screen count
