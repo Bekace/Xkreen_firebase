@@ -386,40 +386,6 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
       default_transition: screen.default_transition || "fade",
     } : null
 
-    // Fetch display branding setting from user's subscription plan
-    let displayBranding = false
-    try {
-      console.log("[v0] screen.user_id:", screen.user_id)
-      // Use user_id directly from screen (already fetched above)
-      if (screen.user_id) {
-        // Get user's subscription
-        const { data: subscription, error: subError } = await supabase
-          .from("user_subscriptions")
-          .select("plan_id")
-          .eq("user_id", screen.user_id)
-          .eq("status", "active")
-          .maybeSingle()
-
-        console.log("[v0] subscription lookup:", { plan_id: subscription?.plan_id, error: subError })
-
-        if (subscription?.plan_id) {
-          // Get the subscription plan with display_branding
-          const { data: plan, error: planError } = await supabase
-            .from("subscription_plans")
-            .select("display_branding")
-            .eq("id", subscription.plan_id)
-            .single()
-
-          console.log("[v0] plan lookup:", { display_branding: plan?.display_branding, error: planError })
-          displayBranding = plan?.display_branding ?? false
-        }
-      }
-      console.log("[v0] Final displayBranding:", displayBranding)
-    } catch (error) {
-      console.error("[v0] Error fetching display branding setting:", error)
-      displayBranding = false
-    }
-
     const responseData = {
       device: {
         id: device.id,
