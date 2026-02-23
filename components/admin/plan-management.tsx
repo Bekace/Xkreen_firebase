@@ -197,6 +197,7 @@ export function PlanManagement() {
         max_schedules: formData.max_schedules === "-1" ? -1 : Number.parseInt(formData.max_schedules),
         max_team_members: formData.max_team_members === "-1" ? -1 : Number.parseInt(formData.max_team_members),
         is_active: formData.is_active,
+        display_branding: formData.enable_display_branding,
         // Feature toggles
         features: {
           media_library: formData.enable_media_library,
@@ -273,6 +274,7 @@ export function PlanManagement() {
         max_schedules: formData.max_schedules === "-1" ? -1 : Number.parseInt(formData.max_schedules),
         max_team_members: formData.max_team_members === "-1" ? -1 : Number.parseInt(formData.max_team_members),
         is_active: formData.is_active,
+        display_branding: formData.enable_display_branding,
         // Feature toggles
         features: {
           media_library: formData.enable_media_library,
@@ -430,7 +432,7 @@ export function PlanManagement() {
       enable_ai_analytics: features.ai_analytics ?? false,
       enable_team_members: features.team_members ?? false,
       enable_url_media: features.url_media ?? true,
-      enable_display_branding: features.display_branding ?? true,
+      enable_display_branding: plan.display_branding ?? false,
     })
     setEditingPlan(plan)
     setIsPlanDialogOpen(true)
