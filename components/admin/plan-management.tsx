@@ -936,7 +936,7 @@ export function PlanManagement() {
             <Button
               variant="outline"
               onClick={() => {
-                setShowCreateDialog(false)
+                setIsPlanDialogOpen(false)
                 setEditingPlan(null)
                 resetForm()
               }}
