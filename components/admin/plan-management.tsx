@@ -208,6 +208,7 @@ export function PlanManagement() {
           ai_analytics: formData.enable_ai_analytics,
           team_members: formData.enable_team_members,
           url_media: formData.enable_url_media,
+          display_branding: formData.enable_display_branding,
         },
       }
 
@@ -283,6 +284,7 @@ export function PlanManagement() {
           ai_analytics: formData.enable_ai_analytics,
           team_members: formData.enable_team_members,
           url_media: formData.enable_url_media,
+          display_branding: formData.enable_display_branding,
         },
       }
 
