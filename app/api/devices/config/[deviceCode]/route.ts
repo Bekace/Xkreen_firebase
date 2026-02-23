@@ -53,7 +53,7 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
 
     const { data: screen, error: screenError } = await supabase
       .from("screens")
-      .select("id, name, orientation, status, media_id, content_type, enable_audio_management, shuffle, is_active, scale_image, scale_video, scale_document, background_color, default_transition")
+      .select("id, user_id, name, orientation, status, media_id, content_type, enable_audio_management, shuffle, is_active, scale_image, scale_video, scale_document, background_color, default_transition")
       .eq("id", device.screen_id)
       .single()
 
@@ -368,19 +368,13 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
     // Fetch display branding setting from user's subscription plan
     let displayBranding = false
     try {
-      // Get user from screen
-      const { data: screenOwner } = await supabase
-        .from("screens")
-        .select("user_id")
-        .eq("id", screen.id)
-        .single()
-
-      if (screenOwner?.user_id) {
+      // Use user_id directly from screen (already fetched above)
+      if (screen.user_id) {
         // Get user's subscription
         const { data: subscription } = await supabase
           .from("user_subscriptions")
           .select("plan_id")
-          .eq("user_id", screenOwner.user_id)
+          .eq("user_id", screen.user_id)
           .eq("status", "active")
           .maybeSingle()
 
