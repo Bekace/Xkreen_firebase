@@ -65,6 +65,27 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
       return NextResponse.json({ error: "Screen not found" }, { status: 404 })
     }
 
+    // Fetch user's subscription plan with display_branding setting
+    let displayBranding = false
+    if (screen.user_id) {
+      const { data: subscription } = await supabase
+        .from("user_subscriptions")
+        .select("plan_id")
+        .eq("user_id", screen.user_id)
+        .eq("status", "active")
+        .maybeSingle()
+
+      if (subscription?.plan_id) {
+        const { data: plan } = await supabase
+          .from("subscription_plans")
+          .select("display_branding")
+          .eq("id", subscription.plan_id)
+          .single()
+
+        displayBranding = plan?.display_branding ?? false
+      }
+    }
+
     let playlistContent = []
     let activePlaylist = null
 
