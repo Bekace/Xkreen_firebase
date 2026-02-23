@@ -77,6 +77,7 @@ interface PlanFormData {
   enable_ai_analytics: boolean
   enable_team_members: boolean
   enable_url_media: boolean
+  enable_display_branding: boolean
 }
 
 export function PlanManagement() {
@@ -110,6 +111,7 @@ export function PlanManagement() {
     enable_ai_analytics: false,
     enable_team_members: false,
     enable_url_media: true,
+    enable_display_branding: true,
   })
   const { toast } = useToast()
 
@@ -426,6 +428,7 @@ export function PlanManagement() {
       enable_ai_analytics: features.ai_analytics ?? false,
       enable_team_members: features.team_members ?? false,
       enable_url_media: features.url_media ?? true,
+      enable_display_branding: features.display_branding ?? true,
     })
     setEditingPlan(plan)
     setIsPlanDialogOpen(true)
@@ -885,7 +888,7 @@ export function PlanManagement() {
               </div>
 
               {/* Team Members */}
-              <div className="space-y-3 pb-4">
+              <div className="space-y-3 pb-4 border-b">
                 <Label className="text-lg font-medium">Team Members</Label>
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
@@ -903,6 +906,25 @@ export function PlanManagement() {
                       <Switch
                         checked={formData.enable_team_members}
                         onCheckedChange={(checked) => setFormData({ ...formData, enable_team_members: checked })}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Display Branding */}
+              <div className="space-y-3 pb-4">
+                <Label className="text-lg font-medium">Branding</Label>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Display Xkreen Logo on Player</Label>
+                  </div>
+                  <div className="flex flex-col justify-end">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm">Enable On This Plan</Label>
+                      <Switch
+                        checked={formData.enable_display_branding}
+                        onCheckedChange={(checked) => setFormData({ ...formData, enable_display_branding: checked })}
                       />
                     </div>
                   </div>

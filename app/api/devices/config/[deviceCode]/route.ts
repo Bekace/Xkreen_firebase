@@ -365,6 +365,42 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
       default_transition: screen.default_transition || "fade",
     } : null
 
+    // Fetch display branding setting from user's subscription plan
+    let displayBranding = false
+    try {
+      // Get user from screen
+      const { data: screenOwner } = await supabase
+        .from("screens")
+        .select("user_id")
+        .eq("id", screen.id)
+        .single()
+
+      if (screenOwner?.user_id) {
+        // Get user's subscription
+        const { data: subscription } = await supabase
+          .from("user_subscriptions")
+          .select("plan_id")
+          .eq("user_id", screenOwner.user_id)
+          .eq("status", "active")
+          .maybeSingle()
+
+        if (subscription?.plan_id) {
+          // Get display_branding feature permission
+          const { data: featurePerm } = await supabase
+            .from("feature_permissions")
+            .select("is_enabled")
+            .eq("plan_id", subscription.plan_id)
+            .eq("feature_key", "display_branding")
+            .maybeSingle()
+
+          displayBranding = featurePerm?.is_enabled ?? false
+        }
+      }
+    } catch (error) {
+      console.error("[v0] Error fetching display branding setting:", error)
+      displayBranding = false
+    }
+
     const responseData = {
       device: {
         id: device.id,
@@ -388,6 +424,7 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
         playlist: playlistWithSettings,
       },
       content: transformedContent,
+      displayBranding: displayBranding,
     }
 
     const response = NextResponse.json(responseData)

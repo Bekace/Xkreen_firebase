@@ -161,6 +161,7 @@ export async function GET(request: NextRequest) {
         aiAnalytics: featureMap["ai_analytics"] ?? false,
         teamMembers: featureMap["team_members"] ?? false,
         urlMedia: featureMap["url_media"] ?? false,
+        displayBranding: featureMap["display_branding"] ?? false,
       },
     }
 
