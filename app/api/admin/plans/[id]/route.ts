@@ -30,6 +30,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
         max_schedules: planData.max_schedules ?? 1,
         max_team_members: planData.max_team_members ?? 0,
         is_active: planData.is_active,
+        display_branding: planData.display_branding,
       })
       .eq("id", planId)
       .select()
