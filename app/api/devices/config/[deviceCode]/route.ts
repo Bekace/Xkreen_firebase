@@ -426,6 +426,7 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
         device_code: device.device_code,
         is_paired: true,
         screen_id: device.screen_id,
+        displayBranding: displayBranding,
       },
       screen: {
         id: screen.id,
@@ -443,7 +444,6 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
         playlist: playlistWithSettings,
       },
       content: transformedContent,
-      displayBranding: displayBranding,
     }
 
     const response = NextResponse.json(responseData)
