@@ -67,24 +67,33 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
 
     // Fetch user's subscription plan with display_branding setting
     let displayBranding = false
+    console.log("[v0] screen.user_id:", screen.user_id)
     if (screen.user_id) {
-      const { data: subscription } = await supabase
+      const { data: subscription, error: subError } = await supabase
         .from("user_subscriptions")
         .select("plan_id")
         .eq("user_id", screen.user_id)
         .eq("status", "active")
         .maybeSingle()
 
+      console.log("[v0] subscription query result:", { plan_id: subscription?.plan_id, error: subError })
+
       if (subscription?.plan_id) {
-        const { data: plan } = await supabase
+        const { data: plan, error: planError } = await supabase
           .from("subscription_plans")
           .select("display_branding")
           .eq("id", subscription.plan_id)
           .single()
 
+        console.log("[v0] plan query result:", { display_branding: plan?.display_branding, error: planError })
         displayBranding = plan?.display_branding ?? false
+      } else {
+        console.log("[v0] No subscription found or plan_id is null")
       }
+    } else {
+      console.log("[v0] screen.user_id is null or empty")
     }
+    console.log("[v0] Final displayBranding value:", displayBranding)
 
     let playlistContent = []
     let activePlaylist = null
