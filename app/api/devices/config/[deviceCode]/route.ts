@@ -376,16 +376,23 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
         .single()
 
       if (screenOwner?.user_id) {
-        // Get user's subscription with plan details
+        // Get user's subscription
         const { data: subscription } = await supabase
           .from("user_subscriptions")
-          .select("plan_id, subscription_plans!inner(display_branding)")
+          .select("plan_id")
           .eq("user_id", screenOwner.user_id)
           .eq("status", "active")
           .maybeSingle()
 
-        if (subscription?.subscription_plans?.display_branding !== undefined) {
-          displayBranding = subscription.subscription_plans.display_branding
+        if (subscription?.plan_id) {
+          // Get the subscription plan with display_branding
+          const { data: plan } = await supabase
+            .from("subscription_plans")
+            .select("display_branding")
+            .eq("id", subscription.plan_id)
+            .single()
+
+          displayBranding = plan?.display_branding ?? false
         }
       }
     } catch (error) {
