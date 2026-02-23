@@ -376,15 +376,17 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
         .single()
 
       if (screenOwner?.user_id) {
-        // Get user's subscription and display_branding from plan
+        // Get user's subscription with plan details
         const { data: subscription } = await supabase
           .from("user_subscriptions")
-          .select("subscription_plans(display_branding)")
+          .select("plan_id, subscription_plans!inner(display_branding)")
           .eq("user_id", screenOwner.user_id)
           .eq("status", "active")
           .maybeSingle()
 
-        displayBranding = subscription?.subscription_plans?.display_branding ?? false
+        if (subscription?.subscription_plans?.display_branding !== undefined) {
+          displayBranding = subscription.subscription_plans.display_branding
+        }
       }
     } catch (error) {
       console.error("[v0] Error fetching display branding setting:", error)
