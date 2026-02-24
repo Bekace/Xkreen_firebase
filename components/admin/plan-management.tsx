@@ -609,7 +609,6 @@ export function PlanManagement() {
       </Card>
 
       <Dialog
-        key={editingPlan?.id ?? "new-plan"}
         open={isPlanDialogOpen}
         onOpenChange={setIsPlanDialogOpen}
       >
