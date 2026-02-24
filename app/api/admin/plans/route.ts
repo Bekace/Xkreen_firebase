@@ -23,6 +23,10 @@ export async function GET(request: NextRequest) {
           trial_days,
           is_active
         ),
+        feature_permissions (
+          feature_key,
+          is_enabled
+        ),
         user_subscriptions(count)
       `)
       .order("created_at", { ascending: false })

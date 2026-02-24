@@ -386,7 +386,7 @@ export function PlanManagement() {
     })
   }
 
-  const openEditDialog = async (plan: SubscriptionPlan) => {
+  const openEditDialog = (plan: SubscriptionPlan) => {
     const displayValue = convertStorageToDisplayValue(plan.max_media_storage, plan.storage_unit)
     const fileUploadValue = convertStorageToDisplayValue(plan.max_file_upload_size || 10737418240, plan.storage_unit)
 
@@ -395,22 +395,12 @@ export function PlanManagement() {
     const yearlyPrice = plan.prices?.find((p) => p.billing_cycle === "yearly")?.price || plan.yearly_price || 0
     const trialDays = plan.prices?.[0]?.trial_days || 0
 
-    // Fetch feature permissions for this plan
-    let features: any = {}
-    try {
-      const supabase = createClient()
-      const { data: featurePerms } = await supabase
-        .from("feature_permissions")
-        .select("feature_key, is_enabled")
-        .eq("plan_id", plan.id)
-
-      if (featurePerms) {
-        featurePerms.forEach((fp: any) => {
-          features[fp.feature_key] = fp.is_enabled
-        })
-      }
-    } catch (error) {
-      console.error("[v0] Error loading feature permissions:", error)
+    // Use feature permissions already loaded in the plan object from fetchPlans
+    const features: any = {}
+    if (plan.feature_permissions) {
+      plan.feature_permissions.forEach((fp: any) => {
+        features[fp.feature_key] = fp.is_enabled
+      })
     }
 
     setFormData({
