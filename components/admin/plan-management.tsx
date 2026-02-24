@@ -143,6 +143,11 @@ export function PlanManagement() {
 
   useEffect(() => {
     fetchPlans()
+
+    // Refetch plans when the user returns to this page/tab
+    const handleFocus = () => fetchPlans()
+    window.addEventListener("focus", handleFocus)
+    return () => window.removeEventListener("focus", handleFocus)
   }, [])
 
   const fetchPlans = async () => {
@@ -604,6 +609,7 @@ export function PlanManagement() {
       </Card>
 
       <Dialog
+        key={editingPlan?.id ?? "new-plan"}
         open={isPlanDialogOpen}
         onOpenChange={setIsPlanDialogOpen}
       >
