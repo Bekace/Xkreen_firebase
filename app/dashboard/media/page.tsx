@@ -120,7 +120,7 @@ function MediaPreviewModal({
     }
 
     if (media.mime_type?.startsWith("video/")) {
-      return <video src={media.file_path} className="w-full h-full object-contain" controls playsInline />
+      return <video src={media.file_path} className="w-full h-full object-contain" controls autoPlay muted playsInline />
     }
 
     if (isGoogleSlides(media)) {
