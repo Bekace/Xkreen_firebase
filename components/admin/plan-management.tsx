@@ -39,14 +39,21 @@ interface SubscriptionPlan {
   description: string
   max_screens: number
   max_media_storage: number
+  max_file_upload_size?: number
   storage_unit?: StorageUnit
   max_playlists: number
+  max_locations?: number
+  max_schedules?: number
+  max_team_members?: number
   is_active: boolean
+  display_branding?: boolean
   stripe_product_id: string | null
   subscriber_count?: number
   created_at: string
   // Prices from subscription_prices table
   prices?: SubscriptionPrice[]
+  // Feature permissions from feature_permissions table
+  feature_permissions?: { feature_key: string; is_enabled: boolean }[]
   // Computed from prices for display
   monthly_price?: number
   yearly_price?: number

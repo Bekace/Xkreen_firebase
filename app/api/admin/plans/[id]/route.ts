@@ -101,12 +101,14 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       }
     }
 
-    await logAdminAction({
-      action: "update_subscription_plan",
-      targetType: "plan",
-      targetId: planId,
-      details: { name: planData.name, monthly_price, yearly_price },
-    })
+    try {
+      await logAdminAction({
+        action: "update_subscription_plan",
+        targetType: "plan",
+        targetId: planId,
+        details: { name: planData.name, monthly_price, yearly_price },
+      })
+    } catch (_) {}
 
     return NextResponse.json({ plan: updatedPlan })
   } catch (error) {
@@ -149,12 +151,14 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     if (error) throw error
 
-    await logAdminAction({
-      action: "delete_subscription_plan",
-      targetType: "plan",
-      targetId: planId,
-      details: { timestamp: new Date().toISOString() },
-    })
+    try {
+      await logAdminAction({
+        action: "delete_subscription_plan",
+        targetType: "plan",
+        targetId: planId,
+        details: { timestamp: new Date().toISOString() },
+      })
+    } catch (_) {}
 
     return NextResponse.json({ success: true })
   } catch (error) {

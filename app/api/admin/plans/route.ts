@@ -47,11 +47,13 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    await logAdminAction({
-      action: "view_subscription_plans",
-      targetType: "plan",
-      details: { count: plans.length },
-    })
+    try {
+      await logAdminAction({
+        action: "view_subscription_plans",
+        targetType: "plan",
+        details: { count: plans.length },
+      })
+    } catch (_) {}
 
     return NextResponse.json({ plans: formattedPlans })
   } catch (error) {
