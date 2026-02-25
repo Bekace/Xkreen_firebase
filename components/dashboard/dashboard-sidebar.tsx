@@ -105,6 +105,8 @@ export function DashboardSidebar() {
   const isAdmin = profile?.role === "admin" || profile?.role === "superadmin"
   const isSuperAdmin = limits?.isSuperAdmin || false
 
+  console.log("[v0] Sidebar - limitsLoading:", limitsLoading, "features:", features, "isSuperAdmin:", isSuperAdmin, "limits:", limits)
+
   // Filter navigation based on feature toggles (super admin sees everything)
   // While loading, only show Overview and Settings (safe defaults)
   const filteredNavigation = navigation.filter((item) => {
