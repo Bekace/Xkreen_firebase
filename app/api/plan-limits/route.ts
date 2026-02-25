@@ -11,10 +11,8 @@ export async function GET(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (userError || !user) {
-      console.log("[v0] plan-limits: Unauthorized - userError:", userError?.message, "user:", !!user)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
-    console.log("[v0] plan-limits: User authenticated:", user.email)
 
     // Check if user is super admin by querying profile role directly
     const { data: userProfile } = await supabase
@@ -80,9 +78,6 @@ export async function GET(request: NextRequest) {
       .in("status", ["active", "trialing"])
       .maybeSingle()
 
-    console.log("[v0] plan-limits subscription raw:", JSON.stringify(subscription))
-    console.log("[v0] plan-limits subError:", subError)
-
     if (subError) {
       console.error("[v0] Subscription query error:", subError)
     }
@@ -120,7 +115,6 @@ export async function GET(request: NextRequest) {
 
     // Get feature permissions
     const featureMap: Record<string, boolean> = {}
-    console.log("[v0] plan-limits plan.id:", plan.id, "plan.name:", plan.name)
 
     if (plan.id) {
       const { data: features, error: featuresError } = await supabase
