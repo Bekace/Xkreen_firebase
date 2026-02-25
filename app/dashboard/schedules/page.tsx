@@ -802,7 +802,7 @@ export default function SchedulesPage() {
   )
   }
 
-  if (planLimits !== null && planLimits.maxSchedules === 0) {
+  if (!limitsLoading && planLimits?.maxSchedules === 0) {
     return (
       <div className="p-6">
         <UpgradeBanner

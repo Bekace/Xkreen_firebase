@@ -17,7 +17,7 @@ export default function TeamPage() {
     )
   }
 
-  if (planLimits !== null && planLimits.maxTeamMembers === 0) {
+  if (planLimits?.maxTeamMembers === 0) {
     return (
       <div className="space-y-6">
         <div>

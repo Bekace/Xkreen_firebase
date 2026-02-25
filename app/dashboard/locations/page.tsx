@@ -474,7 +474,7 @@ export default function LocationsPage() {
   )
   }
 
-  if (planLimits !== null && planLimits.maxLocations === 0) {
+  if (!limitsLoading && planLimits?.maxLocations === 0) {
   return (
   <div className="p-6">
     <UpgradeBanner
