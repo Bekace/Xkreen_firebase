@@ -11,8 +11,10 @@ export async function GET(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (userError || !user) {
+      console.log("[v0] plan-limits: Unauthorized - userError:", userError?.message, "user:", !!user)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+    console.log("[v0] plan-limits: User authenticated:", user.email)
 
     // Check if user is super admin by querying profile role directly
     const { data: userProfile } = await supabase

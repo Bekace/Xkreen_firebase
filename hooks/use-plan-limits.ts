@@ -36,33 +36,33 @@ export function usePlanLimits() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const fetchLimits = async () => {
-      try {
-        setLoading(true)
-        const response = await fetch("/api/plan-limits", {
-          cache: "no-store",
-          headers: {
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-          },
-        })
+  const fetchLimits = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch("/api/plan-limits", {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+        },
+      })
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch plan limits")
-        }
-
-        const data = await response.json()
-        console.log("[v0] Fetched plan limits, features:", data.features)
-        setLimits(data)
-        setError(null)
-      } catch (err) {
-        console.error("[v0] Error fetching plan limits:", err)
-        setError(err instanceof Error ? err.message : "Unknown error")
-      } finally {
-        setLoading(false)
+      if (!response.ok) {
+        throw new Error("Failed to fetch plan limits")
       }
-    }
 
+      const data = await response.json()
+      console.log("[v0] Fetched plan limits, features:", data.features)
+      setLimits(data)
+      setError(null)
+    } catch (err) {
+      console.error("[v0] Error fetching plan limits:", err)
+      setError(err instanceof Error ? err.message : "Unknown error")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     fetchLimits()
   }, [])
 
@@ -73,8 +73,7 @@ export function usePlanLimits() {
     features: limits?.features || null,
     planName: limits?.planName || null,
     refresh: () => {
-      setLimits(null)
-      setLoading(true)
+      fetchLimits()
     },
   }
 }
