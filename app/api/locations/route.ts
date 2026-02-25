@@ -73,7 +73,7 @@ export async function GET() {
         subscription_plans!inner(id, name)
       `)
       .eq("user_id", user.id)
-      .eq("status", "active")
+      .in("status", ["active", "trialing"])
       .maybeSingle()
 
     console.log("[v0] Subscription data:", subscription)
@@ -165,7 +165,7 @@ export async function POST(request: Request) {
         subscription_plans!inner(name)
       `)
       .eq("user_id", user.id)
-      .eq("status", "active")
+      .in("status", ["active", "trialing"])
       .maybeSingle()
 
     const planName = subscription?.subscription_plans?.name

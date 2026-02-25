@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
       .from("user_subscriptions")
       .select("plan_id, subscription_plans(id, name)")
       .eq("user_id", user.id)
-      .eq("status", "active")
+      .in("status", ["active", "trialing"])
       .maybeSingle()
 
     const planName = (subscription?.subscription_plans as any)?.name || "Free"

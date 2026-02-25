@@ -132,12 +132,12 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       .from("user_subscriptions")
       .select("id")
       .eq("plan_id", planId)
-      .eq("status", "active")
+      .in("status", ["active", "trialing"])
 
     if (checkError) throw checkError
 
     if (subscribers && subscribers.length > 0) {
-      return NextResponse.json({ error: "Cannot delete plan with active subscribers" }, { status: 400 })
+      return NextResponse.json({ error: "Cannot delete plan with active or trialing subscribers" }, { status: 400 })
     }
 
     const { error: pricesError } = await supabase.from("subscription_prices").delete().eq("plan_id", planId)
