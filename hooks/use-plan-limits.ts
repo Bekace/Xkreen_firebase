@@ -51,7 +51,6 @@ export function usePlanLimits() {
       }
 
       const data = await response.json()
-      console.log("[v0] Fetched plan limits, features:", data.features)
       setLimits(data)
       setError(null)
     } catch (err) {
@@ -72,6 +71,7 @@ export function usePlanLimits() {
     error,
     features: limits?.features || null,
     planName: limits?.planName || null,
+    planLimits: limits?.limits || null,
     refresh: () => {
       fetchLimits()
     },

@@ -123,11 +123,9 @@ export async function GET(request: NextRequest) {
         .eq("plan_id", plan.id)
 
       if (!featuresError && features) {
-        console.log("[v0] Raw features from DB:", features)
         features.forEach((f) => {
           featureMap[f.feature_key] = f.is_enabled
         })
-        console.log("[v0] Feature map after processing:", featureMap)
       }
     }
 

@@ -97,7 +97,7 @@ const SLOT_COLORS = [
 ]
 
 export default function SchedulesPage() {
-  const { features, planName, loading: limitsLoading } = usePlanLimits()
+  const { planName, planLimits, loading: limitsLoading } = usePlanLimits()
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
@@ -456,19 +456,11 @@ export default function SchedulesPage() {
   }
 
   const handleEditScheduleItem = async () => {
-    console.log("[v0] handleEditScheduleItem called")
-    console.log("[v0] selectedSchedule:", selectedSchedule)
-    console.log("[v0] editingItem:", editingItem)
-    
     if (!selectedSchedule || !editingItem) {
-      console.log("[v0] Early return: missing selectedSchedule or editingItem")
       return
     }
 
-    console.log("[v0] Form values:", { itemContentId, itemStartTime, itemEndTime, itemContentType })
-    
     if (!itemContentId || !itemStartTime || !itemEndTime) {
-      console.log("[v0] Validation failed: missing required fields")
       toast({
         title: "Error",
         description: "Please fill in all fields",
@@ -477,7 +469,6 @@ export default function SchedulesPage() {
       return
     }
 
-    console.log("[v0] Starting save operation...")
     setSavingItem(true)
     
     // Build recurrence rule based on itemRecurrence
@@ -495,8 +486,6 @@ export default function SchedulesPage() {
     
     try {
       const url = `/api/schedules/${selectedSchedule.id}/items/${editingItem.id}`
-      console.log("[v0] API URL:", url)
-      
       const response = await fetch(url, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -511,10 +500,7 @@ export default function SchedulesPage() {
         }),
       })
 
-      console.log("[v0] Response status:", response.status)
-      
       if (response.ok) {
-        console.log("[v0] Update successful")
         toast({
           title: "Success",
           description: "Time slot updated successfully",
@@ -525,7 +511,6 @@ export default function SchedulesPage() {
         fetchScheduleItems(selectedSchedule.id)
       } else {
         const data = await response.json()
-        console.log("[v0] Update failed:", data)
         toast({
           title: "Error",
           description: data.error || "Failed to update time slot",
@@ -533,7 +518,6 @@ export default function SchedulesPage() {
         })
       }
     } catch (error) {
-      console.log("[v0] Exception caught:", error)
       toast({
         title: "Error",
         description: "Failed to update time slot",
@@ -818,16 +802,16 @@ export default function SchedulesPage() {
   )
   }
 
-  if (!features?.schedules) {
-  return (
-  <div className="p-6">
-    <UpgradeBanner
-      feature="Advanced Scheduling"
-      description="Create schedules to automatically switch content on your screens based on time and day of the week."
-      currentPlan={planName}
-    />
-  </div>
-  )
+  if (planLimits !== null && planLimits.maxSchedules === 0) {
+    return (
+      <div className="p-6">
+        <UpgradeBanner
+          feature="Advanced Scheduling"
+          description="Create schedules to automatically switch content on your screens based on time and day of the week."
+          currentPlan={planName}
+        />
+      </div>
+    )
   }
   
   return (

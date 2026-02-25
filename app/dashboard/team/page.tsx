@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { UserPlus, Mail, Shield, Clock } from "lucide-react"
 
 export default function TeamPage() {
-  const { teamMembers, features, planName, loading } = usePlanLimits()
+  const { planName, planLimits, loading } = usePlanLimits()
 
   if (loading) {
     return (
@@ -17,7 +17,7 @@ export default function TeamPage() {
     )
   }
 
-  if (!features?.teamMembers) {
+  if (planLimits !== null && planLimits.maxTeamMembers === 0) {
     return (
       <div className="space-y-6">
         <div>

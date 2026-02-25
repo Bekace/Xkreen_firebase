@@ -119,6 +119,7 @@ const chartConfig = {
 
 export default function AnalyticsPage() {
   const { features, planName, loading: limitsLoading } = usePlanLimits()
+  // analytics has no numeric limit — gated purely by feature_permissions toggle
   const [data, setData] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)

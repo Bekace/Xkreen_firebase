@@ -83,7 +83,7 @@ interface Screen {
 }
 
 export default function LocationsPage() {
-  const { features, planName, loading: limitsLoading } = usePlanLimits()
+  const { features, planName, planLimits, loading: limitsLoading } = usePlanLimits()
   const [locations, setLocations] = useState<Location[]>([])
   const [screens, setScreens] = useState<Screen[]>([])
   const [loading, setLoading] = useState(true)
@@ -474,7 +474,7 @@ export default function LocationsPage() {
   )
   }
 
-  if (!features?.locations) {
+  if (planLimits !== null && planLimits.maxLocations === 0) {
   return (
   <div className="p-6">
     <UpgradeBanner
