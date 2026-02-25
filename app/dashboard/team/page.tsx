@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { UserPlus, Mail, Shield, Clock } from "lucide-react"
 
 export default function TeamPage() {
-  const { teamMembers, features, loading } = usePlanLimits()
+  const { teamMembers, features, planName, loading } = usePlanLimits()
 
   if (loading) {
     return (
@@ -17,7 +17,7 @@ export default function TeamPage() {
     )
   }
 
-  if (!features?.multiUser) {
+  if (!features?.teamMembers) {
     return (
       <div className="space-y-6">
         <div>
@@ -30,7 +30,7 @@ export default function TeamPage() {
         <UpgradeBanner
           feature="Multi-User Access"
           description="Invite team members to collaborate on your digital signage content. Control permissions and manage user roles."
-          planRequired="Pro"
+          currentPlan={planName}
         />
       </div>
     )

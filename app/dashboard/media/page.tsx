@@ -232,7 +232,7 @@ export default function MediaLibraryPage() {
   const [updating, setUpdating] = useState(false)
   const { toast } = useToast()
   const uploadLimits = useUploadLimits()
-  const { features } = usePlanLimits()
+  const { features, planName } = usePlanLimits()
   const canImportUrl = features?.urlMedia
 
   useEffect(() => {
@@ -586,7 +586,7 @@ export default function MediaLibraryPage() {
                 <UpgradeBanner
                   feature="Google Slides & YouTube Import"
                   description="Import content directly from Google Slides and YouTube to display on your screens."
-                  planRequired="Pro"
+                  currentPlan={planName}
                 />
               ) : (
                 <>

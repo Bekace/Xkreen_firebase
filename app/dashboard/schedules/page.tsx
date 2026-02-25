@@ -97,7 +97,7 @@ const SLOT_COLORS = [
 ]
 
 export default function SchedulesPage() {
-  const { features, loading: limitsLoading } = usePlanLimits()
+  const { features, planName, loading: limitsLoading } = usePlanLimits()
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
@@ -818,13 +818,13 @@ export default function SchedulesPage() {
   )
   }
 
-  if (!features?.scheduling) {
+  if (!features?.schedules) {
   return (
   <div className="p-6">
     <UpgradeBanner
       feature="Advanced Scheduling"
       description="Create schedules to automatically switch content on your screens based on time and day of the week."
-      planRequired="Pro"
+      currentPlan={planName}
     />
   </div>
   )

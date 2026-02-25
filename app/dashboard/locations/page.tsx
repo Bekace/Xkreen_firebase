@@ -83,7 +83,7 @@ interface Screen {
 }
 
 export default function LocationsPage() {
-  const { features, loading: limitsLoading } = usePlanLimits()
+  const { features, planName, loading: limitsLoading } = usePlanLimits()
   const [locations, setLocations] = useState<Location[]>([])
   const [screens, setScreens] = useState<Screen[]>([])
   const [loading, setLoading] = useState(true)
@@ -480,7 +480,7 @@ export default function LocationsPage() {
     <UpgradeBanner
       feature="Location Management"
       description="Organize your screens by physical location, view them on a map, and manage multi-site deployments."
-      planRequired="Pro"
+      currentPlan={planName}
     />
   </div>
   )

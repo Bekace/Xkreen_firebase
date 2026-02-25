@@ -118,7 +118,7 @@ const chartConfig = {
 } satisfies ChartConfig
 
 export default function AnalyticsPage() {
-  const { features, loading: limitsLoading } = usePlanLimits()
+  const { features, planName, loading: limitsLoading } = usePlanLimits()
   const [data, setData] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -292,7 +292,7 @@ export default function AnalyticsPage() {
     <UpgradeBanner
       feature="Analytics & Reports"
       description="Track screen performance, content engagement, uptime metrics, and get actionable insights for your digital signage network."
-      planRequired="Pro"
+      currentPlan={planName}
     />
   </div>
   )
