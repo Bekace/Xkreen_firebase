@@ -77,13 +77,22 @@ export async function GET(request: NextRequest) {
       }
 
       if (!existingProfile) {
-        // Create profile for OAuth user (only happens in signup mode now)
+        // Create profile for new user (OAuth or email invite)
         await serviceSupabase.from("profiles").insert({
           id: data.user.id,
           email: data.user.email,
           full_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || "",
           role: "user",
         })
+      }
+
+      // If user was invited as a team member, mark them as active
+      const teamMemberId = data.user.user_metadata?.team_member_id
+      if (teamMemberId) {
+        await serviceSupabase
+          .from("team_members")
+          .update({ status: "active", joined_at: new Date().toISOString() })
+          .eq("id", teamMemberId)
       }
 
       // If so, DON'T create any subscription - let oauth-checkout handle it

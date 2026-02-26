@@ -1,5 +1,15 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { createServerClient } from "@supabase/ssr"
+import { cookies } from "next/headers"
+
+function createAdminClient() {
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { cookies: { getAll: () => [], setAll: () => {} } }
+  )
+}
 
 // GET - list team members for the current user
 export async function GET() {
@@ -24,7 +34,7 @@ export async function GET() {
   }
 }
 
-// POST - invite a new team member
+// POST - invite a new team member via Supabase auth invite email
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
@@ -71,13 +81,33 @@ export async function POST(request: Request) {
       }
     }
 
-    const { data: member, error } = await supabase
+    // Insert the pending team member record first
+    const { data: member, error: insertError } = await supabase
       .from("team_members")
       .insert({ owner_id: user.id, member_name, member_email, role, status: "pending" })
       .select()
       .single()
 
-    if (error) throw error
+    if (insertError) throw insertError
+
+    // Send the actual invite email via Supabase admin API
+    const adminClient = createAdminClient()
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://v0-xkreen-ai.vercel.app"
+    const { error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(member_email, {
+      redirectTo: `${siteUrl}/auth/callback?next=/dashboard&mode=login`,
+      data: {
+        full_name: member_name,
+        invited_by: user.email,
+        team_member_id: member.id,
+        role,
+      },
+    })
+
+    if (inviteError) {
+      // If invite email fails (e.g. user already exists in auth), still keep the record
+      // but surface the warning — the user can still log in and access the dashboard
+      console.error("[team] Supabase invite error:", inviteError.message)
+    }
 
     return NextResponse.json({ member })
   } catch (error: any) {
