@@ -65,7 +65,11 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(new URL("/auth/login?error=account_deleted", requestUrl.origin))
       }
 
-      if (mode === "login" && !existingProfile) {
+      // Detect if this is a team invite — invited users have team_member_id in metadata
+      const teamMemberId = data.user.user_metadata?.team_member_id
+      const isTeamInvite = !!teamMemberId
+
+      if (mode === "login" && !existingProfile && !isTeamInvite) {
         // Sign out the user
         await supabase.auth.signOut()
 
@@ -77,7 +81,7 @@ export async function GET(request: NextRequest) {
       }
 
       if (!existingProfile) {
-        // Create profile for new user (OAuth or email invite)
+        // Create profile for new user (OAuth signup or team invite)
         await serviceSupabase.from("profiles").insert({
           id: data.user.id,
           email: data.user.email,
@@ -86,8 +90,7 @@ export async function GET(request: NextRequest) {
         })
       }
 
-      // If user was invited as a team member, mark them as active
-      const teamMemberId = data.user.user_metadata?.team_member_id
+      // If user accepted a team invite, mark them as active
       if (teamMemberId) {
         await serviceSupabase
           .from("team_members")

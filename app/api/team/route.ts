@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { createServerClient } from "@supabase/ssr"
-import { cookies } from "next/headers"
 
 function createAdminClient() {
   return createServerClient(
@@ -94,7 +93,7 @@ export async function POST(request: Request) {
     const adminClient = createAdminClient()
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://v0-xkreen-ai.vercel.app"
     const { error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(member_email, {
-      redirectTo: `${siteUrl}/auth/callback?next=/dashboard&mode=login`,
+      redirectTo: `${siteUrl}/auth/callback?next=/dashboard`,
       data: {
         full_name: member_name,
         invited_by: user.email,
