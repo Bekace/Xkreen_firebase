@@ -53,7 +53,8 @@ export async function GET() {
       return NextResponse.json({ error: "Failed to count screens" }, { status: 500 })
     }
 
-    // Get user's active subscription including plan free_screens
+    // Get user's active subscription including plan details
+    // subscription_plans.price is the per-screen monthly price set by admin in plan management
     const { data: subscription, error: subError } = await supabase
       .from("user_subscriptions")
       .select(`
@@ -64,7 +65,9 @@ export async function GET() {
           id,
           name,
           max_screens,
-          free_screens
+          free_screens,
+          price,
+          billing_cycle
         )
       `)
       .eq("user_id", user.id)
@@ -77,6 +80,8 @@ export async function GET() {
       name: string
       max_screens: number
       free_screens: number
+      price: number
+      billing_cycle: string
     } | null
 
     const isPaidPlan = hasPaidSubscription && plan?.name !== "Free"
@@ -85,22 +90,9 @@ export async function GET() {
       const freeScreens = plan.free_screens ?? 0
       const billableScreens = Math.max(0, (currentScreens || 0) - freeScreens)
 
-      // Fetch price per screen separately using price_id to avoid FK join issues
-      let pricePerScreen = 0
-      let billingCycle = "monthly"
-      if (subscription?.price_id) {
-        const { data: priceRecord } = await supabase
-          .from("subscription_prices")
-          .select("price, billing_cycle")
-          .eq("id", subscription.price_id)
-          .single()
-        if (priceRecord) {
-          const rawPrice = Number(priceRecord.price) || 0
-          billingCycle = priceRecord.billing_cycle || "monthly"
-          // Always expose the monthly per-screen cost regardless of billing cycle
-          pricePerScreen = billingCycle === "yearly" ? rawPrice / 12 : rawPrice
-        }
-      }
+      // Use subscription_plans.price — this is the price set in plan management by the admin
+      const pricePerScreen = Number(plan.price) || 0
+      const billingCycle = plan.billing_cycle || "monthly"
 
       // Fetch the current Stripe subscription quantity so the client can compute
       // available slots: availableSlots = (freeScreens + stripeQuantity) - current
