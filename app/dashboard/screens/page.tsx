@@ -1322,13 +1322,13 @@ export default function ScreensPage() {
     const isPaidPlan = screenLimits.limit === -1
     if (isPaidPlan) {
       const freeScreens = Math.max(0, screenLimits.freeScreens ?? 0)
-      const stripeQuantity = screenLimits.stripeQuantity ?? 0
-      // A new slot needs to be purchased when current screens already fills
-      // the entire budget (free + what Stripe is already billing for).
-      // current < freeScreens + stripeQuantity  → slot available, open wizard
-      // current >= freeScreens + stripeQuantity → no slot left, must buy first
-      const needsToPurchase = screenLimits.current >= freeScreens + stripeQuantity
-      if (!needsToPurchase) {
+      // Adding a new screen costs money when the new total would exceed
+      // the free screen allowance. If current < freeScreens the new screen
+      // is still covered by the free allowance → open wizard directly.
+      // If current >= freeScreens the next screen is a paid one → show
+      // the confirmation dialog so the user sees the charge before proceeding.
+      const nextScreenIsPaid = screenLimits.current >= freeScreens
+      if (!nextScreenIsPaid) {
         resetWizard()
         setIsCreateDialogOpen(true)
       } else {
