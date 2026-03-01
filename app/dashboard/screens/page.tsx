@@ -1300,6 +1300,47 @@ export default function ScreensPage() {
     setEditingSelectedContentIds(selectedIds)
   }
 
+  // Decides what happens when user clicks "Add Screen":
+  // - Super admin: always open wizard directly
+  // - Paid plan with available slots (free + purchased > current): open wizard directly
+  // - Paid plan with no slots left: open inline buy confirmation dialog
+  // - Free/capped plan: open wizard if canCreate, otherwise blocked
+  function handleAddScreenClick() {
+    if (!screenLimits) {
+      resetWizard()
+      setIsCreateDialogOpen(true)
+      return
+    }
+
+    const isSuperAdmin = screenLimits.plan === "Super Admin"
+    if (isSuperAdmin) {
+      resetWizard()
+      setIsCreateDialogOpen(true)
+      return
+    }
+
+    const isPaidPlan = screenLimits.limit === -1
+    if (isPaidPlan) {
+      const freeScreens = Math.max(0, screenLimits.freeScreens ?? 0)
+      const stripeQuantity = screenLimits.stripeQuantity ?? 0
+      const totalBudget = freeScreens + stripeQuantity
+      const availableSlots = totalBudget - screenLimits.current
+      if (availableSlots > 0) {
+        resetWizard()
+        setIsCreateDialogOpen(true)
+      } else {
+        setPurchaseError(null)
+        setIsBuyScreenDialogOpen(true)
+      }
+      return
+    }
+
+    // Free / capped plan
+    if (!screenLimits.canCreate) return
+    resetWizard()
+    setIsCreateDialogOpen(true)
+  }
+
   return (
     // <DashboardLayout> - REMOVED AS PER UPDATES
     <div className="space-y-6">
@@ -1388,30 +1429,7 @@ export default function ScreensPage() {
         </div>
       </div>
         <Button
-          onClick={() => {
-            console.log("[v0] Add Screen clicked, screenLimits:", JSON.stringify(screenLimits))
-            if (!screenLimits) return
-            const isPaidPlan = screenLimits.limit === -1
-            console.log("[v0] isPaidPlan:", isPaidPlan, "freeScreens:", screenLimits.freeScreens, "stripeQuantity:", screenLimits.stripeQuantity, "current:", screenLimits.current)
-            if (isPaidPlan) {
-              const freeScreens = screenLimits.freeScreens ?? 0
-              const stripeQuantity = screenLimits.stripeQuantity ?? 0
-              const totalBudget = freeScreens + stripeQuantity
-              const availableSlots = totalBudget - screenLimits.current
-              console.log("[v0] totalBudget:", totalBudget, "availableSlots:", availableSlots)
-              if (availableSlots > 0) {
-                resetWizard()
-                setIsCreateDialogOpen(true)
-              } else {
-                setPurchaseError(null)
-                setIsBuyScreenDialogOpen(true)
-              }
-            } else {
-              if (!screenLimits.canCreate) return
-              resetWizard()
-              setIsCreateDialogOpen(true)
-            }
-          }}
+          onClick={() => handleAddScreenClick()}
           className="bg-cyan-500 hover:bg-cyan-600"
           disabled={screenLimits?.limit !== -1 && screenLimits ? !screenLimits.canCreate : false}
         >
@@ -1446,25 +1464,7 @@ export default function ScreensPage() {
               {searchTerm ? "No screens match your search" : "No screens configured yet"}
             </p>
             <Button
-              onClick={() => {
-                if (!screenLimits) { resetWizard(); setIsCreateDialogOpen(true); return }
-                const isPaidPlan = screenLimits.limit === -1
-                if (isPaidPlan) {
-                  const freeScreens = screenLimits.freeScreens ?? 0
-                  const stripeQuantity = screenLimits.stripeQuantity ?? 0
-                  const availableSlots = (freeScreens + stripeQuantity) - screenLimits.current
-                  if (availableSlots > 0) {
-                    resetWizard()
-                    setIsCreateDialogOpen(true)
-                  } else {
-                    setPurchaseError(null)
-                    setIsBuyScreenDialogOpen(true)
-                  }
-                } else {
-                  resetWizard()
-                  setIsCreateDialogOpen(true)
-                }
-              }}
+              onClick={() => handleAddScreenClick()}
               className="bg-cyan-500 hover:bg-cyan-600"
             >
               Add Screen
@@ -2078,7 +2078,7 @@ export default function ScreensPage() {
               You have used all your available screen slots. Adding a new screen will charge{" "}
               <strong>
                 {screenLimits?.pricePerScreen
-                  ? `$${Number(screenLimits.pricePerScreen).toFixed(2)}/${screenLimits.billingCycle ?? "month"}`
+                  ? `$${Number(screenLimits.pricePerScreen).toFixed(2)}/month`
                   : "the per-screen rate"}
               </strong>{" "}
               to your subscription immediately (prorated for the current billing period).
@@ -2092,13 +2092,13 @@ export default function ScreensPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Free screens (included in plan)</span>
-              <span className="font-medium">{screenLimits?.freeScreens ?? 0}</span>
+              <span className="font-medium">{Math.max(0, screenLimits?.freeScreens ?? 0)}</span>
             </div>
             <div className="flex justify-between border-t border-border pt-2">
               <span className="text-muted-foreground">Cost for new screen</span>
               <span className="font-semibold text-foreground">
                 {screenLimits?.pricePerScreen
-                  ? `$${Number(screenLimits.pricePerScreen).toFixed(2)}/${screenLimits.billingCycle ?? "month"}`
+                  ? `$${Number(screenLimits.pricePerScreen).toFixed(2)}/month`
                   : "—"}
               </span>
             </div>

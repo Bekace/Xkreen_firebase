@@ -94,13 +94,12 @@ export async function GET() {
           .select("price, billing_cycle")
           .eq("id", subscription.price_id)
           .single()
-        console.log("[v0] screen-limits priceRecord:", JSON.stringify(priceRecord), "price_id:", subscription.price_id)
         if (priceRecord) {
-          pricePerScreen = Number(priceRecord.price) || 0
+          const rawPrice = Number(priceRecord.price) || 0
           billingCycle = priceRecord.billing_cycle || "monthly"
+          // Always expose the monthly per-screen cost regardless of billing cycle
+          pricePerScreen = billingCycle === "yearly" ? rawPrice / 12 : rawPrice
         }
-      } else {
-        console.log("[v0] screen-limits: no price_id on subscription, plan price:", (plan as any)?.price)
       }
 
       // Fetch the current Stripe subscription quantity so the client can compute
