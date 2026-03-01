@@ -88,6 +88,81 @@ export async function syncStripeQuantityWithScreens(userId: string): Promise<{
   }
 }
 
+/**
+ * Purchases one additional screen slot by incrementing the Stripe subscription
+ * quantity by 1 with immediate proration. This is called when the user has
+ * used all their free + previously billed screen slots and clicks "Add Screen".
+ * Returns { success, newQuantity } or { error }.
+ */
+export async function purchaseAdditionalScreen(): Promise<{
+  success?: boolean
+  newQuantity?: number
+  error?: string
+}> {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
+
+  if (userError || !user) {
+    return { error: "Not authenticated" }
+  }
+
+  // Get user's active subscription
+  const { data: subscription, error: subError } = await supabase
+    .from("user_subscriptions")
+    .select(`
+      id,
+      stripe_subscription_id,
+      status,
+      subscription_plans (
+        id,
+        name,
+        free_screens
+      )
+    `)
+    .eq("user_id", user.id)
+    .in("status", ["active", "trialing"])
+    .single()
+
+  if (subError || !subscription?.stripe_subscription_id) {
+    return { error: "No active subscription found" }
+  }
+
+  const plan = subscription.subscription_plans as { id: string; name: string; free_screens: number }
+  const freeScreens = plan?.free_screens ?? 0
+
+  // Count current screens
+  const { count: totalScreens } = await supabase
+    .from("screens")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user.id)
+
+  const currentBillable = Math.max(0, (totalScreens ?? 0) - freeScreens)
+  const newQuantity = currentBillable + 1
+
+  try {
+    const stripeSubscription = await stripe.subscriptions.retrieve(subscription.stripe_subscription_id)
+    const subscriptionItem = stripeSubscription.items.data[0]
+
+    if (!subscriptionItem) {
+      return { error: "No subscription item found" }
+    }
+
+    await stripe.subscriptions.update(subscription.stripe_subscription_id, {
+      items: [{ id: subscriptionItem.id, quantity: newQuantity }],
+      proration_behavior: "create_prorations",
+    })
+
+    return { success: true, newQuantity }
+  } catch (err: any) {
+    console.error("[v0] purchaseAdditionalScreen error:", err)
+    return { error: err.message || "Failed to purchase screen slot" }
+  }
+}
+
 export async function createCheckoutSession(planId: string, priceId: string) {
   const supabase = await createClient()
 

@@ -26,6 +26,7 @@ import {
   ImageIcon,
   Smartphone,
 } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
 import { transformScreenData } from "@/utils/transformScreenData"
 import { ScreenPreviewModal } from "@/components/screen-preview-modal" // Import the real ScreenPreviewModal component instead of using placeholder
@@ -128,7 +129,11 @@ export default function ScreensPage() {
     billableScreens?: number
     pricePerScreen?: number
     billingCycle?: string
+    stripeQuantity?: number
   } | null>(null)
+  const [isBuyScreenDialogOpen, setIsBuyScreenDialogOpen] = useState(false)
+  const [isPurchasingScreen, setIsPurchasingScreen] = useState(false)
+  const [purchaseError, setPurchaseError] = useState<string | null>(null)
 
   const [wizardState, setWizardState] = useState<WizardState>({
     step: 1,
@@ -1384,8 +1389,27 @@ export default function ScreensPage() {
       </div>
         <Button
           onClick={() => {
-            resetWizard()
-            setIsCreateDialogOpen(true)
+            if (!screenLimits) return
+            const isPaidPlan = screenLimits.limit === -1
+            if (isPaidPlan) {
+              const freeScreens = screenLimits.freeScreens ?? 0
+              const stripeQuantity = screenLimits.stripeQuantity ?? 0
+              const totalBudget = freeScreens + stripeQuantity
+              const availableSlots = totalBudget - screenLimits.current
+              if (availableSlots > 0) {
+                // Slots available — open create wizard directly
+                resetWizard()
+                setIsCreateDialogOpen(true)
+              } else {
+                // No slots left — need to purchase a new slot first
+                setPurchaseError(null)
+                setIsBuyScreenDialogOpen(true)
+              }
+            } else {
+              if (!screenLimits.canCreate) return
+              resetWizard()
+              setIsCreateDialogOpen(true)
+            }
           }}
           className="bg-cyan-500 hover:bg-cyan-600"
           disabled={screenLimits?.limit !== -1 && screenLimits ? !screenLimits.canCreate : false}
@@ -1422,8 +1446,23 @@ export default function ScreensPage() {
             </p>
             <Button
               onClick={() => {
-                resetWizard()
-                setIsCreateDialogOpen(true)
+                if (!screenLimits) { resetWizard(); setIsCreateDialogOpen(true); return }
+                const isPaidPlan = screenLimits.limit === -1
+                if (isPaidPlan) {
+                  const freeScreens = screenLimits.freeScreens ?? 0
+                  const stripeQuantity = screenLimits.stripeQuantity ?? 0
+                  const availableSlots = (freeScreens + stripeQuantity) - screenLimits.current
+                  if (availableSlots > 0) {
+                    resetWizard()
+                    setIsCreateDialogOpen(true)
+                  } else {
+                    setPurchaseError(null)
+                    setIsBuyScreenDialogOpen(true)
+                  }
+                } else {
+                  resetWizard()
+                  setIsCreateDialogOpen(true)
+                }
               }}
               className="bg-cyan-500 hover:bg-cyan-600"
             >
@@ -2028,6 +2067,85 @@ export default function ScreensPage() {
           </Card>
         </div>
       )}
+
+      {/* Buy Screen Slot Dialog — shown when all screen slots are used and user wants to add more */}
+      <Dialog open={isBuyScreenDialogOpen} onOpenChange={(open) => { setIsBuyScreenDialogOpen(open); if (!open) setPurchaseError(null) }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add a New Screen</DialogTitle>
+            <DialogDescription>
+              You have used all your available screen slots. Adding a new screen will charge{" "}
+              <strong>
+                {screenLimits?.pricePerScreen
+                  ? `$${Number(screenLimits.pricePerScreen).toFixed(2)}/${screenLimits.billingCycle ?? "month"}`
+                  : "the per-screen rate"}
+              </strong>{" "}
+              to your subscription immediately (prorated for the current billing period).
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-md border border-border bg-muted/40 p-4 text-sm space-y-2">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Current screens</span>
+              <span className="font-medium">{screenLimits?.current ?? 0}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Free screens (included in plan)</span>
+              <span className="font-medium">{screenLimits?.freeScreens ?? 0}</span>
+            </div>
+            <div className="flex justify-between border-t border-border pt-2">
+              <span className="text-muted-foreground">Cost for new screen</span>
+              <span className="font-semibold text-foreground">
+                {screenLimits?.pricePerScreen
+                  ? `$${Number(screenLimits.pricePerScreen).toFixed(2)}/${screenLimits.billingCycle ?? "month"}`
+                  : "—"}
+              </span>
+            </div>
+          </div>
+
+          {purchaseError && (
+            <p className="text-sm text-destructive">{purchaseError}</p>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => { setIsBuyScreenDialogOpen(false); setPurchaseError(null) }}
+              disabled={isPurchasingScreen}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-cyan-500 hover:bg-cyan-600"
+              disabled={isPurchasingScreen}
+              onClick={async () => {
+                setIsPurchasingScreen(true)
+                setPurchaseError(null)
+                try {
+                  const res = await fetch("/api/stripe/purchase-screen", { method: "POST" })
+                  const data = await res.json()
+                  if (!res.ok || data.error) {
+                    setPurchaseError(data.error || "Failed to purchase screen slot. Please try again.")
+                    setIsPurchasingScreen(false)
+                    return
+                  }
+                  // Payment successful — close this dialog, refresh limits, open create wizard
+                  setIsBuyScreenDialogOpen(false)
+                  await fetchScreenLimits()
+                  resetWizard()
+                  setIsCreateDialogOpen(true)
+                } catch (err: any) {
+                  setPurchaseError("Something went wrong. Please try again.")
+                } finally {
+                  setIsPurchasingScreen(false)
+                }
+              }}
+            >
+              {isPurchasingScreen ? "Processing..." : "Confirm & Add Screen"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add ScreenPreviewModal component at the end before closing tag */}
       <ScreenPreviewModal

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { stripe } from "@/lib/stripe"
 import { NextResponse } from "next/server"
 
 export async function GET() {
@@ -99,6 +100,23 @@ export async function GET() {
         }
       }
 
+      // Fetch the current Stripe subscription quantity so the client can compute
+      // available slots: availableSlots = (freeScreens + stripeQuantity) - current
+      let stripeQuantity = billableScreens // fallback: what we computed
+      try {
+        const { data: sub } = await supabase
+          .from("user_subscriptions")
+          .select("stripe_subscription_id")
+          .eq("user_id", user.id)
+          .in("status", ["active", "trialing"])
+          .single()
+
+        if (sub?.stripe_subscription_id) {
+          const stripeSub = await stripe.subscriptions.retrieve(sub.stripe_subscription_id)
+          stripeQuantity = stripeSub.items.data[0]?.quantity ?? billableScreens
+        }
+      } catch (_) {}
+
       return NextResponse.json({
         current: currentScreens || 0,
         limit: -1,
@@ -108,6 +126,7 @@ export async function GET() {
         billableScreens,
         pricePerScreen,
         billingCycle,
+        stripeQuantity,
       })
     }
 
