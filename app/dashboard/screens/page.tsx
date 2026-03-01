@@ -1389,19 +1389,20 @@ export default function ScreensPage() {
       </div>
         <Button
           onClick={() => {
+            console.log("[v0] Add Screen clicked, screenLimits:", JSON.stringify(screenLimits))
             if (!screenLimits) return
             const isPaidPlan = screenLimits.limit === -1
+            console.log("[v0] isPaidPlan:", isPaidPlan, "freeScreens:", screenLimits.freeScreens, "stripeQuantity:", screenLimits.stripeQuantity, "current:", screenLimits.current)
             if (isPaidPlan) {
               const freeScreens = screenLimits.freeScreens ?? 0
               const stripeQuantity = screenLimits.stripeQuantity ?? 0
               const totalBudget = freeScreens + stripeQuantity
               const availableSlots = totalBudget - screenLimits.current
+              console.log("[v0] totalBudget:", totalBudget, "availableSlots:", availableSlots)
               if (availableSlots > 0) {
-                // Slots available — open create wizard directly
                 resetWizard()
                 setIsCreateDialogOpen(true)
               } else {
-                // No slots left — need to purchase a new slot first
                 setPurchaseError(null)
                 setIsBuyScreenDialogOpen(true)
               }
