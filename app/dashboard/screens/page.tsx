@@ -1325,6 +1325,7 @@ export default function ScreensPage() {
       const stripeQuantity = screenLimits.stripeQuantity ?? 0
       const totalBudget = freeScreens + stripeQuantity
       const availableSlots = totalBudget - screenLimits.current
+      console.log("[v0] handleAddScreenClick — freeScreens:", freeScreens, "stripeQuantity:", stripeQuantity, "totalBudget:", totalBudget, "current:", screenLimits.current, "availableSlots:", availableSlots)
       if (availableSlots > 0) {
         resetWizard()
         setIsCreateDialogOpen(true)
