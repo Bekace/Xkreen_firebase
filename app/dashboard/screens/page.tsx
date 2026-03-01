@@ -1303,33 +1303,60 @@ export default function ScreensPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Screens</h1>
         <p className="text-muted-foreground">Manage your digital signage screens</p>
-        {screenLimits && (
-          <p className="text-sm text-muted-foreground mt-1">
-            {screenLimits.limit === -1 ? (
-              <>
-                <span>
-                  You have <strong>{screenLimits.current}</strong> screen{screenLimits.current !== 1 ? "s" : ""} active
+        {screenLimits && (() => {
+          const freeScreens = screenLimits.freeScreens ?? 0
+          const billableScreens = screenLimits.billableScreens ?? 0
+          const isPaidPlan = screenLimits.limit === -1
+
+          if (isPaidPlan) {
+            // Paid plan: show paid + free breakdown
+            const parts: React.ReactNode[] = []
+
+            if (billableScreens > 0) {
+              parts.push(
+                <span key="paid">
+                  <strong>{billableScreens}</strong> Paid Screen{billableScreens !== 1 ? "s" : ""} Active
                 </span>
-                {(screenLimits.freeScreens ?? 0) > 0 && (
-                  <span className="ml-1">
-                    · <strong>{screenLimits.freeScreens}</strong> free screen{screenLimits.freeScreens !== 1 ? "s" : ""} included in your {screenLimits.plan} plan
-                  </span>
-                )}
-              </>
-            ) : (
-              <>
-                <span>
-                  You have <strong>{screenLimits.current}</strong> of <strong>{screenLimits.limit}</strong> screen{screenLimits.limit !== 1 ? "s" : ""} used
+              )
+            }
+
+            if (freeScreens > 0) {
+              parts.push(
+                <span key="free">
+                  <strong>{freeScreens}</strong> Free Screen{freeScreens !== 1 ? "s" : ""} Available{" "}
+                  <span className="text-xs">(Included in {screenLimits.plan} Plan)</span>
                 </span>
-                {(screenLimits.freeScreens ?? 0) > 0 && (
-                  <span className="ml-1">
-                    · <strong>{screenLimits.freeScreens}</strong> free screen{screenLimits.freeScreens !== 1 ? "s" : ""} included
-                  </span>
-                )}
-              </>
-            )}
-          </p>
-        )}
+              )
+            }
+
+            if (parts.length === 0) {
+              parts.push(
+                <span key="none">No screens active yet</span>
+              )
+            }
+
+            return (
+              <p className="text-sm text-muted-foreground mt-1">
+                You have{" "}
+                {parts.reduce((acc, node, i) => (
+                  i === 0 ? [node] : [...acc as React.ReactNode[], " and ", node]
+                ), [] as React.ReactNode[])}
+              </p>
+            )
+          }
+
+          // Free / capped plan: show used / limit
+          return (
+            <p className="text-sm text-muted-foreground mt-1">
+              You have <strong>{screenLimits.current}</strong> of <strong>{screenLimits.limit}</strong> screen{screenLimits.limit !== 1 ? "s" : ""} used
+              {freeScreens > 0 && (
+                <span className="ml-1">
+                  · <strong>{freeScreens}</strong> free screen{freeScreens !== 1 ? "s" : ""} included
+                </span>
+              )}
+            </p>
+          )
+        })()}
         <div className="flex items-center gap-2 mt-2">
           <div className="flex items-center gap-1.5">
             <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
