@@ -74,6 +74,9 @@ export async function GET() {
       .in("status", ["active", "trialing"])
       .single()
 
+    console.log("[v0] screen-limits subError:", subError)
+    console.log("[v0] screen-limits subscription raw:", JSON.stringify(subscription))
+
     const hasPaidSubscription = !subError && !!subscription
     const plan = subscription?.subscription_plans as {
       id: string
@@ -81,6 +84,8 @@ export async function GET() {
       max_screens: number
       free_screens: number
     } | null
+
+    console.log("[v0] screen-limits plan:", JSON.stringify(plan))
 
     const isPaidPlan = hasPaidSubscription && plan?.name !== "Free"
 
@@ -92,6 +97,8 @@ export async function GET() {
       // Price per screen from the linked subscription_prices record
       const priceRecord = subscription?.subscription_prices as { price: number; billing_cycle: string } | null
       const pricePerScreen = priceRecord?.price ?? 0
+
+      console.log("[v0] screen-limits response (paid):", { freeScreens, billableScreens, pricePerScreen, currentScreens })
 
       return NextResponse.json({
         current: currentScreens || 0,

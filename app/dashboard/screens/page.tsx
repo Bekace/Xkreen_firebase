@@ -192,6 +192,7 @@ export default function ScreensPage() {
       const response = await fetch("/api/screen-limits")
       if (response.ok) {
         const data = await response.json()
+        console.log("[v0] screenLimits data:", JSON.stringify(data))
         setScreenLimits(data)
       }
     } catch (error) {
