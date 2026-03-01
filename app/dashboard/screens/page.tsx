@@ -1305,30 +1305,44 @@ export default function ScreensPage() {
         <p className="text-muted-foreground">Manage your digital signage screens</p>
         {screenLimits && (() => {
           const freeScreens = screenLimits.freeScreens ?? 0
-          const billableScreens = screenLimits.billableScreens ?? 0
+          const total = screenLimits.current
           const isPaidPlan = screenLimits.limit === -1
 
           if (isPaidPlan) {
-            // Build the two parts of the message independently
-            const hasPaid = billableScreens > 0
-            const hasFree = freeScreens > 0
+            // How many of the current screens are covered by free allowance vs billed
+            const usedFree = Math.min(total, freeScreens)
+            const usedPaid = Math.max(0, total - freeScreens)
+            const parts: React.ReactNode[] = []
+
+            if (usedPaid > 0) {
+              parts.push(
+                <span key="paid">
+                  <strong>{usedPaid}</strong> Paid Screen{usedPaid !== 1 ? "s" : ""}
+                </span>
+              )
+            }
+            if (usedFree > 0) {
+              parts.push(
+                <span key="free">
+                  <strong>{usedFree}</strong> Free Screen{usedFree !== 1 ? "s" : ""}{" "}
+                  <span className="opacity-70">(Included in {screenLimits.plan} Plan)</span>
+                </span>
+              )
+            }
+
+            if (parts.length === 0) {
+              return (
+                <p className="text-sm text-muted-foreground mt-1">
+                  No screens yet · <span className="opacity-70">{freeScreens > 0 ? `${freeScreens} free screen${freeScreens !== 1 ? "s" : ""} included in your ${screenLimits.plan} plan` : "add your first screen"}</span>
+                </p>
+              )
+            }
 
             return (
               <p className="text-sm text-muted-foreground mt-1">
-                {hasPaid || hasFree ? (
-                  <>
-                    You have{" "}
-                    {hasPaid && (
-                      <><strong>{billableScreens}</strong> Paid Screen{billableScreens !== 1 ? "s" : ""} Available</>
-                    )}
-                    {hasPaid && hasFree && " and "}
-                    {hasFree && (
-                      <><strong>{freeScreens}</strong> Free Screen{freeScreens !== 1 ? "s" : ""} Available{" "}
-                      <span className="opacity-70">(Included in {screenLimits.plan} Plan)</span></>
-                    )}
-                  </>
-                ) : (
-                  <>You have <strong>0</strong> Paid Screens Active</>
+                You have{" "}
+                {parts.reduce<React.ReactNode[]>((acc, node, i) =>
+                  i === 0 ? [node] : [...acc, " and ", node], []
                 )}
               </p>
             )
@@ -1337,7 +1351,7 @@ export default function ScreensPage() {
           // Free / capped plan: show used / limit
           return (
             <p className="text-sm text-muted-foreground mt-1">
-              You have <strong>{screenLimits.current}</strong> of <strong>{screenLimits.limit}</strong> screen{screenLimits.limit !== 1 ? "s" : ""} used
+              You have <strong>{total}</strong> of <strong>{screenLimits.limit}</strong> screen{screenLimits.limit !== 1 ? "s" : ""} used
               {freeScreens > 0 && (
                 <span className="ml-1">
                   · <strong>{freeScreens}</strong> free screen{freeScreens !== 1 ? "s" : ""} included
@@ -1369,12 +1383,15 @@ export default function ScreensPage() {
         </div>
       </div>
         <Button
-          onClick={() => setIsCreateDialogOpen(true)}
+          onClick={() => {
+            resetWizard()
+            setIsCreateDialogOpen(true)
+          }}
           className="bg-cyan-500 hover:bg-cyan-600"
-          disabled={screenLimits ? !screenLimits.canCreate : false}
+          disabled={screenLimits?.limit !== -1 && screenLimits ? !screenLimits.canCreate : false}
         >
           <Plus className="h-4 w-4 mr-2" />
-          {screenLimits && !screenLimits.canCreate ? "Limit Reached" : "Add Screen"}
+          {screenLimits?.limit !== -1 && screenLimits && !screenLimits.canCreate ? "Limit Reached" : "Add Screen"}
         </Button>
       </div>
 
