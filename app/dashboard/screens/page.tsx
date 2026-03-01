@@ -124,6 +124,10 @@ export default function ScreensPage() {
     limit: number
     canCreate: boolean
     plan: string
+    freeScreens?: number
+    billableScreens?: number
+    pricePerScreen?: number
+    billingCycle?: string
   } | null>(null)
 
   const [wizardState, setWizardState] = useState<WizardState>({
@@ -1301,9 +1305,29 @@ export default function ScreensPage() {
         <p className="text-muted-foreground">Manage your digital signage screens</p>
         {screenLimits && (
           <p className="text-sm text-muted-foreground mt-1">
-            {screenLimits.limit === -1
-              ? `${screenLimits.current} screens (Unlimited)`
-              : `${screenLimits.current} / ${screenLimits.limit} screens used`}
+            {screenLimits.limit === -1 ? (
+              <>
+                <span>
+                  You have <strong>{screenLimits.current}</strong> screen{screenLimits.current !== 1 ? "s" : ""} active
+                </span>
+                {(screenLimits.freeScreens ?? 0) > 0 && (
+                  <span className="ml-1">
+                    · <strong>{screenLimits.freeScreens}</strong> free screen{screenLimits.freeScreens !== 1 ? "s" : ""} included in your {screenLimits.plan} plan
+                  </span>
+                )}
+              </>
+            ) : (
+              <>
+                <span>
+                  You have <strong>{screenLimits.current}</strong> of <strong>{screenLimits.limit}</strong> screen{screenLimits.limit !== 1 ? "s" : ""} used
+                </span>
+                {(screenLimits.freeScreens ?? 0) > 0 && (
+                  <span className="ml-1">
+                    · <strong>{screenLimits.freeScreens}</strong> free screen{screenLimits.freeScreens !== 1 ? "s" : ""} included
+                  </span>
+                )}
+              </>
+            )}
           </p>
         )}
         <div className="flex items-center gap-2 mt-2">
@@ -1334,7 +1358,7 @@ export default function ScreensPage() {
           disabled={screenLimits ? !screenLimits.canCreate : false}
         >
           <Plus className="h-4 w-4 mr-2" />
-          {screenLimits && !screenLimits.canCreate ? "Limit Reached" : "Create Screen"}
+          {screenLimits && !screenLimits.canCreate ? "Limit Reached" : "Add Screen"}
         </Button>
       </div>
 
@@ -1370,7 +1394,7 @@ export default function ScreensPage() {
               }}
               className="bg-cyan-500 hover:bg-cyan-600"
             >
-              Create First Screen
+              Add Screen
             </Button>
           </CardContent>
         </Card>
@@ -1568,7 +1592,7 @@ export default function ScreensPage() {
                       disabled={creating || !wizardState.name.trim()}
                       className="bg-cyan-500 hover:bg-cyan-600"
                     >
-                      {creating ? "Creating..." : "Create Screen"}
+                      {creating ? "Adding..." : "Add Screen"}
                     </Button>
                   )}
                 </div>
