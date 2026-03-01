@@ -38,6 +38,7 @@ interface SubscriptionPlan {
   name: string
   description: string
   max_screens: number
+  free_screens: number
   max_media_storage: number
   max_file_upload_size?: number
   storage_unit?: StorageUnit
@@ -66,6 +67,7 @@ interface PlanFormData {
   yearly_price: string
   trial_days: string
   max_screens: string
+  free_screens: string
   max_media_storage: string
   max_file_upload_size: string
   storage_unit: string
@@ -101,6 +103,7 @@ export function PlanManagement() {
     yearly_price: "0",
     trial_days: "0",
     max_screens: "1",
+    free_screens: "0",
     max_media_storage: "1",
     max_file_upload_size: "10",
     storage_unit: "GB",
@@ -201,6 +204,7 @@ export function PlanManagement() {
         yearly_price: Number.parseFloat(formData.yearly_price),
         trial_days: Number.parseInt(formData.trial_days),
         max_screens: formData.max_screens === "-1" ? -1 : Number.parseInt(formData.max_screens),
+        free_screens: Number.parseInt(formData.free_screens) || 0,
         max_media_storage: storageInBytes,
         max_file_upload_size: fileUploadInBytes,
         storage_unit: formData.storage_unit,
@@ -278,6 +282,7 @@ export function PlanManagement() {
         yearly_price: Number.parseFloat(formData.yearly_price),
         trial_days: Number.parseInt(formData.trial_days),
         max_screens: formData.max_screens === "-1" ? -1 : Number.parseInt(formData.max_screens),
+        free_screens: Number.parseInt(formData.free_screens) || 0,
         max_media_storage: storageInBytes,
         max_file_upload_size: fileUploadInBytes,
         storage_unit: formData.storage_unit,
@@ -373,6 +378,7 @@ export function PlanManagement() {
       yearly_price: "0",
       trial_days: "0",
       max_screens: "1",
+      free_screens: "0",
       max_media_storage: "1",
       max_file_upload_size: "10",
       storage_unit: "GB",
@@ -417,6 +423,7 @@ export function PlanManagement() {
       yearly_price: yearlyPrice.toString(),
       trial_days: trialDays.toString(),
       max_screens: plan.max_screens.toString(),
+      free_screens: (plan.free_screens ?? 0).toString(),
       max_media_storage: displayValue.toString(),
       max_file_upload_size: fileUploadValue.toString(),
       storage_unit: plan.storage_unit || "GB",
@@ -504,6 +511,10 @@ export function PlanManagement() {
                     <span className="font-medium">{plan.max_screens === -1 ? "Unlimited" : plan.max_screens}</span>
                   </div>
                   <div className="flex justify-between">
+                    <span className="text-muted-foreground">Free Screens:</span>
+                    <span className="font-medium">{plan.free_screens ?? 0}</span>
+                  </div>
+                  <div className="flex justify-between">
                     <span className="text-muted-foreground">Storage:</span>
                     <span className="font-medium">
                       {convertStorageToDisplayValue(plan.max_media_storage, plan.storage_unit)}{" "}
@@ -557,6 +568,7 @@ export function PlanManagement() {
                   <TableHead>Monthly Price</TableHead>
                   <TableHead>Yearly Price</TableHead>
                   <TableHead>Max Screens</TableHead>
+                  <TableHead>Free Screens</TableHead>
                   <TableHead>Storage</TableHead>
                   <TableHead>Max Playlists</TableHead>
                   <TableHead>Team</TableHead>
@@ -572,6 +584,7 @@ export function PlanManagement() {
                     <TableCell>{formatCurrency(getPlanPrice(plan, "monthly"))}</TableCell>
                     <TableCell>{formatCurrency(getPlanPrice(plan, "yearly"))}</TableCell>
                     <TableCell>{plan.max_screens === -1 ? "Unlimited" : plan.max_screens}</TableCell>
+                    <TableCell>{plan.free_screens ?? 0}</TableCell>
                     <TableCell>
                       {convertStorageToDisplayValue(plan.max_media_storage, plan.storage_unit)}{" "}
                       {plan.storage_unit || "GB"}
@@ -806,6 +819,20 @@ export function PlanManagement() {
                         onCheckedChange={(checked) => setFormData({ ...formData, enable_screens: checked })}
                       />
                     </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Free Screens</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={formData.free_screens}
+                      onChange={(e) => setFormData({ ...formData, free_screens: e.target.value })}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Screens included at no charge. Screens above this number are billed via Stripe.
+                    </p>
                   </div>
                 </div>
               </div>

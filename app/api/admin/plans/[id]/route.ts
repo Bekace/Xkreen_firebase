@@ -22,6 +22,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
         name: planData.name,
         description: planData.description,
         max_screens: planData.max_screens,
+        free_screens: planData.free_screens ?? 0,
         max_media_storage: planData.max_media_storage,
         max_file_upload_size: planData.max_file_upload_size,
         storage_unit: planData.storage_unit,

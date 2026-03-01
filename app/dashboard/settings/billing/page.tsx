@@ -104,8 +104,25 @@ export default async function BillingSettingsPage() {
   }
 
   const userBillingCycle = currentPrice?.billing_cycle || "monthly"
-  const displayPrice = currentPrice?.price ? Number(currentPrice.price).toFixed(0) : "0"
+  const pricePerScreen = currentPrice?.price ? Number(currentPrice.price) : 0
   const billingCycle = userBillingCycle === "yearly" ? "year" : "month"
+
+  // Fetch current screen count for per-screen billing breakdown
+  let currentScreenCount = 0
+  if (hasActiveSubscription && plan?.name !== "Free") {
+    try {
+      const { count } = await supabase
+        .from("screens")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+      currentScreenCount = count || 0
+    } catch (_) {}
+  }
+
+  const freeScreens = (plan as any)?.free_screens ?? 0
+  const billableScreens = Math.max(0, currentScreenCount - freeScreens)
+  const totalCost = billableScreens * pricePerScreen
+  const isPaidPerScreen = hasActiveSubscription && plan?.name !== "Free" && pricePerScreen > 0
 
   console.log("[v0] Billing display info:", {
     planName: plan?.name,
@@ -176,15 +193,49 @@ export default async function BillingSettingsPage() {
               <div className="flex items-center justify-between mb-2">
                 <div>
                   <div className="font-medium">{plan?.name || "Free"} Plan</div>
-                  <div className="text-sm text-muted-foreground mt-1">
-                    ${displayPrice}/{billingCycle}
-                  </div>
+                  {isPaidPerScreen ? (
+                    <div className="text-sm text-muted-foreground mt-1">
+                      ${pricePerScreen.toFixed(2)}/screen/{billingCycle}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-muted-foreground mt-1">
+                      Free
+                    </div>
+                  )}
                   {hasActiveSubscription && (
                     <div className="text-xs text-muted-foreground mt-1">(VAT or sales tax may apply)</div>
                   )}
                 </div>
               </div>
-              {hasActiveSubscription && (
+              {isPaidPerScreen && (
+                <div className="mt-3 pt-3 border-t border-border/30 space-y-1">
+                  <div className="text-sm space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Total screens:</span>
+                      <span className="font-medium">{currentScreenCount}</span>
+                    </div>
+                    {freeScreens > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Free screens:</span>
+                        <span className="font-medium text-emerald-600">−{freeScreens}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Billable screens:</span>
+                      <span className="font-medium">{billableScreens}</span>
+                    </div>
+                    <div className="flex justify-between pt-1 border-t border-border/20">
+                      <span className="font-medium">Total / {billingCycle}:</span>
+                      <span className="font-semibold">${totalCost.toFixed(2)}</span>
+                    </div>
+                  </div>
+                  <p className="text-sm font-medium pt-1">Billed {userBillingCycle === "yearly" ? "annually" : "monthly"}</p>
+                  {nextPaymentDate && (
+                    <p className="text-sm text-muted-foreground">Next payment: {nextPaymentDate}</p>
+                  )}
+                </div>
+              )}
+              {hasActiveSubscription && !isPaidPerScreen && (
                 <div className="mt-3 pt-3 border-t border-border/30 space-y-1">
                   <p className="text-sm font-medium">Billed {userBillingCycle === "yearly" ? "annually" : "monthly"}</p>
                   {nextPaymentDate && (
