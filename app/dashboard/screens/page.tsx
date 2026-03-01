@@ -2121,20 +2121,23 @@ export default function ScreensPage() {
               onClick={async () => {
                 setIsPurchasingScreen(true)
                 setPurchaseError(null)
+                console.log("[v0] purchase-screen: starting fetch")
                 try {
                   const res = await fetch("/api/stripe/purchase-screen", { method: "POST" })
                   const data = await res.json()
+                  console.log("[v0] purchase-screen response:", res.status, JSON.stringify(data))
                   if (!res.ok || data.error) {
                     setPurchaseError(data.error || "Failed to purchase screen slot. Please try again.")
                     setIsPurchasingScreen(false)
                     return
                   }
-                  // Payment successful — close this dialog, refresh limits, open create wizard
+                  console.log("[v0] purchase-screen success, opening wizard")
                   setIsBuyScreenDialogOpen(false)
                   await fetchScreenLimits()
                   resetWizard()
                   setIsCreateDialogOpen(true)
                 } catch (err: any) {
+                  console.log("[v0] purchase-screen caught error:", err?.message)
                   setPurchaseError("Something went wrong. Please try again.")
                 } finally {
                   setIsPurchasingScreen(false)
