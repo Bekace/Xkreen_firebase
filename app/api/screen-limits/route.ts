@@ -52,7 +52,7 @@ export async function GET() {
       return NextResponse.json({ error: "Failed to count screens" }, { status: 500 })
     }
 
-    // Get user's active subscription including plan free_screens and price
+    // Get user's active subscription including plan free_screens
     const { data: subscription, error: subError } = await supabase
       .from("user_subscriptions")
       .select(`
@@ -64,18 +64,11 @@ export async function GET() {
           name,
           max_screens,
           free_screens
-        ),
-        subscription_prices (
-          price,
-          billing_cycle
         )
       `)
       .eq("user_id", user.id)
       .in("status", ["active", "trialing"])
       .single()
-
-    console.log("[v0] screen-limits subError:", subError)
-    console.log("[v0] screen-limits subscription raw:", JSON.stringify(subscription))
 
     const hasPaidSubscription = !subError && !!subscription
     const plan = subscription?.subscription_plans as {
@@ -85,30 +78,36 @@ export async function GET() {
       free_screens: number
     } | null
 
-    console.log("[v0] screen-limits plan:", JSON.stringify(plan))
-
     const isPaidPlan = hasPaidSubscription && plan?.name !== "Free"
 
     if (isPaidPlan && plan) {
-      // Paid plan: unlimited screens, billed per screen above free_screens threshold
       const freeScreens = plan.free_screens ?? 0
       const billableScreens = Math.max(0, (currentScreens || 0) - freeScreens)
 
-      // Price per screen from the linked subscription_prices record
-      const priceRecord = subscription?.subscription_prices as { price: number; billing_cycle: string } | null
-      const pricePerScreen = priceRecord?.price ?? 0
-
-      console.log("[v0] screen-limits response (paid):", { freeScreens, billableScreens, pricePerScreen, currentScreens })
+      // Fetch price per screen separately using price_id to avoid FK join issues
+      let pricePerScreen = 0
+      let billingCycle = "monthly"
+      if (subscription?.price_id) {
+        const { data: priceRecord } = await supabase
+          .from("subscription_prices")
+          .select("price, billing_cycle")
+          .eq("id", subscription.price_id)
+          .single()
+        if (priceRecord) {
+          pricePerScreen = Number(priceRecord.price) || 0
+          billingCycle = priceRecord.billing_cycle || "monthly"
+        }
+      }
 
       return NextResponse.json({
         current: currentScreens || 0,
-        limit: -1, // Unlimited for paid plans
+        limit: -1,
         canCreate: true,
         plan: plan.name,
         freeScreens,
         billableScreens,
         pricePerScreen,
-        billingCycle: priceRecord?.billing_cycle ?? "monthly",
+        billingCycle,
       })
     }
 

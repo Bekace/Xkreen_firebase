@@ -192,7 +192,6 @@ export default function ScreensPage() {
       const response = await fetch("/api/screen-limits")
       if (response.ok) {
         const data = await response.json()
-        console.log("[v0] screenLimits data:", JSON.stringify(data))
         setScreenLimits(data)
       }
     } catch (error) {
@@ -1310,38 +1309,27 @@ export default function ScreensPage() {
           const isPaidPlan = screenLimits.limit === -1
 
           if (isPaidPlan) {
-            // Paid plan: show paid + free breakdown
-            const parts: React.ReactNode[] = []
-
-            if (billableScreens > 0) {
-              parts.push(
-                <span key="paid">
-                  <strong>{billableScreens}</strong> Paid Screen{billableScreens !== 1 ? "s" : ""} Active
-                </span>
-              )
-            }
-
-            if (freeScreens > 0) {
-              parts.push(
-                <span key="free">
-                  <strong>{freeScreens}</strong> Free Screen{freeScreens !== 1 ? "s" : ""} Available{" "}
-                  <span className="text-xs">(Included in {screenLimits.plan} Plan)</span>
-                </span>
-              )
-            }
-
-            if (parts.length === 0) {
-              parts.push(
-                <span key="none">No screens active yet</span>
-              )
-            }
+            // Build the two parts of the message independently
+            const hasPaid = billableScreens > 0
+            const hasFree = freeScreens > 0
 
             return (
               <p className="text-sm text-muted-foreground mt-1">
-                You have{" "}
-                {parts.reduce((acc, node, i) => (
-                  i === 0 ? [node] : [...acc as React.ReactNode[], " and ", node]
-                ), [] as React.ReactNode[])}
+                {hasPaid || hasFree ? (
+                  <>
+                    You have{" "}
+                    {hasPaid && (
+                      <><strong>{billableScreens}</strong> Paid Screen{billableScreens !== 1 ? "s" : ""} Available</>
+                    )}
+                    {hasPaid && hasFree && " and "}
+                    {hasFree && (
+                      <><strong>{freeScreens}</strong> Free Screen{freeScreens !== 1 ? "s" : ""} Available{" "}
+                      <span className="opacity-70">(Included in {screenLimits.plan} Plan)</span></>
+                    )}
+                  </>
+                ) : (
+                  <>You have <strong>0</strong> Paid Screens Active</>
+                )}
               </p>
             )
           }
