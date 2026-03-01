@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { type NextRequest, NextResponse } from "next/server"
+import { syncStripeQuantityWithScreens } from "@/lib/actions/stripe"
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -267,6 +268,14 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     if (error) {
       console.error("Database error:", error)
       return NextResponse.json({ error: "Failed to delete screen" }, { status: 500 })
+    }
+
+    // Sync Stripe subscription quantity after deletion.
+    // No rollback on failure here — the screen is already gone; we log and continue.
+    // The subscription quantity will self-correct on the next create/delete or manual sync.
+    const syncResult = await syncStripeQuantityWithScreens(user.id)
+    if (syncResult.error) {
+      console.error("[v0] Stripe sync failed after screen delete (non-fatal):", syncResult.error)
     }
 
     return NextResponse.json({ success: true })

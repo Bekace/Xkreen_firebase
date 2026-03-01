@@ -4,6 +4,90 @@ import { stripe } from "@/lib/stripe"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 
+/**
+ * Syncs the Stripe subscription quantity to match the user's current screen count,
+ * minus any free screens granted by their plan.
+ *
+ * Formula: stripe_quantity = max(0, total_screens - plan.free_screens)
+ *
+ * This is called after every screen create or delete.
+ * Returns { success, billableScreens } or { error }.
+ */
+export async function syncStripeQuantityWithScreens(userId: string): Promise<{
+  success?: boolean
+  billableScreens?: number
+  error?: string
+}> {
+  const supabase = await createClient()
+
+  // Get user's active subscription including plan free_screens
+  const { data: subscription, error: subError } = await supabase
+    .from("user_subscriptions")
+    .select(`
+      id,
+      stripe_subscription_id,
+      status,
+      subscription_plans (
+        id,
+        name,
+        free_screens
+      )
+    `)
+    .eq("user_id", userId)
+    .in("status", ["active", "trialing"])
+    .single()
+
+  if (subError || !subscription) {
+    // No paid subscription — nothing to sync (Free plan users don't bill via Stripe)
+    return { success: true, billableScreens: 0 }
+  }
+
+  if (!subscription.stripe_subscription_id) {
+    return { success: true, billableScreens: 0 }
+  }
+
+  const plan = subscription.subscription_plans as { id: string; name: string; free_screens: number }
+  const freeScreens = plan?.free_screens ?? 0
+
+  // Count current total screens for this user
+  const { count: totalScreens, error: countError } = await supabase
+    .from("screens")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId)
+
+  if (countError) {
+    return { error: "Failed to count screens" }
+  }
+
+  const billableScreens = Math.max(0, (totalScreens ?? 0) - freeScreens)
+
+  try {
+    // Retrieve the subscription to find the subscription item ID
+    const stripeSubscription = await stripe.subscriptions.retrieve(subscription.stripe_subscription_id)
+    const subscriptionItem = stripeSubscription.items.data[0]
+
+    if (!subscriptionItem) {
+      return { error: "No subscription item found on Stripe subscription" }
+    }
+
+    // Update Stripe quantity with immediate proration
+    await stripe.subscriptions.update(subscription.stripe_subscription_id, {
+      items: [
+        {
+          id: subscriptionItem.id,
+          quantity: billableScreens,
+        },
+      ],
+      proration_behavior: "create_prorations",
+    })
+
+    return { success: true, billableScreens }
+  } catch (err: any) {
+    console.error("[v0] syncStripeQuantityWithScreens error:", err)
+    return { error: err.message || "Failed to sync Stripe quantity" }
+  }
+}
+
 export async function createCheckoutSession(planId: string, priceId: string) {
   const supabase = await createClient()
 

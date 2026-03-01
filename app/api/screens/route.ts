@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { type NextRequest, NextResponse } from "next/server"
+import { syncStripeQuantityWithScreens } from "@/lib/actions/stripe"
 
 const OFFLINE_THRESHOLD_MS = 2 * 60 * 1000 // 2 minutes
 
@@ -96,55 +97,56 @@ export async function POST(request: NextRequest) {
     const isSuperAdmin = profile?.role === "super_admin"
 
     if (!isSuperAdmin) {
-      // Get current screen count
-      const { count: currentScreens } = await supabase
-        .from("screens")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id)
-
-      // Get user's active subscription or default to Free plan
+      // New billing model: paid users have unlimited screens (billed per screen via Stripe).
+      // Free plan users are still capped by max_screens.
       const { data: subscription } = await supabase
         .from("user_subscriptions")
-        .select(
-          `
+        .select(`
+          status,
           subscription_plans (
-            max_screens,
-            name
+            name,
+            max_screens
           )
-        `,
-        )
+        `)
         .eq("user_id", user.id)
         .in("status", ["active", "trialing"])
         .single()
 
-      let maxScreens = 1 // Default Free plan limit
+      const hasPaidSubscription = !!subscription
+      const planName = (subscription?.subscription_plans as { name: string; max_screens: number } | null)?.name
 
-      if (subscription?.subscription_plans) {
-        const plan = subscription.subscription_plans as { max_screens: number; name: string }
-        maxScreens = plan.max_screens
-      } else {
-        // No active subscription - use Free plan limits
-        const { data: freePlan } = await supabase
-          .from("subscription_plans")
-          .select("max_screens")
-          .eq("name", "Free")
-          .single()
+      if (!hasPaidSubscription || planName === "Free") {
+        // Fall back to max_screens cap for Free plan / no subscription
+        const { count: currentScreens } = await supabase
+          .from("screens")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", user.id)
 
-        if (freePlan) {
-          maxScreens = freePlan.max_screens
+        let maxScreens = 1 // default if nothing found
+
+        if (subscription?.subscription_plans) {
+          const plan = subscription.subscription_plans as { name: string; max_screens: number }
+          maxScreens = plan.max_screens
+        } else {
+          const { data: freePlan } = await supabase
+            .from("subscription_plans")
+            .select("max_screens")
+            .eq("name", "Free")
+            .single()
+          if (freePlan) maxScreens = freePlan.max_screens
+        }
+
+        if (maxScreens !== -1 && (currentScreens || 0) >= maxScreens) {
+          return NextResponse.json(
+            {
+              error: "Screen limit reached",
+              message: `Your current plan allows ${maxScreens} screen${maxScreens > 1 ? "s" : ""}. Please upgrade to create more screens.`,
+            },
+            { status: 403 },
+          )
         }
       }
-
-      // Check if limit reached (unlimited = -1)
-      if (maxScreens !== -1 && (currentScreens || 0) >= maxScreens) {
-        return NextResponse.json(
-          {
-            error: "Screen limit reached",
-            message: `Your current plan allows ${maxScreens} screen${maxScreens > 1 ? "s" : ""}. Please upgrade to create more screens.`,
-          },
-          { status: 403 },
-        )
-      }
+      // Paid plan users (non-Free) have unlimited screens — gating is done via Stripe billing
     }
 
     const { 
@@ -197,6 +199,19 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error("Database error:", error)
       return NextResponse.json({ error: "Failed to create screen" }, { status: 500 })
+    }
+
+    // Sync Stripe subscription quantity (paid plans only).
+    // If Stripe sync fails, roll back the screen insert to keep billing consistent.
+    const syncResult = await syncStripeQuantityWithScreens(user.id)
+    if (syncResult.error) {
+      console.error("[v0] Stripe sync failed after screen insert, rolling back:", syncResult.error)
+      // Roll back the screen we just created
+      await supabase.from("screens").delete().eq("id", screen.id)
+      return NextResponse.json(
+        { error: "Failed to update billing. Screen was not created. Please try again." },
+        { status: 500 },
+      )
     }
 
     return NextResponse.json({ screen })
