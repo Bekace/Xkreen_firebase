@@ -42,6 +42,24 @@ export async function POST(req: NextRequest) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session
 
+        // Handle screen slot purchase — increment purchased_screen_slots and return early
+        if (session.metadata?.type === "screen_slot") {
+          const subscriptionId = session.metadata?.subscription_id
+          if (!subscriptionId) {
+            console.error("[webhook] screen_slot purchase missing subscription_id in metadata")
+            break
+          }
+          const { error: slotError } = await supabase.rpc("increment_purchased_screen_slots", {
+            p_subscription_id: subscriptionId,
+          })
+          if (slotError) {
+            console.error("[webhook] Failed to increment purchased_screen_slots:", slotError)
+            return NextResponse.json({ error: "Failed to credit screen slot" }, { status: 500 })
+          }
+          console.log("[webhook] Screen slot credited for subscription:", subscriptionId)
+          break
+        }
+
         let planId = session.metadata?.plan_id
         let priceId = session.metadata?.price_id
         const customerEmail = session.metadata?.email || session.customer_email
