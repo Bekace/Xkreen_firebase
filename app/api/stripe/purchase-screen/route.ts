@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
     }
 
-    // Get user's active subscription with plan and price details
+    // Get user's active subscription with plan details
     const { data: subscription, error: subError } = await supabase
       .from("user_subscriptions")
       .select(`
@@ -34,9 +34,7 @@ export async function POST(request: Request) {
         subscription_plans (
           id,
           name,
-          free_screens,
-          price,
-          billing_cycle
+          free_screens
         )
       `)
       .eq("user_id", user.id)
@@ -51,15 +49,27 @@ export async function POST(request: Request) {
       id: string
       name: string
       free_screens: number
-      price: number
-      billing_cycle: string
     }
 
-    // Determine base URL for redirect
+    // Read per-screen price from subscription_prices — this is the same table
+    // that admin Plan Management writes to (monthly_price → billing_cycle="monthly")
+    const { data: monthlyPriceRecord } = await supabase
+      .from("subscription_prices")
+      .select("price")
+      .eq("plan_id", plan.id)
+      .eq("billing_cycle", "monthly")
+      .eq("is_active", true)
+      .single()
+
+    const pricePerScreen = Number(monthlyPriceRecord?.price) || 0
+
+    if (pricePerScreen <= 0) {
+      return NextResponse.json({ error: "No valid price configured for this plan" }, { status: 400 })
+    }
+
     const origin = request.headers.get("origin") || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
 
-    // Create a Stripe Checkout Session for the additional screen slot.
-    // We use the existing price_id so the charge matches the user's current plan pricing.
+    // Create a Stripe Checkout Session for one additional screen slot.
     // metadata.type = "screen_slot" lets the webhook identify and credit this purchase.
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
@@ -72,7 +82,7 @@ export async function POST(request: Request) {
               name: "Additional Screen Slot",
               description: `One additional screen slot on your ${plan.name} plan`,
             },
-            unit_amount: Math.round(Number(plan.price) * 100), // convert dollars to cents
+            unit_amount: Math.round(pricePerScreen * 100), // dollars to cents
           },
           quantity: 1,
         },

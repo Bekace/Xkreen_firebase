@@ -64,9 +64,7 @@ export async function GET() {
           id,
           name,
           max_screens,
-          free_screens,
-          price,
-          billing_cycle
+          free_screens
         )
       `)
       .eq("user_id", user.id)
@@ -79,8 +77,6 @@ export async function GET() {
       name: string
       max_screens: number
       free_screens: number
-      price: number
-      billing_cycle: string
     } | null
 
     const isPaidPlan = hasPaidSubscription && plan?.name !== "Free"
@@ -89,15 +85,20 @@ export async function GET() {
       const freeScreens = plan.free_screens ?? 0
       const billableScreens = Math.max(0, (currentScreens || 0) - freeScreens)
 
-      // purchased_screen_slots = slots the user has explicitly paid for via Stripe Checkout
-      // available_slots = freeScreens + purchased_screen_slots - currentScreens
-      // When available_slots > 0 the user can create a screen without paying again
       const purchasedSlots = subscription?.purchased_screen_slots ?? 0
       const availableSlots = freeScreens + purchasedSlots - (currentScreens || 0)
 
-      // subscription_plans.price is the per-screen price set in plan management by the admin
-      const pricePerScreen = Number(plan.price) || 0
-      const billingCycle = plan.billing_cycle || "monthly"
+      // Read from subscription_prices — this is where admin Plan Management stores the price
+      // (monthly_price field saves to subscription_prices with billing_cycle="monthly")
+      const { data: monthlyPriceRecord } = await supabase
+        .from("subscription_prices")
+        .select("price")
+        .eq("plan_id", plan.id)
+        .eq("billing_cycle", "monthly")
+        .eq("is_active", true)
+        .single()
+
+      const pricePerScreen = Number(monthlyPriceRecord?.price) || 0
 
       return NextResponse.json({
         current: currentScreens || 0,
@@ -107,7 +108,7 @@ export async function GET() {
         freeScreens,
         billableScreens,
         pricePerScreen,
-        billingCycle,
+        billingCycle: "monthly",
         purchasedSlots,
         availableSlots,
       })
