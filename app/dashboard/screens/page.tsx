@@ -167,16 +167,41 @@ export default function ScreensPage() {
   // Detect return from Stripe Checkout after purchasing a screen slot
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
-    if (params.get("purchase") === "success") {
-      // Clean the URL immediately
+    const sessionId = params.get("session_id")
+    if (params.get("purchase") === "success" && sessionId) {
+      // Clean the URL immediately so refresh doesn't re-trigger
       window.history.replaceState({}, "", "/dashboard/screens")
-      // Refresh limits — purchased_screen_slots was incremented by the webhook
-      fetchScreenLimits().then(() => {
-        toast({
-          title: "Screen slot purchased",
-          description: "Your new screen slot is ready. Click Add Screen to set it up.",
-        })
+      // Confirm the purchase server-side — this verifies payment with Stripe and
+      // increments purchased_screen_slots in the DB (no webhook dependency)
+      fetch("/api/stripe/confirm-screen-purchase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId }),
       })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            fetchScreenLimits().then(() => {
+              toast({
+                title: "Screen slot purchased",
+                description: "Your new screen slot is ready. Click Add Screen to set it up.",
+              })
+            })
+          } else {
+            toast({
+              title: "Purchase error",
+              description: data.error || "Could not confirm your purchase. Please contact support.",
+              variant: "destructive",
+            })
+          }
+        })
+        .catch(() => {
+          toast({
+            title: "Purchase error",
+            description: "Could not confirm your purchase. Please contact support.",
+            variant: "destructive",
+          })
+        })
     }
   }, [])
 
