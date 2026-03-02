@@ -522,24 +522,56 @@ export async function getInvoices() {
   }
 
   try {
-    const invoices = await stripe.invoices.list({
+    // 1. Fetch subscription invoices (monthly/annual plan charges)
+    const invoicesResponse = await stripe.invoices.list({
       customer: subscription.stripe_customer_id,
-      limit: 12,
+      limit: 24,
     })
 
-    return {
-      success: true,
-      invoices: invoices.data.map((invoice) => ({
-        id: invoice.id,
-        number: invoice.number,
-        status: invoice.status,
-        amount: invoice.amount_paid / 100, // Convert from cents
-        currency: invoice.currency,
-        created: invoice.created,
-        pdfUrl: invoice.invoice_pdf,
-        hostedUrl: invoice.hosted_invoice_url,
-      })),
-    }
+    const invoiceItems = invoicesResponse.data.map((invoice) => ({
+      id: invoice.id,
+      number: invoice.number,
+      status: invoice.status,
+      amount: invoice.amount_paid / 100,
+      currency: invoice.currency,
+      created: invoice.created,
+      pdfUrl: invoice.invoice_pdf,
+      hostedUrl: invoice.hosted_invoice_url,
+      description: invoice.description || "Subscription",
+    }))
+
+    // 2. Fetch one-off charges (screen slot purchases via Checkout Sessions in payment mode)
+    // These are PaymentIntents, not invoices, so they don't appear in the invoice list
+    const chargesResponse = await stripe.charges.list({
+      customer: subscription.stripe_customer_id,
+      limit: 24,
+    })
+
+    // Collect invoice charge IDs so we don't double-count
+    const invoiceChargeIds = new Set(
+      invoicesResponse.data
+        .map((inv) => (typeof inv.charge === "string" ? inv.charge : inv.charge?.id))
+        .filter(Boolean)
+    )
+
+    const chargeItems = chargesResponse.data
+      .filter((charge) => !invoiceChargeIds.has(charge.id) && charge.status === "succeeded")
+      .map((charge) => ({
+        id: charge.id,
+        number: null,
+        status: "paid" as const,
+        amount: charge.amount / 100,
+        currency: charge.currency,
+        created: charge.created,
+        pdfUrl: charge.receipt_url || null,
+        hostedUrl: charge.receipt_url || null,
+        description: charge.description || "Additional Screen Slot",
+      }))
+
+    // Merge and sort newest first
+    const allItems = [...invoiceItems, ...chargeItems].sort((a, b) => b.created - a.created)
+
+    return { success: true, invoices: allItems }
   } catch (error: any) {
     console.error("[v0] Get invoices error:", error)
     return { error: error.message || "Failed to fetch invoices" }

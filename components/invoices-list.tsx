@@ -16,6 +16,7 @@ interface Invoice {
   created: number
   pdfUrl: string | null
   hostedUrl: string | null
+  description?: string | null
 }
 
 export function InvoicesList() {
@@ -103,7 +104,7 @@ export function InvoicesList() {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-medium">{invoice.number || "Draft"}</span>
+                  <span className="font-medium">{invoice.number || invoice.description || "Payment"}</span>
                   {getStatusBadge(invoice.status)}
                 </div>
                 <p className="text-sm text-muted-foreground">{formatDate(invoice.created)}</p>

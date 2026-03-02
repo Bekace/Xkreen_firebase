@@ -28,8 +28,6 @@ export default async function BillingSettingsPage() {
   let allPlans = []
   let currentPrice = null
 
-  console.log("[v0] Fetching subscription for user:", user.id)
-
   try {
     const { data: subData, error: subError } = await supabase
       .from("user_subscriptions")
@@ -46,14 +44,11 @@ export default async function BillingSettingsPage() {
       .in("status", ["active", "trialing"])
       .single()
 
-    console.log("[v0] Subscription query result:", { subscription: subData, error: subError })
-
     subscription = subData
     plan = subscription?.subscription_plans
     currentPrice = subscription?.subscription_prices
 
     if (!subscription || !plan) {
-      console.log("[v0] No active subscription found, defaulting to Free plan")
       const { data: freePlan } = await supabase
         .from("subscription_plans")
         .select(`
@@ -67,13 +62,6 @@ export default async function BillingSettingsPage() {
       if (freePlan) {
         plan = freePlan
       }
-    } else {
-      console.log("[v0] Found subscription:", {
-        plan_name: plan?.name,
-        status: subscription.status,
-        price_id: subscription.price_id,
-        billing_cycle: currentPrice?.billing_cycle,
-      })
     }
 
     const { data: plans } = await supabase
