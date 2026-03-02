@@ -58,7 +58,7 @@ interface Screen {
   scale_document?: string
   background_color?: string
   default_transition?: string
-  }
+}
 
 interface Playlist {
   id: string
@@ -226,7 +226,7 @@ export default function ScreensPage() {
   // Update elapsed seconds counter every second
   useEffect(() => {
     setElapsedSeconds(0) // Reset when lastUpdated changes
-    
+
     const timerInterval = setInterval(() => {
       setElapsedSeconds(Math.floor((new Date().getTime() - lastUpdated.getTime()) / 1000))
     }, 1000)
@@ -251,11 +251,11 @@ export default function ScreensPage() {
       console.log("[v0] Fetching device status...")
       const response = await fetch("/api/devices/status")
       console.log("[v0] Device status response:", response.status)
-      
+
       if (response.ok) {
         const data = await response.json()
         console.log("[v0] Device status data:", data)
-        
+
         const statusMap: Record<string, boolean> = {}
         data.devices.forEach((device: any) => {
           if (device.screen_id) {
@@ -263,7 +263,7 @@ export default function ScreensPage() {
             statusMap[device.screen_id] = device.is_online
           }
         })
-        
+
         console.log("[v0] Final status map:", statusMap)
         setDeviceOnlineStatus(statusMap)
       }
@@ -809,11 +809,10 @@ export default function ScreensPage() {
                 playlists.map((playlist) => (
                   <div
                     key={playlist.id}
-                    className={`p-3 rounded-lg cursor-pointer transition-all ${
-                      wizardState.selectedContentIds.includes(playlist.id)
+                    className={`p-3 rounded-lg cursor-pointer transition-all ${wizardState.selectedContentIds.includes(playlist.id)
                         ? "bg-cyan-50 ring-2 ring-cyan-500"
                         : "bg-white hover:bg-gray-50"
-                    }`}
+                      }`}
                     onClick={() => {
                       setWizardState((prev) => ({
                         ...prev,
@@ -853,11 +852,10 @@ export default function ScreensPage() {
                 mediaItems.map((media) => (
                   <div
                     key={media.id}
-                    className={`p-3 rounded-lg cursor-pointer transition-all ${
-                      wizardState.selectedContentIds.includes(media.id)
+                    className={`p-3 rounded-lg cursor-pointer transition-all ${wizardState.selectedContentIds.includes(media.id)
                         ? "bg-cyan-50 ring-2 ring-cyan-500"
                         : "bg-white hover:bg-gray-50"
-                    }`}
+                      }`}
                     onClick={() => {
                       setWizardState((prev) => ({
                         ...prev,
@@ -897,11 +895,10 @@ export default function ScreensPage() {
                 schedules.map((schedule) => (
                   <div
                     key={schedule.id}
-                    className={`p-3 rounded-lg cursor-pointer transition-all ${
-                      wizardState.selectedContentIds.includes(schedule.id)
+                    className={`p-3 rounded-lg cursor-pointer transition-all ${wizardState.selectedContentIds.includes(schedule.id)
                         ? "bg-cyan-50 ring-2 ring-cyan-500"
                         : "bg-white hover:bg-gray-50"
-                    }`}
+                      }`}
                     onClick={() => {
                       setWizardState((prev) => ({
                         ...prev,
@@ -1388,69 +1385,69 @@ export default function ScreensPage() {
     <div className="space-y-6">
       {/* Header Section */}
       <div className="flex items-center justify-between">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Screens</h1>
-        <p className="text-muted-foreground">Manage your digital signage screens</p>
-        {screenLimits && (() => {
-          const freeScreens = Math.max(0, screenLimits.freeScreens ?? 0)
-          const total = screenLimits.current
-          const isPaidPlan = screenLimits.limit === -1
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Screens</h1>
+          <p className="text-muted-foreground">Manage your digital signage screens</p>
+          {screenLimits && (() => {
+            const freeScreens = Math.max(0, screenLimits.freeScreens ?? 0)
+            const total = screenLimits.current
+            const isPaidPlan = screenLimits.limit === -1
 
-          if (isPaidPlan) {
-            const usedFree = Math.min(total, freeScreens)
-            const usedPaid = Math.max(0, total - freeScreens)
-            const availableSlots = screenLimits.availableSlots ?? 0
+            if (isPaidPlan) {
+              const usedFree = Math.min(total, freeScreens)
+              const usedPaid = Math.max(0, total - freeScreens)
+              const availableSlots = screenLimits.availableSlots ?? 0
 
+              return (
+                <p className="text-sm text-muted-foreground mt-1">
+                  You have{" "}
+                  {usedPaid > 0 && <><strong>{usedPaid}</strong> Paid Screen{usedPaid !== 1 ? "s" : ""}</>}
+                  {usedPaid > 0 && usedFree > 0 && " and "}
+                  {usedFree > 0 && <><strong>{usedFree}</strong> Free Screen{usedFree !== 1 ? "s" : ""} <span className="opacity-70">(Included in {screenLimits.plan} Plan)</span></>}
+                  {usedPaid === 0 && usedFree === 0 && <>no screens yet</>}
+                  {availableSlots > 0 && (
+                    <span className="ml-2 text-cyan-500 font-medium">
+                      · {availableSlots} slot{availableSlots !== 1 ? "s" : ""} available
+                    </span>
+                  )}
+                </p>
+              )
+            }
+
+            // Free / capped plan: show used / limit
             return (
               <p className="text-sm text-muted-foreground mt-1">
-                You have{" "}
-                {usedPaid > 0 && <><strong>{usedPaid}</strong> Paid Screen{usedPaid !== 1 ? "s" : ""}</>}
-                {usedPaid > 0 && usedFree > 0 && " and "}
-                {usedFree > 0 && <><strong>{usedFree}</strong> Free Screen{usedFree !== 1 ? "s" : ""} <span className="opacity-70">(Included in {screenLimits.plan} Plan)</span></>}
-                {usedPaid === 0 && usedFree === 0 && <>no screens yet</>}
-                {availableSlots > 0 && (
-                  <span className="ml-2 text-cyan-500 font-medium">
-                    · {availableSlots} slot{availableSlots !== 1 ? "s" : ""} available
+                You have <strong>{total}</strong> of <strong>{screenLimits.limit}</strong> screen{screenLimits.limit !== 1 ? "s" : ""} used
+                {freeScreens > 0 && (
+                  <span className="ml-1">
+                    · <strong>{freeScreens}</strong> free screen{freeScreens !== 1 ? "s" : ""} included
                   </span>
                 )}
               </p>
             )
-          }
-
-          // Free / capped plan: show used / limit
-          return (
-            <p className="text-sm text-muted-foreground mt-1">
-              You have <strong>{total}</strong> of <strong>{screenLimits.limit}</strong> screen{screenLimits.limit !== 1 ? "s" : ""} used
-              {freeScreens > 0 && (
-                <span className="ml-1">
-                  · <strong>{freeScreens}</strong> free screen{freeScreens !== 1 ? "s" : ""} included
-                </span>
-              )}
-            </p>
-          )
-        })()}
-        <div className="flex items-center gap-2 mt-2">
-          <div className="flex items-center gap-1.5">
-            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-xs text-muted-foreground">
-              Monitoring status · Last updated {elapsedSeconds}s ago
-            </span>
+          })()}
+          <div className="flex items-center gap-2 mt-2">
+            <div className="flex items-center gap-1.5">
+              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-xs text-muted-foreground">
+                Monitoring status · Last updated {elapsedSeconds}s ago
+              </span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                fetchScreens()
+                fetchDeviceStatus()
+                setLastUpdated(new Date())
+              }}
+              className="h-6 px-2 text-xs"
+            >
+              <RotateCw className="h-3 w-3 mr-1" />
+              Refresh
+            </Button>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              fetchScreens()
-              fetchDeviceStatus()
-              setLastUpdated(new Date())
-            }}
-            className="h-6 px-2 text-xs"
-          >
-            <RotateCw className="h-3 w-3 mr-1" />
-            Refresh
-          </Button>
         </div>
-      </div>
         <Button
           onClick={() => handleAddScreenClick()}
           className="bg-cyan-500 hover:bg-cyan-600"
@@ -1514,17 +1511,15 @@ export default function ScreensPage() {
                       </div>
                     )}
                     <div
-                      className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1.5 ${
-                        deviceOnlineStatus[screen.id]
+                      className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1.5 ${deviceOnlineStatus[screen.id]
                           ? "bg-green-100 text-green-700"
                           : "bg-gray-100 text-gray-700"
-                      }`}
+                        }`}
                       title={deviceOnlineStatus[screen.id] ? "Device online" : "Device offline"}
                     >
                       <div
-                        className={`h-2 w-2 rounded-full ${
-                          deviceOnlineStatus[screen.id] ? "bg-green-500 animate-pulse" : "bg-gray-400"
-                        }`}
+                        className={`h-2 w-2 rounded-full ${deviceOnlineStatus[screen.id] ? "bg-green-500 animate-pulse" : "bg-gray-400"
+                          }`}
                       />
                       {deviceOnlineStatus[screen.id] ? "Online" : "Offline"}
                     </div>
@@ -1643,9 +1638,8 @@ export default function ScreensPage() {
                 {[1, 2, 3, 4].map((step) => (
                   <div
                     key={step}
-                    className={`h-2 flex-1 rounded-full transition-colors ${
-                      step <= wizardState.step ? "bg-cyan-500" : "bg-gray-200"
-                    }`}
+                    className={`h-2 flex-1 rounded-full transition-colors ${step <= wizardState.step ? "bg-cyan-500" : "bg-gray-200"
+                      }`}
                   />
                 ))}
               </div>
@@ -1965,11 +1959,10 @@ export default function ScreensPage() {
                           playlists.map((playlist) => (
                             <div
                               key={playlist.id}
-                              className={`p-3 rounded-lg cursor-pointer transition-all ${
-                                editingSelectedContentIds.includes(playlist.id)
+                              className={`p-3 rounded-lg cursor-pointer transition-all ${editingSelectedContentIds.includes(playlist.id)
                                   ? "bg-cyan-50 ring-2 ring-cyan-500"
                                   : "bg-white hover:bg-gray-50"
-                              }`}
+                                }`}
                               onClick={() => {
                                 setEditingSelectedContentIds([playlist.id])
                               }}
@@ -2003,11 +1996,10 @@ export default function ScreensPage() {
                           mediaItems.map((media) => (
                             <div
                               key={media.id}
-                              className={`p-3 rounded-lg cursor-pointer transition-all ${
-                                editingSelectedContentIds.includes(media.id)
+                              className={`p-3 rounded-lg cursor-pointer transition-all ${editingSelectedContentIds.includes(media.id)
                                   ? "bg-cyan-50 ring-2 ring-cyan-500"
                                   : "bg-white hover:bg-gray-50"
-                              }`}
+                                }`}
                               onClick={() => {
                                 setEditingSelectedContentIds([media.id])
                               }}
@@ -2044,11 +2036,10 @@ export default function ScreensPage() {
                           schedules.map((schedule) => (
                             <div
                               key={schedule.id}
-                              className={`p-3 rounded-lg cursor-pointer transition-all ${
-                                editingSelectedContentIds.includes(schedule.id)
+                              className={`p-3 rounded-lg cursor-pointer transition-all ${editingSelectedContentIds.includes(schedule.id)
                                   ? "bg-cyan-50 ring-2 ring-cyan-500"
                                   : "bg-white hover:bg-gray-50"
-                              }`}
+                                }`}
                               onClick={() => {
                                 setEditingSelectedContentIds([schedule.id])
                               }}
@@ -2098,7 +2089,7 @@ export default function ScreensPage() {
           <DialogHeader>
             <DialogTitle>Add a New Screen</DialogTitle>
             <DialogDescription>
-              You have used all your available screen slots. Adding a new screen will charge{" "}
+              You have used all your available screens. Adding a new screen will charge{" "}
               <strong>
                 {screenLimits?.pricePerScreen
                   ? `$${Number(screenLimits.pricePerScreen).toFixed(2)}/month`
