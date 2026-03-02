@@ -114,7 +114,7 @@ export default function ScreensPage() {
   const [repairingScreen, setRepairingScreen] = useState<Screen | null>(null)
   const [newPairingCode, setNewPairingCode] = useState("")
   const [isCreatingScreen, setIsCreatingScreen] = useState(false)
-  const [editingContentType, setEditingContentType] = useState<"playlist" | "asset">("playlist")
+  const [editingContentType, setEditingContentType] = useState<"playlist" | "asset" | "schedule" | "none">("playlist")
   const [previewingScreen, setPreviewingScreen] = useState<Screen | null>(null)
   const [editingSelectedContentIds, setEditingSelectedContentIds] = useState<string[]>([])
   const [deviceOnlineStatus, setDeviceOnlineStatus] = useState<Record<string, boolean>>({})
@@ -571,14 +571,19 @@ export default function ScreensPage() {
 
             console.log("[v0] Schedule assigned successfully")
           } else if (isMedia) {
-            // It's a media item - update screen's media_id
+            // Assign media via screen_media junction table, same pattern as playlist/schedule
             const response = await fetch(`/api/screens/${screenData.screen.id}`, {
               method: "PUT",
               headers: {
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                media_id: contentId,
+                name: wizardState.name,
+                location: wizardState.location,
+                resolution: wizardState.resolution,
+                orientation: wizardState.orientation,
+                content_type: "asset",
+                selectedContentIds: [contentId],
               }),
             })
 
