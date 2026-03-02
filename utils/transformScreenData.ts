@@ -9,6 +9,7 @@ export const transformScreenData = (screen: any) => {
     playlist_id: activePlaylist?.id || null,
     media_id: screen.media_id || null,
     screen_playlists: screen.screen_playlists || [],
-    screen_media: screen.screen_media || [], // Preserve screen_media array
+    screen_media: screen.screen_media || [],
+    screen_schedules: screen.screen_schedules || [],
   }
 }

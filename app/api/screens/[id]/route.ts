@@ -230,6 +230,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         screen_media!left(
           media_id,
           media(id, name, mime_type, file_path)
+        ),
+        screen_schedules!left(
+          schedule_id,
+          is_active,
+          schedules(id, name)
         )
       `)
       .eq("id", params.id)
