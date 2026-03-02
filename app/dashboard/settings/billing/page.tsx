@@ -103,6 +103,11 @@ export default async function BillingSettingsPage() {
     console.error("[v0] Billing page error:", err)
   }
 
+  const hasActiveSubscription = !!(
+    subscription?.stripe_subscription_id &&
+    (subscription?.status === "active" || subscription?.status === "trialing")
+  )
+
   const userBillingCycle = currentPrice?.billing_cycle || "monthly"
   const pricePerScreen = currentPrice?.price ? Number(currentPrice.price) : 0
   const billingCycle = userBillingCycle === "yearly" ? "year" : "month"
@@ -124,22 +129,7 @@ export default async function BillingSettingsPage() {
   const totalCost = billableScreens * pricePerScreen
   const isPaidPerScreen = hasActiveSubscription && plan?.name !== "Free" && pricePerScreen > 0
 
-  console.log("[v0] Billing display info:", {
-    planName: plan?.name,
-    displayPrice,
-    billingCycle,
-    hasActiveSubscription: !!(
-      subscription?.stripe_subscription_id &&
-      (subscription?.status === "active" || subscription?.status === "trialing")
-    ),
-  })
-
   const storageGB = plan?.max_media_storage ? Math.round(plan.max_media_storage / 1024 / 1024 / 1024) : 0
-
-  const hasActiveSubscription = !!(
-    subscription?.stripe_subscription_id &&
-    (subscription?.status === "active" || subscription?.status === "trialing")
-  )
 
   const getSubscriptionStatus = () => {
     if (!subscription || !hasActiveSubscription) {
