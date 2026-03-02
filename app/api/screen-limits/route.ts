@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server"
-import { stripe } from "@/lib/stripe"
 import { NextResponse } from "next/server"
 
 export async function GET() {
@@ -53,14 +52,14 @@ export async function GET() {
       return NextResponse.json({ error: "Failed to count screens" }, { status: 500 })
     }
 
-    // Get user's active subscription including plan details
-    // subscription_plans.price is the per-screen monthly price set by admin in plan management
+    // Get user's active subscription including plan details and purchased_screen_slots
     const { data: subscription, error: subError } = await supabase
       .from("user_subscriptions")
       .select(`
         id,
         status,
         price_id,
+        purchased_screen_slots,
         subscription_plans (
           id,
           name,
@@ -90,26 +89,15 @@ export async function GET() {
       const freeScreens = plan.free_screens ?? 0
       const billableScreens = Math.max(0, (currentScreens || 0) - freeScreens)
 
-      // Use subscription_plans.price — this is the price set in plan management by the admin
+      // purchased_screen_slots = slots the user has explicitly paid for via Stripe Checkout
+      // available_slots = freeScreens + purchased_screen_slots - currentScreens
+      // When available_slots > 0 the user can create a screen without paying again
+      const purchasedSlots = subscription?.purchased_screen_slots ?? 0
+      const availableSlots = freeScreens + purchasedSlots - (currentScreens || 0)
+
+      // subscription_plans.price is the per-screen price set in plan management by the admin
       const pricePerScreen = Number(plan.price) || 0
       const billingCycle = plan.billing_cycle || "monthly"
-
-      // Fetch the current Stripe subscription quantity so the client can compute
-      // available slots: availableSlots = (freeScreens + stripeQuantity) - current
-      let stripeQuantity = billableScreens // fallback: what we computed
-      try {
-        const { data: sub } = await supabase
-          .from("user_subscriptions")
-          .select("stripe_subscription_id")
-          .eq("user_id", user.id)
-          .in("status", ["active", "trialing"])
-          .single()
-
-        if (sub?.stripe_subscription_id) {
-          const stripeSub = await stripe.subscriptions.retrieve(sub.stripe_subscription_id)
-          stripeQuantity = stripeSub.items.data[0]?.quantity ?? billableScreens
-        }
-      } catch (_) {}
 
       return NextResponse.json({
         current: currentScreens || 0,
@@ -120,7 +108,8 @@ export async function GET() {
         billableScreens,
         pricePerScreen,
         billingCycle,
-        stripeQuantity,
+        purchasedSlots,
+        availableSlots,
       })
     }
 

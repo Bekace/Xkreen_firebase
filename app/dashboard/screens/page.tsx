@@ -129,7 +129,8 @@ export default function ScreensPage() {
     billableScreens?: number
     pricePerScreen?: number
     billingCycle?: string
-    stripeQuantity?: number
+    purchasedSlots?: number
+    availableSlots?: number
   } | null>(null)
   const [isBuyScreenDialogOpen, setIsBuyScreenDialogOpen] = useState(false)
   const [isPurchasingScreen, setIsPurchasingScreen] = useState(false)
@@ -162,6 +163,22 @@ export default function ScreensPage() {
 
   const { toast } = useToast()
   const router = useRouter() // Import useRouter
+
+  // Detect return from Stripe Checkout after purchasing a screen slot
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get("purchase") === "success") {
+      // Clean the URL immediately
+      window.history.replaceState({}, "", "/dashboard/screens")
+      // Refresh limits — purchased_screen_slots was incremented by the webhook
+      fetchScreenLimits().then(() => {
+        toast({
+          title: "Screen slot purchased",
+          description: "Your new screen slot is ready. Click Add Screen to set it up.",
+        })
+      })
+    }
+  }, [])
 
   useEffect(() => {
     fetchScreenLimits()
@@ -1321,14 +1338,11 @@ export default function ScreensPage() {
 
     const isPaidPlan = screenLimits.limit === -1
     if (isPaidPlan) {
-      const freeScreens = Math.max(0, screenLimits.freeScreens ?? 0)
-      // Adding a new screen costs money when the new total would exceed
-      // the free screen allowance. If current < freeScreens the new screen
-      // is still covered by the free allowance → open wizard directly.
-      // If current >= freeScreens the next screen is a paid one → show
-      // the confirmation dialog so the user sees the charge before proceeding.
-      const nextScreenIsPaid = screenLimits.current >= freeScreens
-      if (!nextScreenIsPaid) {
+      // availableSlots = freeScreens + purchasedSlots - current (computed by the API)
+      // > 0 means the user has a pre-paid slot ready to use → open wizard directly
+      // <= 0 means all slots are used → show buy dialog to go through Stripe Checkout
+      const availableSlots = screenLimits.availableSlots ?? 0
+      if (availableSlots > 0) {
         resetWizard()
         setIsCreateDialogOpen(true)
       } else {
@@ -1353,45 +1367,26 @@ export default function ScreensPage() {
         <h1 className="text-3xl font-bold tracking-tight">Screens</h1>
         <p className="text-muted-foreground">Manage your digital signage screens</p>
         {screenLimits && (() => {
-          const freeScreens = screenLimits.freeScreens ?? 0
+          const freeScreens = Math.max(0, screenLimits.freeScreens ?? 0)
           const total = screenLimits.current
           const isPaidPlan = screenLimits.limit === -1
 
           if (isPaidPlan) {
-            // How many of the current screens are covered by free allowance vs billed
             const usedFree = Math.min(total, freeScreens)
             const usedPaid = Math.max(0, total - freeScreens)
-            const parts: React.ReactNode[] = []
-
-            if (usedPaid > 0) {
-              parts.push(
-                <span key="paid">
-                  <strong>{usedPaid}</strong> Paid Screen{usedPaid !== 1 ? "s" : ""}
-                </span>
-              )
-            }
-            if (usedFree > 0) {
-              parts.push(
-                <span key="free">
-                  <strong>{usedFree}</strong> Free Screen{usedFree !== 1 ? "s" : ""}{" "}
-                  <span className="opacity-70">(Included in {screenLimits.plan} Plan)</span>
-                </span>
-              )
-            }
-
-            if (parts.length === 0) {
-              return (
-                <p className="text-sm text-muted-foreground mt-1">
-                  No screens yet · <span className="opacity-70">{freeScreens > 0 ? `${freeScreens} free screen${freeScreens !== 1 ? "s" : ""} included in your ${screenLimits.plan} plan` : "add your first screen"}</span>
-                </p>
-              )
-            }
+            const availableSlots = screenLimits.availableSlots ?? 0
 
             return (
               <p className="text-sm text-muted-foreground mt-1">
                 You have{" "}
-                {parts.reduce<React.ReactNode[]>((acc, node, i) =>
-                  i === 0 ? [node] : [...acc, " and ", node], []
+                {usedPaid > 0 && <><strong>{usedPaid}</strong> Paid Screen{usedPaid !== 1 ? "s" : ""}</>}
+                {usedPaid > 0 && usedFree > 0 && " and "}
+                {usedFree > 0 && <><strong>{usedFree}</strong> Free Screen{usedFree !== 1 ? "s" : ""} <span className="opacity-70">(Included in {screenLimits.plan} Plan)</span></>}
+                {usedPaid === 0 && usedFree === 0 && <>no screens yet</>}
+                {availableSlots > 0 && (
+                  <span className="ml-2 text-cyan-500 font-medium">
+                    · {availableSlots} slot{availableSlots !== 1 ? "s" : ""} available
+                  </span>
                 )}
               </p>
             )
@@ -2125,27 +2120,24 @@ export default function ScreensPage() {
               onClick={async () => {
                 setIsPurchasingScreen(true)
                 setPurchaseError(null)
-                console.log("[v0] purchase-screen: starting fetch")
                 try {
                   const res = await fetch("/api/stripe/purchase-screen", { method: "POST" })
                   const data = await res.json()
                   if (!res.ok || data.error) {
-                    setPurchaseError(data.error || "Failed to purchase screen slot. Please try again.")
+                    setPurchaseError(data.error || "Failed to start payment. Please try again.")
                     setIsPurchasingScreen(false)
                     return
                   }
-                  setIsBuyScreenDialogOpen(false)
-                  await fetchScreenLimits()
-                  resetWizard()
-                  setIsCreateDialogOpen(true)
+                  // Redirect to Stripe Checkout — user completes payment there
+                  // and is sent back to /dashboard/screens?purchase=success
+                  window.location.href = data.url
                 } catch (err: any) {
                   setPurchaseError("Something went wrong. Please try again.")
-                } finally {
                   setIsPurchasingScreen(false)
                 }
               }}
             >
-              {isPurchasingScreen ? "Processing..." : "Confirm & Add Screen"}
+              {isPurchasingScreen ? "Redirecting to payment..." : "Proceed to Payment"}
             </Button>
           </DialogFooter>
         </DialogContent>
