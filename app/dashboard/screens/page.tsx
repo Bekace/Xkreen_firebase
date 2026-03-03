@@ -1356,10 +1356,14 @@ export default function ScreensPage() {
 
     const isPaidPlan = screenLimits.limit === -1
     if (isPaidPlan) {
-      // Paid plan users always open the wizard directly.
-      // Stripe is synced automatically after screen creation (prorated billing).
-      resetWizard()
-      setIsCreateDialogOpen(true)
+      const availableSlots = screenLimits.availableSlots ?? 0
+      if (availableSlots > 0) {
+        resetWizard()
+        setIsCreateDialogOpen(true)
+      } else {
+        setPurchaseError(null)
+        setIsBuyScreenDialogOpen(true)
+      }
       return
     }
 

@@ -96,7 +96,9 @@ export async function GET() {
 
       const pricePerScreen = Number(monthlyPriceRecord?.price) || 0
 
-      // Paid plan users can always create screens — Stripe billing is synced after creation
+      const purchasedSlots = subscription?.purchased_screen_slots ?? 0
+      const availableSlots = freeScreens + purchasedSlots - (currentScreens || 0)
+
       return NextResponse.json({
         current: currentScreens || 0,
         limit: -1,
@@ -106,6 +108,8 @@ export async function GET() {
         billableScreens,
         pricePerScreen,
         billingCycle: "monthly",
+        purchasedSlots,
+        availableSlots,
       })
     }
 
