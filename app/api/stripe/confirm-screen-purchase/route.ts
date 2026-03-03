@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     }
 
     // Use service role to increment purchased_screen_slots
-    const serviceSupabase = createServiceRoleClient()
+    const serviceSupabase = await createServiceRoleClient()
 
     // Check if this session was already processed (idempotency)
     const { data: existingRecord } = await serviceSupabase
