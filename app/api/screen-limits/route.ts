@@ -85,11 +85,7 @@ export async function GET() {
       const freeScreens = plan.free_screens ?? 0
       const billableScreens = Math.max(0, (currentScreens || 0) - freeScreens)
 
-      const purchasedSlots = subscription?.purchased_screen_slots ?? 0
-      const availableSlots = freeScreens + purchasedSlots - (currentScreens || 0)
-
-      // Read from subscription_prices — this is where admin Plan Management stores the price
-      // (monthly_price field saves to subscription_prices with billing_cycle="monthly")
+      // Read per-screen price from subscription_prices
       const { data: monthlyPriceRecord } = await supabase
         .from("subscription_prices")
         .select("price")
@@ -100,6 +96,7 @@ export async function GET() {
 
       const pricePerScreen = Number(monthlyPriceRecord?.price) || 0
 
+      // Paid plan users can always create screens — Stripe billing is synced after creation
       return NextResponse.json({
         current: currentScreens || 0,
         limit: -1,
@@ -109,8 +106,6 @@ export async function GET() {
         billableScreens,
         pricePerScreen,
         billingCycle: "monthly",
-        purchasedSlots,
-        availableSlots,
       })
     }
 

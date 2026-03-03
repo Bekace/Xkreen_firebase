@@ -1356,17 +1356,10 @@ export default function ScreensPage() {
 
     const isPaidPlan = screenLimits.limit === -1
     if (isPaidPlan) {
-      // availableSlots = freeScreens + purchasedSlots - current (computed by the API)
-      // > 0 means the user has a pre-paid slot ready to use → open wizard directly
-      // <= 0 means all slots are used → show buy dialog to go through Stripe Checkout
-      const availableSlots = screenLimits.availableSlots ?? 0
-      if (availableSlots > 0) {
-        resetWizard()
-        setIsCreateDialogOpen(true)
-      } else {
-        setPurchaseError(null)
-        setIsBuyScreenDialogOpen(true)
-      }
+      // Paid plan users always open the wizard directly.
+      // Stripe is synced automatically after screen creation (prorated billing).
+      resetWizard()
+      setIsCreateDialogOpen(true)
       return
     }
 
