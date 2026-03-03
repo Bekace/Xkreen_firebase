@@ -28,6 +28,7 @@ export default async function PricingPage() {
     .from("subscription_prices")
     .select("*")
     .eq("is_active", true)
+    .order("created_at", { ascending: false })
 
   if (plansError) {
     console.error("[v0] Error fetching plans:", plansError)

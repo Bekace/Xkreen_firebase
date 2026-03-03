@@ -21,7 +21,8 @@ export async function GET(request: NextRequest) {
           price,
           stripe_price_id,
           trial_days,
-          is_active
+          is_active,
+          order: created_at
         ),
         feature_permissions (
           feature_key,
@@ -35,12 +36,23 @@ export async function GET(request: NextRequest) {
 
     const formattedPlans = plans.map((plan: any) => {
       const prices = plan.subscription_prices || []
-      const monthlyPrice = prices.find((p: any) => p.billing_cycle === "monthly")?.price || 0
-      const yearlyPrice = prices.find((p: any) => p.billing_cycle === "yearly")?.price || 0
+      
+      // For each billing cycle, keep only the newest (most recent created_at)
+      const uniquePrices = new Map<string, any>()
+      prices.forEach((p: any) => {
+        const key = p.billing_cycle
+        if (!uniquePrices.has(key) || (p.order && uniquePrices.get(key).order && p.order > uniquePrices.get(key).order)) {
+          uniquePrices.set(key, p)
+        }
+      })
+      
+      const deduplicatedPrices = Array.from(uniquePrices.values())
+      const monthlyPrice = deduplicatedPrices.find((p: any) => p.billing_cycle === "monthly")?.price || 0
+      const yearlyPrice = deduplicatedPrices.find((p: any) => p.billing_cycle === "yearly")?.price || 0
 
       return {
         ...plan,
-        prices,
+        prices: deduplicatedPrices,
         monthly_price: monthlyPrice,
         yearly_price: yearlyPrice,
         subscriber_count: plan.user_subscriptions?.filter((sub: any) => sub.count > 0).length || 0,
