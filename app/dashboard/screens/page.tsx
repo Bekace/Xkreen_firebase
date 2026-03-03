@@ -421,15 +421,6 @@ export default function ScreensPage() {
   }
 
   const handleCreateScreen = async () => {
-    if (screenLimits && !screenLimits.canCreate) {
-      toast({
-        title: "Screen Limit Reached",
-        description: `Your ${screenLimits.plan} plan allows ${screenLimits.limit} screen${screenLimits.limit > 1 ? "s" : ""}. Please upgrade to create more screens.`,
-        variant: "destructive",
-      })
-      return
-    }
-
     if (!wizardState.name.trim()) {
       toast({
         title: "Error",
@@ -1379,8 +1370,11 @@ export default function ScreensPage() {
       return
     }
 
-    // Free / capped plan
-    if (!screenLimits.canCreate) return
+    // Free / capped plan — redirect to billing so user can upgrade
+    if (!screenLimits.canCreate) {
+      router.push("/dashboard/settings/billing")
+      return
+    }
     resetWizard()
     setIsCreateDialogOpen(true)
   }
@@ -1456,10 +1450,9 @@ export default function ScreensPage() {
         <Button
           onClick={() => handleAddScreenClick()}
           className="bg-cyan-500 hover:bg-cyan-600"
-          disabled={screenLimits?.limit !== -1 && screenLimits ? !screenLimits.canCreate : false}
         >
           <Plus className="h-4 w-4 mr-2" />
-          {screenLimits?.limit !== -1 && screenLimits && !screenLimits.canCreate ? "Limit Reached" : "Add Screen"}
+          {screenLimits?.limit !== -1 && screenLimits && !screenLimits.canCreate ? "Upgrade Plan" : "Add Screen"}
         </Button>
       </div>
 
