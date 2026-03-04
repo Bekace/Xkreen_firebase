@@ -30,9 +30,9 @@ export default async function ProfileSettingsPage() {
         initialData={{
           full_name: profile?.full_name || "",
           company_name: profile?.company_name || "",
-          avatar_url: "", // Placeholder - field doesn't exist yet
-          username: "", // Placeholder - field doesn't exist yet
-          bio: "", // Placeholder - field doesn't exist yet
+          avatar_url: profile?.avatar_url || "",
+          username: profile?.username || "",
+          bio: profile?.bio || "",
         }}
       />
     </div>
