@@ -32,6 +32,27 @@ export function SecurityForm({ userEmail }: SecurityFormProps) {
     setMessage(null)
 
     const supabase = createClient()
+
+    // Re-authenticate with current password first to get a fresh session
+    const { data: userData } = await supabase.auth.getUser()
+    const email = userData?.user?.email
+    if (!email) {
+      setMessage({ type: "error", text: "Could not retrieve your account. Please log in again." })
+      setSaving(false)
+      return
+    }
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password: currentPassword,
+    })
+
+    if (signInError) {
+      setMessage({ type: "error", text: "Current password is incorrect." })
+      setSaving(false)
+      return
+    }
+
     const { error } = await supabase.auth.updateUser({
       password: newPassword,
     })
