@@ -190,7 +190,7 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
           scheduleName: scheduleData.name,
         })
 
-        // Fetch schedule items
+        // Fetch schedule items using correct column names (content_id + content_type)
         const { data: scheduleItems, error: scheduleItemsError } = await supabase
           .from("schedule_items")
           .select(`
@@ -198,12 +198,9 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
             start_time,
             end_time,
             days_of_week,
-            playlist_id,
-            playlists (
-              id,
-              name,
-              is_active
-            )
+            recurrence_type,
+            content_id,
+            content_type
           `)
           .eq("schedule_id", scheduleData.id)
 
@@ -212,55 +209,88 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
         if (!scheduleItemsError && scheduleItems && scheduleItems.length > 0) {
           // Determine which schedule item is active based on current time
           const now = new Date()
-          const currentDay = now.getDay() // 0 = Sunday, 6 = Saturday
-          const currentTime = now.toTimeString().slice(0, 5) // HH:MM format
+          const currentDay = now.getDay() // 0=Sunday, 1=Monday ... 6=Saturday — same as DB convention
+          const currentTime = now.toTimeString().slice(0, 8) // HH:MM:SS to match DB format
 
           const activeScheduleItem = scheduleItems.find((item) => {
-            // Check if current day is in days_of_week array
-            const daysActive = item.days_of_week && Array.isArray(item.days_of_week) && item.days_of_week.includes(currentDay)
-            // Check if current time is between start_time and end_time
-            const timeActive = currentTime >= item.start_time && currentTime <= item.end_time
+            // Daily recurrence or weekly with matching day
+            const daysActive =
+              item.recurrence_type === "daily" ||
+              (item.days_of_week && Array.isArray(item.days_of_week) && item.days_of_week.includes(currentDay))
+            // Time window check — all values in HH:MM:SS format
+            const timeActive =
+              item.start_time && item.end_time
+                ? currentTime >= item.start_time && currentTime <= item.end_time
+                : true
 
             return daysActive && timeActive
           })
 
           console.log("[v0] Active schedule item:", activeScheduleItem)
 
-          if (activeScheduleItem && activeScheduleItem.playlists) {
-            // Load the playlist content from the active schedule item
-            const playlistId = activeScheduleItem.playlist_id
-            activePlaylist = activeScheduleItem.playlists
+          if (activeScheduleItem) {
+            const { content_id, content_type } = activeScheduleItem
 
-            console.log("[v0] Loading playlist from schedule:", {
-              playlistId,
-              playlistName: activePlaylist.name,
-            })
+            if (content_type === "playlist" && content_id) {
+              // Load playlist and its items
+              const { data: playlistData } = await supabase
+                .from("playlists")
+                .select("id, name, is_active")
+                .eq("id", content_id)
+                .single()
 
-            const { data: playlistItems, error: itemsError } = await supabase
-              .from("playlist_items")
-              .select(`
-                id,
-                position,
-                duration_override,
-                transition_type,
-                transition_duration,
-                media (
-                  id,
-                  name,
-                  file_path,
-                  mime_type,
-                  file_size,
-                  duration
-                )
-              `)
-              .eq("playlist_id", playlistId)
-              .order("position")
+              if (playlistData) {
+                activePlaylist = playlistData
 
-            console.log("[v0] Playlist items from schedule:", { itemsCount: playlistItems?.length, itemsError })
+                const { data: playlistItems, error: itemsError } = await supabase
+                  .from("playlist_items")
+                  .select(`
+                    id,
+                    position,
+                    duration_override,
+                    transition_type,
+                    transition_duration,
+                    media (
+                      id,
+                      name,
+                      file_path,
+                      mime_type,
+                      file_size,
+                      duration
+                    )
+                  `)
+                  .eq("playlist_id", content_id)
+                  .order("position")
 
-            if (!itemsError && playlistItems) {
-              playlistContent = playlistItems.filter((item) => item.media)
-              console.log("[v0] Filtered playlist content count from schedule:", playlistContent.length)
+                if (!itemsError && playlistItems) {
+                  playlistContent = playlistItems.filter((item) => item.media)
+                }
+              }
+            } else if (content_type === "media" && content_id) {
+              // Load single media asset directly
+              const { data: mediaItem } = await supabase
+                .from("media")
+                .select("id, name, file_path, mime_type, file_size, duration")
+                .eq("id", content_id)
+                .single()
+
+              if (mediaItem) {
+                activePlaylist = {
+                  id: `schedule-media-${mediaItem.id}`,
+                  name: mediaItem.name,
+                  is_active: true,
+                }
+                playlistContent = [
+                  {
+                    id: `schedule-asset-${mediaItem.id}`,
+                    position: 1,
+                    duration_override: null,
+                    transition_type: null,
+                    transition_duration: null,
+                    media: mediaItem,
+                  },
+                ]
+              }
             }
           } else {
             console.log("[v0] No active schedule item found for current time/day")
