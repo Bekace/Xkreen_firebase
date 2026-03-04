@@ -45,6 +45,7 @@ export function DashboardOverview({ user, showWelcome = false }: DashboardOvervi
   const [deviceStatus, setDeviceStatus] = useState<{ online: number; offline: number; total: number } | null>(null)
   const [proofOfPlay, setProofOfPlay] = useState<{ totalPlays: number; successRate: string } | null>(null)
   const [recentActivities, setRecentActivities] = useState<ActivityItem[]>([])
+  const [availableSlots, setAvailableSlots] = useState<number | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -128,10 +129,27 @@ export function DashboardOverview({ user, showWelcome = false }: DashboardOvervi
       }
     }
 
+    async function fetchScreenLimits() {
+      try {
+        const response = await fetch("/api/screen-limits")
+        if (response.ok) {
+          const data = await response.json()
+          // For paid plans availableSlots is returned; for free plans use limit - current
+          const slots = data.availableSlots !== undefined
+            ? data.availableSlots
+            : Math.max(0, (data.limit ?? 0) - (data.current ?? 0))
+          setAvailableSlots(slots)
+        }
+      } catch (error) {
+        console.error("[v0] Error fetching screen limits:", error)
+      }
+    }
+
     fetchStats()
     fetchDeviceStatus()
     fetchProofOfPlay()
     fetchRecentActivities()
+    fetchScreenLimits()
   }, [])
 
   useEffect(() => {
@@ -165,9 +183,9 @@ export function DashboardOverview({ user, showWelcome = false }: DashboardOvervi
       color: "text-green-500",
     },
     {
-      title: "Active Screens",
-      value: loading ? "..." : stats?.activeScreens.value.toString() || "0",
-      change: loading ? "Loading..." : stats?.activeScreens.change || "No change",
+      title: "Available Screens",
+      value: availableSlots !== null ? availableSlots.toString() : "...",
+      change: availableSlots === 0 ? "No slots available" : `${availableSlots} slot${availableSlots !== 1 ? "s" : ""} available`,
       icon: Monitor,
       color: "text-primary",
     },
