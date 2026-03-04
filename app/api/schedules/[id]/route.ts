@@ -62,6 +62,10 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     const updates = await request.json()
 
+    console.log("[v0] PATCH /api/schedules/[id] - params.id:", params.id)
+    console.log("[v0] PATCH /api/schedules/[id] - user.id:", user.id)
+    console.log("[v0] PATCH /api/schedules/[id] - updates:", JSON.stringify(updates))
+
     // Update schedule
     const { data: schedule, error } = await supabase
       .from("schedules")
@@ -70,6 +74,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       .eq("user_id", user.id)
       .select()
       .single()
+
+    console.log("[v0] PATCH /api/schedules/[id] - result:", JSON.stringify({ schedule, error }))
 
     if (error) {
       console.error("Database error:", error)
