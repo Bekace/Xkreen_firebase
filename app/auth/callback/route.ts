@@ -33,6 +33,11 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
+    // Password recovery codes should go straight to reset-password — skip all profile/subscription logic
+    if (!error && data.session?.user?.aud === "authenticated" && next === "/auth/reset-password") {
+      return NextResponse.redirect(new URL("/auth/reset-password", requestUrl.origin))
+    }
+
     if (!error && data.user) {
       const serviceSupabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
