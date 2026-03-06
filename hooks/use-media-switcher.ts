@@ -17,7 +17,6 @@ export function useMediaSwitcher() {
   const iframeBRef = useRef<HTMLIFrameElement>(null)
 
   const switchToNext = () => {
-    console.log("[v0] Switching elements from", activeElement, "to", activeElement === "A" ? "B" : "A")
     setActiveElement((prev) => (prev === "A" ? "B" : "A"))
   }
 

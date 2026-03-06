@@ -201,28 +201,15 @@ export default function PlayerPage({ params }: PlayerPageProps) {
           {currentMedia && (
             <>
               {isRegularVideo(currentMedia.media) && (
-                <>
-                  <video
-                    ref={videoARef}
-                    className={`absolute inset-0 w-full h-full transition-opacity duration-300 ${
-                      activeElement === "A" ? "opacity-100 z-10" : "opacity-0 z-0"
-                    } ${getMediaObjectFit("video", config?.screen)}`}
-                    autoPlay
-                    muted
-                    playsInline
-                    onEnded={advanceToNext}
-                  />
-                  <video
-                    ref={videoBRef}
-                    className={`absolute inset-0 w-full h-full transition-opacity duration-300 ${
-                      activeElement === "B" ? "opacity-100 z-10" : "opacity-0 z-0"
-                    } ${getMediaObjectFit("video", config?.screen)}`}
-                    autoPlay
-                    muted
-                    playsInline
-                    onEnded={advanceToNext}
-                  />
-                </>
+                <video
+                  key={currentMedia.media.id}
+                  className={`absolute inset-0 w-full h-full ${getMediaObjectFit("video", config?.screen)}`}
+                  src={currentMedia.media.file_path}
+                  autoPlay
+                  muted
+                  playsInline
+                  onEnded={advanceToNext}
+                />
               )}
 
               {isYouTubeVideo(currentMedia.media) && (
