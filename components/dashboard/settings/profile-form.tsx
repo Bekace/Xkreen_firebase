@@ -23,7 +23,6 @@ interface ProfileFormProps {
 export function ProfileForm({ userId, initialData }: ProfileFormProps) {
   const [fullName, setFullName] = useState(initialData.full_name)
   const [companyName, setCompanyName] = useState(initialData.company_name)
-  const [username, setUsername] = useState(initialData.username)
   const [bio, setBio] = useState(initialData.bio)
   const [avatarUrl, setAvatarUrl] = useState(initialData.avatar_url)
   const [saving, setSaving] = useState<string | null>(null)
@@ -191,31 +190,6 @@ export function ProfileForm({ userId, initialData }: ProfileFormProps) {
           <p className="text-sm text-muted-foreground">Please use 32 characters at maximum.</p>
           <Button onClick={handleSaveFullName} disabled={saving === "full_name"} size="sm">
             {saving === "full_name" ? "Saving..." : "Save"}
-          </Button>
-        </div>
-      </div>
-
-      {/* Username Section - Placeholder */}
-      <div className="rounded-lg border border-border/50 p-6">
-        <h2 className="text-lg font-semibold mb-2">Username</h2>
-        <p className="text-sm text-muted-foreground mb-4">This is your URL namespace within the platform.</p>
-        <div className="flex items-center max-w-md">
-          <span className="bg-muted/50 px-3 py-2 text-sm text-muted-foreground rounded-l-md border border-r-0 border-border/50">
-            pointer.tv/
-          </span>
-          <Input
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="rounded-l-none bg-muted/30"
-            placeholder="username"
-            maxLength={48}
-            disabled
-          />
-        </div>
-        <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/50">
-          <p className="text-sm text-muted-foreground">Coming soon - Please use 48 characters at maximum.</p>
-          <Button size="sm" disabled>
-            Save
           </Button>
         </div>
       </div>
