@@ -138,13 +138,8 @@ export default function PlayerPage({ params }: PlayerPageProps) {
   const currentMedia = contentToDisplay[currentIndex]
 
   const advanceToNext = useCallback(() => {
-    console.log("[v0] advanceToNext called, currentIndex:", currentIndex, "total:", contentToDisplay.length)
-
     if (contentToDisplay.length === 0) return
-
     const nextIndex = currentIndex + 1 < contentToDisplay.length ? currentIndex + 1 : 0
-    console.log("[v0] Moving to index:", nextIndex)
-
     setCurrentIndex(nextIndex)
     switchToNext()
   }, [currentIndex, contentToDisplay.length, switchToNext])
@@ -309,12 +304,6 @@ export default function PlayerPage({ params }: PlayerPageProps) {
         </div>
       )}
 
-      {preloadStatus && (
-        <div className="fixed bottom-4 left-4 bg-black/50 text-white px-4 py-2 rounded text-sm">{preloadStatus}</div>
-      )}
-
-      {/* Debug timer */}
-      <div className="fixed top-4 right-4 bg-black/50 text-white px-4 py-2 rounded text-sm">{timeRemaining}s</div>
     </div>
   )
 }
