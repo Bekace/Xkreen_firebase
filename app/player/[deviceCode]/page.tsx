@@ -134,7 +134,7 @@ export default function PlayerPage({ params }: PlayerPageProps) {
     getInactiveIframeRef,
   } = useMediaSwitcher()
 
-  const contentToDisplay = shuffledContent.length > 0 ? shuffledContent : config?.screen.content || []
+  const contentToDisplay = shuffledContent.length > 0 ? shuffledContent : (config as any)?.content || []
   const currentMedia = contentToDisplay[currentIndex]
 
   const advanceToNext = useCallback(() => {
@@ -175,8 +175,8 @@ export default function PlayerPage({ params }: PlayerPageProps) {
         const data = await response.json()
         setConfig(data)
 
-        if (data.screen.playlist?.shuffle && data.screen.content.length > 0) {
-          const shuffled = [...data.screen.content].sort(() => Math.random() - 0.5)
+        if (data.screen?.shuffle && data.content?.length > 0) {
+          const shuffled = [...data.content].sort(() => Math.random() - 0.5)
           setShuffledContent(shuffled)
         }
 
@@ -198,7 +198,7 @@ export default function PlayerPage({ params }: PlayerPageProps) {
     <div
       className="relative w-screen h-screen overflow-hidden"
       style={{
-        backgroundColor: config?.screen.playlist?.background_color || "#000000",
+        backgroundColor: config?.screen?.background_color || "#000000",
       }}
     >
       {contentToDisplay && contentToDisplay.length > 0 ? (
@@ -211,7 +211,7 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                     ref={videoARef}
                     className={`absolute inset-0 w-full h-full transition-opacity duration-300 ${
                       activeElement === "A" ? "opacity-100 z-10" : "opacity-0 z-0"
-                    } ${getMediaObjectFit("video", config?.screen.playlist)}`}
+                    } ${getMediaObjectFit("video", config?.screen)}`}
                     autoPlay
                     muted
                     playsInline
@@ -221,7 +221,7 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                     ref={videoBRef}
                     className={`absolute inset-0 w-full h-full transition-opacity duration-300 ${
                       activeElement === "B" ? "opacity-100 z-10" : "opacity-0 z-0"
-                    } ${getMediaObjectFit("video", config?.screen.playlist)}`}
+                    } ${getMediaObjectFit("video", config?.screen)}`}
                     autoPlay
                     muted
                     playsInline
@@ -291,7 +291,7 @@ export default function PlayerPage({ params }: PlayerPageProps) {
                   src={getMediaUrl(currentMedia.media.file_path) || "/placeholder.svg"}
                   alt={currentMedia.media.name}
                   fill
-                  className={getMediaObjectFit("image", config?.screen.playlist)}
+                  className={getMediaObjectFit("image", config?.screen)}
                   priority
                   unoptimized
                 />
