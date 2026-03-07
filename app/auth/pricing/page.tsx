@@ -49,7 +49,7 @@ export default async function PricingPage() {
       {/* Header */}
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-foreground hover:text-foreground/80">
+          <Link href="https://xkreen.com/" className="flex items-center gap-2 text-foreground hover:text-foreground/80">
             <ArrowLeft className="h-4 w-4" />
             <span>Back to Home</span>
           </Link>
