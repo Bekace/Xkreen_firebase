@@ -49,6 +49,9 @@ export function FeatureManagement() {
   const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
   const [deletingFeature, setDeletingFeature] = useState<Feature | null>(null)
+  const [editingFeature, setEditingFeature] = useState<Feature | null>(null)
+  const [editEnabledPlanIds, setEditEnabledPlanIds] = useState<Set<string>>(new Set())
+  const [saving, setSaving] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [newFeatureKey, setNewFeatureKey] = useState("")
   const [enabledPlanIds, setEnabledPlanIds] = useState<Set<string>>(new Set())
@@ -185,6 +188,35 @@ export function FeatureManagement() {
         description: "Failed to update feature",
         variant: "destructive",
       })
+    }
+  }
+
+  const openEditDialog = (feature: Feature) => {
+    setEditingFeature(feature)
+    setEditEnabledPlanIds(new Set(feature.permissions.filter((p) => p.is_enabled).map((p) => p.plan_id)))
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingFeature) return
+    setSaving(true)
+    try {
+      // Update each permission in parallel based on the toggle state
+      await Promise.all(
+        editingFeature.permissions.map((p) =>
+          fetch(`/api/admin/features/permissions/${p.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ is_enabled: editEnabledPlanIds.has(p.plan_id) }),
+          })
+        )
+      )
+      await fetchFeatures()
+      setEditingFeature(null)
+      toast({ title: "Success", description: "Feature updated successfully" })
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to update feature", variant: "destructive" })
+    } finally {
+      setSaving(false)
     }
   }
 
