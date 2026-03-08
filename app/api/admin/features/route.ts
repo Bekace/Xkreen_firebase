@@ -2,32 +2,37 @@ import { type NextRequest, NextResponse } from "next/server"
 import { requireSuperAdmin } from "@/lib/admin/auth"
 import { logAdminAction } from "@/lib/admin/audit"
 
+// Derive a human-readable name from a snake_case feature key
+function toFeatureName(key: string): string {
+  return key
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ")
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { supabase } = await requireSuperAdmin()
 
-    // Get all feature permissions with plan details
     const { data: permissions, error } = await supabase
       .from("feature_permissions")
-      .select(`
-        *,
-        subscription_plans(id, name)
-      `)
+      .select(`*, subscription_plans(id, name)`)
       .order("feature_key")
 
     if (error) throw error
 
-    // Group permissions by feature
+    // Group permissions by feature_key, deriving a display name from the key
     const featuresMap = new Map<string, any>()
 
     permissions.forEach((permission: any) => {
       const featureKey = permission.feature_key
+      const derivedName = toFeatureName(featureKey)
 
       if (!featuresMap.has(featureKey)) {
         featuresMap.set(featureKey, {
           feature_key: featureKey,
-          feature_name: permission.feature_name,
-          description: null, // Could be added to schema later
+          feature_name: derivedName,
+          description: null,
           permissions: [],
         })
       }
@@ -37,7 +42,7 @@ export async function GET(request: NextRequest) {
         plan_id: permission.plan_id,
         plan_name: permission.subscription_plans.name,
         feature_key: permission.feature_key,
-        feature_name: permission.feature_name,
+        feature_name: derivedName,
         is_enabled: permission.is_enabled,
         limit_value: permission.limit_value,
         created_at: permission.created_at,
@@ -62,23 +67,21 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const { supabase } = await requireSuperAdmin()
-    const { feature_key, feature_name, description } = await request.json()
+    const { feature_key, plan_enabled_ids } = await request.json()
 
-    if (!feature_key || !feature_name) {
-      return NextResponse.json({ error: "Feature key and name are required" }, { status: 400 })
+    if (!feature_key) {
+      return NextResponse.json({ error: "Feature key is required" }, { status: 400 })
     }
 
-    // Get all subscription plans
     const { data: plans, error: plansError } = await supabase.from("subscription_plans").select("id")
-
     if (plansError) throw plansError
 
-    // Create feature permissions for all plans (disabled by default)
+    // Create feature_permissions for all plans; enable only those in plan_enabled_ids
+    const enabledSet = new Set<string>(plan_enabled_ids || [])
     const permissions = plans.map((plan: any) => ({
       plan_id: plan.id,
       feature_key,
-      feature_name,
-      is_enabled: false,
+      is_enabled: enabledSet.has(plan.id),
     }))
 
     const { data: newPermissions, error } = await supabase.from("feature_permissions").insert(permissions).select()

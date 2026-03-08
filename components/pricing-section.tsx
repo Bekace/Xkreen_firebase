@@ -1,63 +1,52 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
+const PLAN_META: Record<string, { monthlyPrice: string; annualPrice: string; description: string; buttonText: string; buttonClass: string; popular?: boolean }> = {
+  Free: {
+    monthlyPrice: "$0",
+    annualPrice: "$0",
+    description: "Perfect for small businesses starting with digital signage.",
+    buttonText: "Get Started",
+    buttonClass: "bg-zinc-300 shadow-[0px_1px_1px_-0.5px_rgba(16,24,40,0.20)] outline outline-0.5 outline-[#1e29391f] outline-offset-[-0.5px] text-gray-800 text-shadow-[0px_1px_1px_rgba(16,24,40,0.08)] hover:bg-zinc-400",
+  },
+  Pro: {
+    monthlyPrice: "$60",
+    annualPrice: "$46",
+    description: "Designed for growing brands that need more flexibility.",
+    buttonText: "Join now",
+    buttonClass: "bg-primary-foreground shadow-[0px_1px_1px_-0.5px_rgba(16,24,40,0.20)] text-primary text-shadow-[0px_1px_1px_rgba(16,24,40,0.08)] hover:bg-primary-foreground/90",
+    popular: true,
+  },
+  Enterprise: {
+    monthlyPrice: "$200",
+    annualPrice: "$160",
+    description: "Built for enterprises and franchises at scale.",
+    buttonText: "Talk to Sales",
+    buttonClass: "bg-secondary shadow-[0px_1px_1px_-0.5px_rgba(16,24,40,0.20)] text-secondary-foreground text-shadow-[0px_1px_1px_rgba(16,24,40,0.08)] hover:bg-secondary/90",
+  },
+}
+
+const PLAN_ORDER = ["Free", "Pro", "Enterprise"]
+
 export function PricingSection() {
   const [isAnnual, setIsAnnual] = useState(true)
+  const [planFeatures, setPlanFeatures] = useState<Record<string, string[]>>({})
 
-  const pricingPlans = [
-    {
-      name: "Free",
-      monthlyPrice: "$0",
-      annualPrice: "$0",
-      description: "Perfect for small businesses starting with digital signage.",
-        features: [
-        "Easy screen pairing with a unique code",
-        "Upload and schedule media in real time",
-        "Basic template and branding options",
-        "Manage a single display screen",
-        "Starter plan with platform watermark",
-        ],
-      buttonText: "Get Started",
-      buttonClass:
-        "bg-zinc-300 shadow-[0px_1px_1px_-0.5px_rgba(16,24,40,0.20)] outline outline-0.5 outline-[#1e29391f] outline-offset-[-0.5px] text-gray-800 text-shadow-[0px_1px_1px_rgba(16,24,40,0.08)] hover:bg-zinc-400",
-    },
-    {
-      name: "Pro",
-      monthlyPrice: "$60",
-      annualPrice: "$46",
-      description: "Designed for growing brands that need more flexibility.",
-features: [
-  "Connect and manage up to 10 screens",
-  "Advanced scheduling and playlists",
-  "Custom branding and templates",
-  "Multi-user team access",
-  "Email support with priority response",
-],
-      buttonText: "Join now",
-      buttonClass:
-        "bg-primary-foreground shadow-[0px_1px_1px_-0.5px_rgba(16,24,40,0.20)] text-primary text-shadow-[0px_1px_1px_rgba(16,24,40,0.08)] hover:bg-primary-foreground/90",
-      popular: true,
-    },
-    {
-      name: "Ultra",
-      monthlyPrice: "$200",
-      annualPrice: "$160",
-      description: "Built for enterprises and franchises at scale.",
-features: [
-  "Unlimited screens and locations",
-  "Centralized control panel for networks",
-  "White-label branding and custom domains",
-  "24/7 premium support",
-  "Dedicated account manager and onboarding",
-],
-      buttonText: "Talk to Sales",
-      buttonClass:
-        "bg-secondary shadow-[0px_1px_1px_-0.5px_rgba(16,24,40,0.20)] text-secondary-foreground text-shadow-[0px_1px_1px_rgba(16,24,40,0.08)] hover:bg-secondary/90",
-    },
-  ]
+  useEffect(() => {
+    fetch("/api/pricing/features")
+      .then((r) => r.json())
+      .then((data) => setPlanFeatures(data.planFeatures || {}))
+      .catch(() => {})
+  }, [])
+
+  const pricingPlans = PLAN_ORDER.map((name) => ({
+    name,
+    features: planFeatures[name] || [],
+    ...(PLAN_META[name] || {}),
+  }))
 
   return (
     <section className="w-full px-5 overflow-hidden flex flex-col justify-start items-center my-0 py-8 md:py-14">

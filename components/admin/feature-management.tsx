@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
+import { Switch } from "@/components/ui/switch"
 import { Plus, CheckCircle, XCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
@@ -44,24 +44,14 @@ interface Plan {
   is_active: boolean
 }
 
-interface FeatureFormData {
-  feature_key: string
-  feature_name: string
-  description: string
-}
-
 export function FeatureManagement() {
   const [features, setFeatures] = useState<Feature[]>([])
   const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
-  const [editingFeature, setEditingFeature] = useState<Feature | null>(null)
   const [deletingFeature, setDeletingFeature] = useState<Feature | null>(null)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
-  const [formData, setFormData] = useState<FeatureFormData>({
-    feature_key: "",
-    feature_name: "",
-    description: "",
-  })
+  const [newFeatureKey, setNewFeatureKey] = useState("")
+  const [enabledPlanIds, setEnabledPlanIds] = useState<Set<string>>(new Set())
   const { toast } = useToast()
 
   useEffect(() => {
@@ -107,72 +97,31 @@ export function FeatureManagement() {
   }
 
   const handleCreateFeature = async () => {
+    if (!newFeatureKey.trim()) {
+      toast({ title: "Error", description: "Feature key is required", variant: "destructive" })
+      return
+    }
     try {
       const response = await fetch("/api/admin/features", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          feature_key: newFeatureKey.trim().toLowerCase().replace(/\s+/g, "_"),
+          plan_enabled_ids: Array.from(enabledPlanIds),
+        }),
       })
-
       if (response.ok) {
         await fetchFeatures()
         setShowCreateDialog(false)
-        resetForm()
-        toast({
-          title: "Success",
-          description: "Feature created successfully",
-        })
+        setNewFeatureKey("")
+        setEnabledPlanIds(new Set())
+        toast({ title: "Success", description: "Feature created successfully" })
       } else {
         const error = await response.json()
-        toast({
-          title: "Error",
-          description: error.message || "Failed to create feature",
-          variant: "destructive",
-        })
+        toast({ title: "Error", description: error.message || "Failed to create feature", variant: "destructive" })
       }
     } catch (error) {
-      console.error("[v0] Error creating feature:", error)
-      toast({
-        title: "Error",
-        description: "Failed to create feature",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const handleUpdateFeature = async () => {
-    if (!editingFeature) return
-
-    try {
-      const response = await fetch(`/api/admin/features/${editingFeature.feature_key}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      })
-
-      if (response.ok) {
-        await fetchFeatures()
-        setEditingFeature(null)
-        resetForm()
-        toast({
-          title: "Success",
-          description: "Feature updated successfully",
-        })
-      } else {
-        const error = await response.json()
-        toast({
-          title: "Error",
-          description: error.message || "Failed to update feature",
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
-      console.error("[v0] Error updating feature:", error)
-      toast({
-        title: "Error",
-        description: "Failed to update feature",
-        variant: "destructive",
-      })
+      toast({ title: "Error", description: "Failed to create feature", variant: "destructive" })
     }
   }
 
@@ -237,23 +186,6 @@ export function FeatureManagement() {
         variant: "destructive",
       })
     }
-  }
-
-  const resetForm = () => {
-    setFormData({
-      feature_key: "",
-      feature_name: "",
-      description: "",
-    })
-  }
-
-  const openEditDialog = (feature: Feature) => {
-    setFormData({
-      feature_key: feature.feature_key,
-      feature_name: feature.feature_name,
-      description: feature.description || "",
-    })
-    setEditingFeature(feature)
   }
 
   const formatCurrency = (amount: number) => {
@@ -345,50 +277,53 @@ export function FeatureManagement() {
         </CardContent>
       </Card>
 
-      {/* Create/Edit Feature Dialog */}
+      {/* Create Feature Dialog */}
       <Dialog
-        open={showCreateDialog || !!editingFeature}
-        onOpenChange={() => {
-          setShowCreateDialog(false)
-          setEditingFeature(null)
-          resetForm()
+        open={showCreateDialog}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowCreateDialog(false)
+            setNewFeatureKey("")
+            setEnabledPlanIds(new Set())
+          }
         }}
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingFeature ? "Edit Feature" : "Create New Feature"}</DialogTitle>
-            <DialogDescription>
-              {editingFeature ? "Update feature details" : "Add a new feature to the system"}
-            </DialogDescription>
+            <DialogTitle>Create New Feature</DialogTitle>
+            <DialogDescription>Add a new feature and choose which plans it is enabled for.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
               <Label>Feature Key</Label>
               <Input
-                value={formData.feature_key}
-                onChange={(e) => setFormData({ ...formData, feature_key: e.target.value })}
+                value={newFeatureKey}
+                onChange={(e) => setNewFeatureKey(e.target.value)}
                 placeholder="e.g., custom_branding"
-                disabled={!!editingFeature}
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Unique identifier for the feature (cannot be changed after creation)
+                Unique identifier — spaces will become underscores, will be lowercased.
               </p>
             </div>
             <div>
-              <Label>Feature Name</Label>
-              <Input
-                value={formData.feature_name}
-                onChange={(e) => setFormData({ ...formData, feature_name: e.target.value })}
-                placeholder="e.g., Custom Branding"
-              />
-            </div>
-            <div>
-              <Label>Description</Label>
-              <Textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Optional description of the feature..."
-              />
+              <Label className="mb-2 block">Enable for plans</Label>
+              <div className="space-y-2">
+                {plans.map((plan) => (
+                  <div key={plan.id} className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2">
+                    <span className="text-sm font-medium">{plan.name}</span>
+                    <Switch
+                      checked={enabledPlanIds.has(plan.id)}
+                      onCheckedChange={(checked) => {
+                        setEnabledPlanIds((prev) => {
+                          const next = new Set(prev)
+                          checked ? next.add(plan.id) : next.delete(plan.id)
+                          return next
+                        })
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -396,15 +331,13 @@ export function FeatureManagement() {
               variant="outline"
               onClick={() => {
                 setShowCreateDialog(false)
-                setEditingFeature(null)
-                resetForm()
+                setNewFeatureKey("")
+                setEnabledPlanIds(new Set())
               }}
             >
               Cancel
             </Button>
-            <Button onClick={editingFeature ? handleUpdateFeature : handleCreateFeature}>
-              {editingFeature ? "Update Feature" : "Create Feature"}
-            </Button>
+            <Button onClick={handleCreateFeature}>Create Feature</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
