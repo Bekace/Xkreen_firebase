@@ -54,7 +54,10 @@ export function useUploadLimits(): UploadLimits & {
 
         const GB = 1024 * 1024 * 1024
         const currentStorageGB = currentStorageBytes / GB
-        const maxStorageGB = isUnlimited ? Number.MAX_SAFE_INTEGER : maxStorageBytes / GB
+        const conversionFactor = storageUnit.toUpperCase() === "GB" ? GB : 1024 * 1024;
+        const maxStorageConverted = isUnlimited ? Number.MAX_SAFE_INTEGER : maxStorageBytes / conversionFactor;
+        const currentStorageConverted = currentStorageBytes / conversionFactor;
+        const maxStorageGB = maxStorageConverted
         const remainingStorageGB = isUnlimited ? Number.MAX_SAFE_INTEGER : Math.max(0, maxStorageGB - currentStorageGB)
         const storageUsagePercentage = isUnlimited ? 0 : (currentStorageGB / maxStorageGB) * 100
 
@@ -70,7 +73,7 @@ export function useUploadLimits(): UploadLimits & {
 
         setLimits({
           maxStorage: maxStorageBytes,
-          storageUnit: "GB", // Always display in GB for consistency
+          storageUnit: storageUnit,
           currentStorageBytes,
           currentStorageFormatted: currentStorageGB,
           remainingStorageFormatted: remainingStorageGB,

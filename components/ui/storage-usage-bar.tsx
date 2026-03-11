@@ -33,24 +33,26 @@ export function StorageUsageBar({
   const formatStorageDisplay = () => {
     if (maxStorage === -1) return "Unlimited"
 
-    const maxStorageGB = maxStorage / (1024 * 1024 * 1024)
+    const conversionFactor = storageUnit.toUpperCase() === "GB" ? 1024 * 1024 * 1024 : 1024 * 1024;
+    const maxStorageConverted = maxStorage / conversionFactor
 
-    if (currentFormatted < 1) {
+    if (currentFormatted < 1 && storageUnit.toUpperCase() === "GB") {
       const currentMB = currentFormatted * 1024
-      return `${currentMB.toFixed(2)} MB / ${maxStorageGB.toFixed(0)} GB`
+      return `${currentMB.toFixed(2)} MB / ${maxStorageConverted.toFixed(0)} GB`
     }
 
-    return `${currentFormatted.toFixed(2)} GB / ${maxStorageGB.toFixed(0)} GB`
+    return `${currentFormatted.toFixed(2)} ${storageUnit} / ${maxStorageConverted.toFixed(0)} ${storageUnit}`
   }
 
   const formatPercentageDisplay = () => {
     if (maxStorage === -1) return "Unlimited storage on your current plan"
 
-    const maxStorageGB = maxStorage / (1024 * 1024 * 1024)
+    const conversionFactor = storageUnit.toUpperCase() === "GB" ? 1024 * 1024 * 1024 : 1024 * 1024;
+    const maxStorageConverted = maxStorage / conversionFactor
 
     const percentage = usagePercentage < 1 ? usagePercentage.toFixed(2) : Math.round(usagePercentage).toString()
 
-    return `You are using ${percentage}% of ${maxStorageGB.toFixed(0)}GB on your ${planName} plan`
+    return `You are using ${percentage}% of ${maxStorageConverted.toFixed(0)} ${storageUnit} on your ${planName} plan`
   }
 
   return (

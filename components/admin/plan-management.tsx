@@ -121,7 +121,7 @@ export function PlanManagement() {
     enable_ai_analytics: false,
     enable_team_members: false,
     enable_url_media: true,
-    enable_display_branding: true,
+      enable_display_branding: false,
   })
   const { toast } = useToast()
 
@@ -191,7 +191,6 @@ export function PlanManagement() {
         Number.parseInt(formData.max_media_storage),
         formData.storage_unit,
       )
-
       const fileUploadInBytes = convertDisplayValueToBytes(
         Number.parseInt(formData.max_file_upload_size),
         formData.storage_unit,
@@ -237,7 +236,7 @@ export function PlanManagement() {
 
       if (response.ok) {
         await fetchPlans()
-        setShowCreateDialog(false)
+        setIsPlanDialogOpen(false)
         resetForm()
         toast({
           title: "Success",
@@ -396,12 +395,14 @@ export function PlanManagement() {
       enable_ai_analytics: false,
       enable_team_members: false,
       enable_url_media: true,
+      enable_display_branding: false,
     })
   }
 
   const openEditDialog = (plan: SubscriptionPlan) => {
     const displayValue = convertStorageToDisplayValue(plan.max_media_storage, plan.storage_unit)
-    const fileUploadValue = convertStorageToDisplayValue(plan.max_file_upload_size || 10737418240, plan.storage_unit)
+    const fileUploadValue = convertStorageToDisplayValue(plan.max_file_upload_size || plan.max_media_storage, plan.storage_unit)
+
 
     // Extract monthly and yearly prices from the prices array
     const monthlyPrice = plan.prices?.find((p) => p.billing_cycle === "monthly")?.price || plan.monthly_price || 0
@@ -722,19 +723,9 @@ export function PlanManagement() {
                         onChange={(e) => setFormData({ ...formData, max_media_storage: e.target.value })}
                         className="flex-1"
                       />
-                      <Select
-                        value={formData.storage_unit}
-                        onValueChange={(value) => setFormData({ ...formData, storage_unit: value })}
-                      >
-                        <SelectTrigger className="w-20">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="MB">MB</SelectItem>
-                          <SelectItem value="GB">GB</SelectItem>
-                          <SelectItem value="TB">TB</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="w-20 flex items-center justify-center bg-muted rounded-md border border-input text-sm">
+                        {formData.storage_unit}
+                      </div>
                     </div>
                   </div>
                   <div className="flex flex-col justify-end">
@@ -748,19 +739,29 @@ export function PlanManagement() {
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-sm text-muted-foreground">File Upload Limit</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="number"
-                        min="1"
-                        value={formData.max_file_upload_size}
-                        onChange={(e) => setFormData({ ...formData, max_file_upload_size: e.target.value })}
-                        className="flex-1"
-                      />
-                      <div className="w-20 flex items-center justify-center text-sm text-muted-foreground">GB</div>
-                    </div>
-                  </div>
+                <div className="space-y-2">
+                <Label className="text-sm text-muted-foreground">File Upload Limit</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    min="1"
+                    value={formData.max_file_upload_size}
+                    onChange={(e) => setFormData({ ...formData, max_file_upload_size: e.target.value })}
+                    className="flex-1"
+                  />
+                  <Select value={formData.storage_unit} onValueChange={(value) => setFormData({ ...formData, storage_unit: value })}>
+                    <SelectTrigger className="w-20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="MB">MB</SelectItem>
+                      <SelectItem value="GB">GB</SelectItem>
+                      <SelectItem value="TB">TB</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
                   <div className="flex flex-col justify-end">
                     <div className="flex items-center justify-between">
                       <Label className="text-sm">Enable URL Media</Label>
