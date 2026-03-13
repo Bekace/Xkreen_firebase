@@ -1,0 +1,22 @@
+# Firebase App Hosting configuration file
+# See https://firebase.google.com/docs/app-hosting/configure for details
+
+kind: 'AppHostingConfig'
+schemaVersion: 'v1'
+
+env:
+  - variable: NEXT_PUBLIC_SITE_URL
+    value: 'https://app.xkreen.com'
+    availability: ['BUILD', 'RUNTIME']
+  
+  - variable: NEXT_PUBLIC_SUPABASE_URL
+    value: 'https://ciowvmlicegpvdlzxjly.supabase.co'
+    availability: ['BUILD', 'RUNTIME']
+
+  - variable: NEXT_PUBLIC_SUPABASE_ANON_KEY
+    value: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpb3d2bWxpY2VncHZkbHp4amx5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU2MzM5MzMsImV4cCI6MjA3MTIwOTkzM30.zZhpJmVf6fSYMJCM1rwZXPvINArSXNxGUqERs73y9Sk'
+    availability: ['BUILD', 'RUNTIME']
+
+  - variable: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+    value: 'pk_test_51ScGgnPCOYuBZG3wYoCkjknDEHMuEBoBxLt3aBSNYDdrfuYQxjAIXNuoFX4P37Kp7xmKqM8iGgMwS3K9MLHAvjRN00bJO63Ba5'
+    availability: ['BUILD', 'RUNTIME']

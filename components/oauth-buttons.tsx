@@ -20,21 +20,25 @@ export function OAuthButtons({ redirectTo, mode }: OAuthButtonsProps) {
 
     try {
       const supabase = createClient()
-      const redirectUrl = process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/auth/callback`
+      
+      // Use the production site URL from environment variables
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || ""
+      const baseUrl = siteUrl.endsWith('/') ? siteUrl.slice(0, -1) : siteUrl
+      const callbackUrl = `${baseUrl}/auth/callback`
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${redirectUrl}?mode=${mode}&next=${encodeURIComponent(redirectTo || "/dashboard")}`,
+          redirectTo: `${callbackUrl}?mode=${mode}&next=${encodeURIComponent(redirectTo || "/dashboard")}`,
         },
       })
 
       if (error) {
-        console.error(`[v0] OAuth error:`, error)
+        console.error(`[Auth] Error:`, error)
         setLoading(false)
       }
     } catch (error) {
-      console.error(`[v0] OAuth error:`, error)
+      console.error(`[Auth] Unexpected error:`, error)
       setLoading(false)
     }
   }
