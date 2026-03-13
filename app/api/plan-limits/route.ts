@@ -70,7 +70,8 @@ export async function GET(request: NextRequest) {
           max_locations,
           max_schedules,
           max_team_members,
-          storage_unit
+          storage_unit,
+          url_media
         )
       `,
       )
@@ -94,6 +95,7 @@ export async function GET(request: NextRequest) {
       max_schedules: 1,
       max_team_members: 0,
       storage_unit: "GB",
+      url_media: false,
     }
 
     // Get current usage counts
@@ -150,16 +152,16 @@ export async function GET(request: NextRequest) {
         storageUsed: currentStorageBytes,
       },
       features: {
-        mediaLibrary: featureMap["media_library"] ?? false,
-        playlists: featureMap["playlists"] ?? false,
-        screens: featureMap["screens"] ?? false,
+        mediaLibrary: featureMap["media_library"] ?? true,
+        playlists: featureMap["playlists"] ?? true,
+        screens: featureMap["screens"] ?? true,
         locations: featureMap["locations"] ?? false,
         schedules: featureMap["schedules"] ?? false,
         analytics: featureMap["analytics"] ?? false,
         aiAnalytics: featureMap["ai_analytics"] ?? false,
         teamMembers: featureMap["team_members"] ?? false,
-        urlMedia: featureMap["url_media"] ?? false,
-        displayBranding: featureMap["display_branding"] ?? false,
+        urlMedia: plan.url_media ?? false, // <-- Correctly use the direct boolean
+        displayBranding: plan.display_branding ?? false,
       },
     }
 

@@ -1,19 +1,20 @@
+
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
+import { formatBytes } from "@/lib/storage-utils"
 
 interface StorageUsageBarProps {
-  currentFormatted: number
-  maxStorage: number
-  storageUnit: string
+  currentStorage: number // Should be in bytes
+  maxStorage: number // Should be in bytes, -1 for unlimited
+  storageUnit: string // This prop is no longer used but kept for compatibility
   usagePercentage: number
   planName?: string
   className?: string
 }
 
 export function StorageUsageBar({
-  currentFormatted,
+  currentStorage,
   maxStorage,
-  storageUnit,
   usagePercentage,
   planName = "Free",
   className,
@@ -30,45 +31,38 @@ export function StorageUsageBar({
     return "default"
   }
 
-  const formatStorageDisplay = () => {
-    if (maxStorage === -1) return "Unlimited"
+  const storageDisplay =
+    maxStorage === -1 ? "Unlimited" : `${formatBytes(currentStorage)} / ${formatBytes(maxStorage)}`
 
-    const conversionFactor = storageUnit.toUpperCase() === "GB" ? 1024 * 1024 * 1024 : 1024 * 1024;
-    const maxStorageConverted = maxStorage / conversionFactor
-
-    if (currentFormatted < 1 && storageUnit.toUpperCase() === "GB") {
-      const currentMB = currentFormatted * 1024
-      return `${currentMB.toFixed(2)} MB / ${maxStorageConverted.toFixed(0)} GB`
-    }
-
-    return `${currentFormatted.toFixed(2)} ${storageUnit} / ${maxStorageConverted.toFixed(0)} ${storageUnit}`
-  }
-
-  const formatPercentageDisplay = () => {
-    if (maxStorage === -1) return "Unlimited storage on your current plan"
-
-    const conversionFactor = storageUnit.toUpperCase() === "GB" ? 1024 * 1024 * 1024 : 1024 * 1024;
-    const maxStorageConverted = maxStorage / conversionFactor
-
-    const percentage = usagePercentage < 1 ? usagePercentage.toFixed(2) : Math.round(usagePercentage).toString()
-
-    return `You are using ${percentage}% of ${maxStorageConverted.toFixed(0)} ${storageUnit} on your ${planName} plan`
-  }
+  const percentageDisplay =
+    maxStorage === -1
+      ? `Unlimited storage on your ${planName} plan`
+      : `You are using ${usagePercentage.toFixed(
+          2
+        )}% of ${formatBytes(maxStorage)} on your ${planName} plan`
 
   return (
     <div className={`space-y-3 ${className}`}>
       <div className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">{formatPercentageDisplay()}</span>
+        <span className="text-sm text-muted-foreground">{percentageDisplay}</span>
         <Badge
           variant={getBadgeVariant(usagePercentage)}
           className={`
-            ${usagePercentage < 75 ? "bg-emerald-500 hover:bg-emerald-600 text-white" : ""}
-            ${usagePercentage >= 75 && usagePercentage < 90 ? "bg-yellow-500 hover:bg-yellow-600 text-white" : ""}
-            ${usagePercentage >= 90 ? "bg-red-500 hover:bg-red-600 text-white" : ""}
+            ${
+              usagePercentage < 75 ? "bg-emerald-500 hover:bg-emerald-600 text-white" : ""
+            }
+            ${
+              usagePercentage >= 75 && usagePercentage < 90
+                ? "bg-yellow-500 hover:bg-yellow-600 text-white"
+                : ""
+            }
+            ${
+              usagePercentage >= 90 ? "bg-red-500 hover:bg-red-600 text-white" : ""
+            }
             font-medium px-3 py-1
           `}
         >
-          {formatStorageDisplay()}
+          {storageDisplay}
         </Badge>
       </div>
 
@@ -86,7 +80,9 @@ export function StorageUsageBar({
             </p>
           )}
           {usagePercentage >= 75 && usagePercentage < 90 && (
-            <p className="text-xs text-yellow-600">Storage usage is high. Consider managing your files.</p>
+            <p className="text-xs text-yellow-600">
+              Storage usage is high. Consider managing your files.
+            </p>
           )}
         </>
       )}

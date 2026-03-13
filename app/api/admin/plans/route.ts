@@ -5,7 +5,7 @@ import { logAdminAction } from "@/lib/admin/audit"
 export async function GET(request: NextRequest) {
   try {
     const authResult = await requireSuperAdminAPI()
-    if ("error" in authResult && authResult.error !== null) {
+    if (!("supabase" in authResult)) {
       return authResult
     }
     const { supabase } = authResult
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const authResult = await requireSuperAdminAPI()
-    if ("error" in authResult && authResult.error !== null) {
+    if (!("supabase" in authResult)) {
       return authResult
     }
     const { supabase } = authResult
@@ -97,12 +97,14 @@ export async function POST(request: NextRequest) {
         max_media_storage: planData.max_media_storage,
         max_file_upload_size: planData.max_file_upload_size,
         storage_unit: planData.storage_unit,
+        file_upload_unit: planData.file_upload_unit,
         max_playlists: planData.max_playlists,
         max_locations: planData.max_locations ?? 1,
         max_schedules: planData.max_schedules ?? 1,
         max_team_members: planData.max_team_members ?? 0,
         is_active: planData.is_active,
         display_branding: planData.display_branding,
+        url_media: planData.url_media,
       })
       .select()
       .single()

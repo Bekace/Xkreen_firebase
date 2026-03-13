@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Check, Loader2 } from "lucide-react"
+import { Check, Loader2, Info } from "lucide-react"
 import { createUpgradeCheckoutSession } from "@/lib/actions/stripe"
 import { useToast } from "@/hooks/use-toast"
 
@@ -41,15 +41,15 @@ interface UpgradePlanDialogProps {
   onOpenChange: (open: boolean) => void
   plans: Plan[]
   currentPlanId?: string
+  currentScreenCount?: number
+  maxScreens?: number
 }
 
 function extractFeatures(plan: Plan): string[] {
-  // If features has display_features array, use that
   if (plan.features?.display_features && Array.isArray(plan.features.display_features)) {
     return plan.features.display_features
   }
 
-  // Otherwise, build features from plan limits
   const displayFeatures: string[] = []
 
   if (plan.max_screens) {
@@ -77,19 +77,21 @@ function extractFeatures(plan: Plan): string[] {
 }
 
 function getPlanTier(plan: Plan): number {
-  // Assign tier based on plan limits (higher number = higher tier)
-  // Free: tier 1, Pro: tier 2, Enterprise: tier 3
   if (plan.name.toLowerCase() === "free") return 1
   if (plan.name.toLowerCase() === "pro") return 2
   if (plan.name.toLowerCase() === "enterprise") return 3
-
-  // Fallback: use max_screens as tier indicator
-  // -1 (unlimited) is highest tier
   if (plan.max_screens === -1) return 999
   return plan.max_screens
 }
 
-export default function UpgradePlanDialog({ open, onOpenChange, plans, currentPlanId }: UpgradePlanDialogProps) {
+export default function UpgradePlanDialog({
+  open,
+  onOpenChange,
+  plans,
+  currentPlanId,
+  currentScreenCount = 0,
+  maxScreens = 0,
+}: UpgradePlanDialogProps) {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly")
   const [isLoading, setIsLoading] = useState<string | null>(null)
   const { toast } = useToast()
@@ -98,12 +100,12 @@ export default function UpgradePlanDialog({ open, onOpenChange, plans, currentPl
   const currentTier = currentPlan ? getPlanTier(currentPlan) : 0
 
   const availablePlans = plans.filter((plan) => {
-    // Never show Free plan as an upgrade option
     if (plan.name.toLowerCase() === "free") return false
-
-    // Only show plans with higher tier than current
     return getPlanTier(plan) > currentTier
   })
+
+  const availableSlots = maxScreens - currentScreenCount
+  const hasAvailableSlots = availableSlots > 0
 
   const getPrice = (plan: Plan, cycle: "monthly" | "yearly"): Price | undefined => {
     return plan.prices.find((p) => p.billing_cycle === cycle && p.is_active)
@@ -112,9 +114,7 @@ export default function UpgradePlanDialog({ open, onOpenChange, plans, currentPl
   const getDisplayPrice = (plan: Plan): string => {
     const price = getPrice(plan, billingCycle)
     if (!price || price.price === 0) return "$0"
-
     if (billingCycle === "yearly") {
-      // Show monthly equivalent for yearly
       return `$${Math.round(price.price / 12)}`
     }
     return `$${price.price}`
@@ -124,7 +124,6 @@ export default function UpgradePlanDialog({ open, onOpenChange, plans, currentPl
     const monthly = getPrice(plan, "monthly")
     const yearly = getPrice(plan, "yearly")
     if (!monthly || !yearly || monthly.price === 0) return null
-
     const yearlyMonthly = yearly.price / 12
     const savings = Math.round(((monthly.price - yearlyMonthly) / monthly.price) * 100)
     return savings > 0 ? savings : null
@@ -132,7 +131,6 @@ export default function UpgradePlanDialog({ open, onOpenChange, plans, currentPl
 
   const handleUpgrade = async (planId: string) => {
     const price = getPrice(plans.find((p) => p.id === planId)!, billingCycle)
-
     if (!price) {
       toast({
         title: "Error",
@@ -141,7 +139,6 @@ export default function UpgradePlanDialog({ open, onOpenChange, plans, currentPl
       })
       return
     }
-
     setIsLoading(planId)
     try {
       const result = await createUpgradeCheckoutSession(planId, price.id)
@@ -153,7 +150,6 @@ export default function UpgradePlanDialog({ open, onOpenChange, plans, currentPl
         })
         setIsLoading(null)
       }
-      // If successful, user will be redirected to Stripe Checkout
     } catch (error) {
       toast({
         title: "Error",
@@ -186,6 +182,27 @@ export default function UpgradePlanDialog({ open, onOpenChange, plans, currentPl
         </DialogHeader>
 
         <div className="space-y-6 py-4">
+          {/* Plan Limits Info */}
+          <div className="border border-border/50 rounded-lg p-4 space-y-2">
+            {hasAvailableSlots && (
+              <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-lg p-3 text-sm flex items-start gap-3">
+                <Info className="h-5 w-5 mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-semibold">You have {availableSlots} available screen slots.</p>
+                  <p>Upgrading will use one of your available slots, and you won't be charged for it immediately.</p>
+                </div>
+              </div>
+            )}
+            <div className="bg-muted/30 rounded-lg p-3 text-sm">
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Current Plan Limits</span>
+                <span className="font-mono text-xs px-2 py-1 bg-background rounded-md border border-border/50">
+                  Screens: {currentScreenCount} / {maxScreens === -1 ? "Unlimited" : maxScreens}
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* Billing Toggle */}
           <div className="flex justify-center">
             <div className="bg-muted p-1 rounded-lg inline-flex">

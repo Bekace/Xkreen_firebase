@@ -17,12 +17,6 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    console.log("[v0] Fetching user data for user ID:", user.id)
-
-    const { data: uploadSettingsArray } = await supabase.from("upload_settings").select("*").limit(1)
-    const uploadSettings = uploadSettingsArray?.[0] || null
-    console.log("[v0] Upload settings:", uploadSettings)
-
     const { data: subscriptionData, error: subscriptionError } = await supabase
       .from("user_subscriptions")
       .select(`
@@ -32,7 +26,8 @@ export async function GET() {
           name,
           max_media_storage,
           max_file_upload_size,
-          storage_unit
+          storage_unit,
+          file_upload_unit
         )
       `)
       .eq("user_id", user.id)
@@ -40,65 +35,48 @@ export async function GET() {
       .not("plan_id", "is", null)
       .maybeSingle()
 
-    console.log("[v0] Subscription query result:", { subscriptionData, subscriptionError })
+    if (subscriptionError) {
+        console.error("[v0] Subscription query error:", subscriptionError)
+    }
 
-    let maxStorage = 3145728
-    let storageUnit = "MB"
-    let maxFileSize = 52428800
-    let planName = "Free"
+    let maxStorage: number
+    let storageUnit: string
+    let maxFileSize: number
+    let fileUploadUnit: string
+    let planName: string
 
-    if (subscriptionData && !subscriptionError && subscriptionData.subscription_plans) {
-      const plan = subscriptionData.subscription_plans
-      maxStorage = Number.parseInt(plan.max_media_storage)
-      storageUnit = plan.storage_unit || "MB"
-      maxFileSize =
-        uploadSettings?.enforce_globally && uploadSettings.max_file_size
-          ? uploadSettings.max_file_size
-          : plan.max_file_upload_size || 52428800
-      planName = plan.name || "Free"
-      console.log("[v0] Using subscription plan storage:", {
-        maxStorage,
-        storageUnit,
-        maxFileSize,
-        planName,
-        enforceGlobally: uploadSettings?.enforce_globally,
-      })
+    if (subscriptionData && subscriptionData.subscription_plans) {
+      const plan = subscriptionData.subscription_plans as any
+      maxStorage = plan.max_media_storage
+      storageUnit = plan.storage_unit || "GB"
+      maxFileSize = plan.max_file_upload_size || 52428800 // Default to 50MB if not set
+      fileUploadUnit = plan.file_upload_unit || "MB"
+      planName = plan.name || "Unknown Plan"
     } else {
-      console.log("[v0] No active subscription found, fetching Free plan")
-
+      // Fetch the free plan if no active subscription
       const { data: freePlan, error: freePlanError } = await supabase
         .from("subscription_plans")
-        .select("max_media_storage, max_file_upload_size, storage_unit, name")
-        .eq("price", 0)
+        .select("name, max_media_storage, max_file_upload_size, storage_unit, file_upload_unit")
+        .or("name.eq.Free,name.eq.free") // Check for "Free" or "free"
         .eq("is_active", true)
         .maybeSingle()
 
-      console.log("[v0] Free plan query result:", { freePlan, freePlanError })
-
       if (freePlan && !freePlanError) {
-        maxStorage = Number.parseInt(freePlan.max_media_storage)
-        storageUnit = freePlan.storage_unit || "MB"
-        maxFileSize =
-          uploadSettings?.enforce_globally && uploadSettings.max_file_size
-            ? uploadSettings.max_file_size
-            : freePlan.max_file_upload_size || 52428800
-        planName = freePlan.name || "Free"
-        console.log("[v0] Using Free plan storage:", {
-          maxStorage,
-          storageUnit,
-          maxFileSize,
-          planName,
-          enforceGlobally: uploadSettings?.enforce_globally,
-        })
+        maxStorage = freePlan.max_media_storage
+        storageUnit = freePlan.storage_unit || "GB"
+        maxFileSize = freePlan.max_file_upload_size || 52428800 // Default to 50MB
+        fileUploadUnit = freePlan.file_upload_unit || "MB"
+        planName = freePlan.name
       } else {
-        console.log("[v0] Free plan not found, using hardcoded defaults")
-        if (uploadSettings?.enforce_globally && uploadSettings.max_file_size) {
-          maxFileSize = uploadSettings.max_file_size
-        }
+        // Hardcoded fallback if no free plan is found
+        maxStorage = 1073741824 // 1 GB
+        storageUnit = "GB"
+        maxFileSize = 52428800 // 50 MB
+        fileUploadUnit = "MB"
+        planName = "Free"
       }
     }
 
-    console.log("[v0] Final storage limits:", { maxStorage, storageUnit, maxFileSize, planName })
 
     const { data: mediaData, error: mediaError } = await supabase
       .from("media")
@@ -115,14 +93,13 @@ export async function GET() {
         return total + fileSize
       }, 0) || 0
 
-    console.log("[v0] Current storage bytes:", currentStorageBytes)
-
     return NextResponse.json(
       {
         maxStorage,
         storageUnit,
         currentStorageBytes,
         maxFileSize,
+        fileUploadUnit,
         planName,
       },
       {
@@ -134,7 +111,7 @@ export async function GET() {
       },
     )
   } catch (error) {
-    console.log("[v0] API error:", error)
+    console.error("[v0] upload-limits API error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

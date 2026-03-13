@@ -1,18 +1,20 @@
-"use client"
-
 import { useState, useEffect, useCallback } from "react"
+import { convertStorageToDisplayValue, formatBytes } from "@/lib/storage-utils"
+
 
 interface UploadLimits {
-  maxStorage: number
-  storageUnit: string
+  maxStorage: number // in bytes
+  storageUnit: "MB" | "GB" | "TB"
   currentStorageBytes: number
-  currentStorageFormatted: number
-  remainingStorageFormatted: number
+  currentStorageFormatted: string
+  remainingStorageFormatted: string
   isAtLimit: boolean
   canUpload: (fileSizeBytes: number) => boolean
   storageUsagePercentage: number
   isUnlimited: boolean
-  maxFileSize: number
+  maxFileSize: number // in bytes
+  fileUploadUnit: "MB" | "GB" | "TB"
+  maxFileSizeFormatted: string
   planName: string
 }
 
@@ -22,79 +24,61 @@ export function useUploadLimits(): UploadLimits & {
   refresh: () => Promise<void>
 } {
   const [limits, setLimits] = useState<UploadLimits>({
-    maxStorage: 100,
-    storageUnit: "MB",
+    maxStorage: 1073741824, // 1 GB
+    storageUnit: "GB",
     currentStorageBytes: 0,
-    currentStorageFormatted: 0,
-    remainingStorageFormatted: 100,
+    currentStorageFormatted: "0 GB",
+    remainingStorageFormatted: "1 GB",
     isAtLimit: false,
-    canUpload: () => false,
+    canUpload: () => true,
     storageUsagePercentage: 0,
     isUnlimited: false,
-    maxFileSize: 52428800,
+    maxFileSize: 52428800, // 50 MB
+    fileUploadUnit: "MB",
+    maxFileSizeFormatted: "50 MB",
     planName: "Free",
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const fetchUploadLimits = useCallback(async () => {
+    setLoading(true)
     try {
-      console.log("[v0] Fetching upload limits...")
       const response = await fetch("/api/upload-limits")
-      if (response.ok) {
-        const data = await response.json()
-        console.log("[v0] Upload limits response:", data)
-
-        const isUnlimited = data.maxStorage === -1
-        const storageUnit = data.storageUnit || "MB"
-        const currentStorageBytes = data.currentStorageBytes || 0
-        const maxStorageBytes = data.maxStorage
-        const maxFileSize = data.maxFileSize || 52428800
-        const planName = data.planName || "Free"
-
-        const GB = 1024 * 1024 * 1024
-        const currentStorageGB = currentStorageBytes / GB
-        const conversionFactor = storageUnit.toUpperCase() === "GB" ? GB : 1024 * 1024;
-        const maxStorageConverted = isUnlimited ? Number.MAX_SAFE_INTEGER : maxStorageBytes / conversionFactor;
-        const currentStorageConverted = currentStorageBytes / conversionFactor;
-        const maxStorageGB = maxStorageConverted
-        const remainingStorageGB = isUnlimited ? Number.MAX_SAFE_INTEGER : Math.max(0, maxStorageGB - currentStorageGB)
-        const storageUsagePercentage = isUnlimited ? 0 : (currentStorageGB / maxStorageGB) * 100
-
-        console.log("[v0] Calculated storage:", {
-          currentStorageBytes,
-          currentStorageGB,
-          maxStorageBytes,
-          maxStorageGB,
-          storageUsagePercentage,
-          maxFileSize,
-          planName,
-        })
-
-        setLimits({
-          maxStorage: maxStorageBytes,
-          storageUnit: storageUnit,
-          currentStorageBytes,
-          currentStorageFormatted: currentStorageGB,
-          remainingStorageFormatted: remainingStorageGB,
-          isAtLimit: !isUnlimited && currentStorageBytes >= maxStorageBytes,
-          canUpload: (fileSizeBytes: number) => {
-            if (isUnlimited) return fileSizeBytes <= maxFileSize
-            return fileSizeBytes <= maxFileSize && currentStorageBytes + fileSizeBytes <= maxStorageBytes
-          },
-          storageUsagePercentage: Math.min(100, storageUsagePercentage),
-          isUnlimited,
-          maxFileSize,
-          planName,
-        })
-        setError(null)
-      } else {
-        console.error("[v0] Failed to fetch upload limits, status:", response.status)
-        setError("Failed to fetch upload limits")
+      if (!response.ok) {
+        throw new Error(`Failed to fetch upload limits: ${response.statusText}`)
       }
+      const data = await response.json()
+
+      const isUnlimited = data.maxStorage === -1
+      const maxStorageBytes = isUnlimited ? Number.MAX_SAFE_INTEGER : Number(data.maxStorage) || 0
+      const currentStorageBytes = Number(data.currentStorageBytes) || 0
+      const storageUsagePercentage = isUnlimited ? 0 : (currentStorageBytes / maxStorageBytes) * 100
+      const remainingBytes = Math.max(0, maxStorageBytes - currentStorageBytes)
+
+      setLimits({
+        maxStorage: maxStorageBytes,
+        storageUnit: data.storageUnit || "GB",
+        currentStorageBytes: currentStorageBytes,
+        currentStorageFormatted: formatBytes(currentStorageBytes),
+        remainingStorageFormatted: formatBytes(remainingBytes),
+        isAtLimit: !isUnlimited && currentStorageBytes >= maxStorageBytes,
+        canUpload: (fileSizeBytes: number) => {
+          if (fileSizeBytes > data.maxFileSize) return false
+          if (isUnlimited) return true
+          return currentStorageBytes + fileSizeBytes <= maxStorageBytes
+        },
+        storageUsagePercentage: Math.min(100, storageUsagePercentage),
+        isUnlimited,
+        maxFileSize: data.maxFileSize || 0,
+        fileUploadUnit: data.fileUploadUnit || "MB",
+        maxFileSizeFormatted: formatBytes(data.maxFileSize || 0),
+        planName: data.planName || "Free",
+      })
+      setError(null)
     } catch (err) {
       console.error("[v0] Error fetching upload limits:", err)
-      setError("Failed to fetch upload limits")
+      setError(err instanceof Error ? err.message : "An unknown error occurred")
     } finally {
       setLoading(false)
     }
@@ -105,7 +89,6 @@ export function useUploadLimits(): UploadLimits & {
   }, [fetchUploadLimits])
 
   const refresh = useCallback(async () => {
-    setLoading(true)
     await fetchUploadLimits()
   }, [fetchUploadLimits])
 

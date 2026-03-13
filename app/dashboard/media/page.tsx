@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { SimpleUploader } from "@/components/media/simple-uploader"
-import { MediaGrid } from "@/components/media/media-grid"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -19,6 +18,7 @@ import { SmartFileUploader } from "@/components/media/smart-file-uploader"
 import { StorageUsageBar } from "@/components/ui/storage-usage-bar"
 import { UpgradeBanner } from "@/components/upgrade-banner"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
+import { formatBytes } from "@/lib/storage-utils"
 
 interface MediaItem {
   id: string
@@ -143,7 +143,7 @@ function MediaPreviewModal({
       <DialogContent className="max-w-full max-h-full p-0 m-0" style={{ width: "100vw", height: "100vh" }}>
         <DialogTitle className="sr-only">{media.name}</DialogTitle>
         <DialogDescription className="sr-only">
-          Preview of {media.mime_type} file, {formatFileSize(media.file_size)}, created on{" "}
+          Preview of {media.mime_type} file, {formatBytes(media.file_size)}, created on{" "}
           {new Date(media.created_at).toLocaleDateString()}
         </DialogDescription>
 
@@ -153,7 +153,7 @@ function MediaPreviewModal({
               <h2 className="text-lg font-semibold truncate">{media.name}</h2>
               <div className="flex items-center gap-4 text-sm text-white/80 mt-1">
                 <span>{media.mime_type}</span>
-                <span>{formatFileSize(media.file_size)}</span>
+                <span>{formatBytes(media.file_size)}</span>
                 <span>Created: {new Date(media.created_at).toLocaleDateString()}</span>
               </div>
             </div>
@@ -188,14 +188,6 @@ function MediaPreviewModal({
       </DialogContent>
     </Dialog>
   )
-}
-
-function formatFileSize(bytes: number) {
-  if (bytes === 0) return "0 Bytes"
-  const k = 1024
-  const sizes = ["Bytes", "KB", "MB", "GB"]
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
 }
 
 export default function MediaLibraryPage() {
@@ -276,10 +268,9 @@ export default function MediaLibraryPage() {
     if (file) {
       if (file.size > uploadLimits.maxFileSize) {
         const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2)
-        const maxSizeMB = Math.round(uploadLimits.maxFileSize / (1024 * 1024))
         toast({
           title: "File Too Large",
-          description: `This file (${fileSizeMB} MB) exceeds the maximum file size of ${maxSizeMB} MB for your ${uploadLimits.planName || ""} plan.`,
+          description: `This file (${fileSizeMB} MB) exceeds the maximum file size of ${uploadLimits.maxFileSizeFormatted} for your ${uploadLimits.planName || ""} plan.`,
           variant: "destructive",
         })
         return
@@ -289,7 +280,7 @@ export default function MediaLibraryPage() {
         const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2)
         toast({
           title: "Storage Limit Exceeded",
-          description: `This file (${fileSizeMB} MB) would exceed your storage limit. You have ${uploadLimits.remainingStorageFormatted.toFixed(2)} ${uploadLimits.storageUnit} remaining.`,
+          description: `This file (${fileSizeMB} MB) would exceed your storage limit. You have ${uploadLimits.remainingStorageFormatted} remaining.`,
           variant: "destructive",
         })
         return
@@ -517,7 +508,7 @@ export default function MediaLibraryPage() {
         <CardContent className="space-y-4">
           {!uploadLimits.loading && (
             <StorageUsageBar
-              currentFormatted={uploadLimits.currentStorageFormatted}
+              currentStorage={uploadLimits.currentStorageBytes}
               maxStorage={uploadLimits.maxStorage}
               storageUnit={uploadLimits.storageUnit}
               usagePercentage={uploadLimits.storageUsagePercentage}
@@ -556,7 +547,7 @@ export default function MediaLibraryPage() {
                     variant: "destructive",
                   })
                 }}
-                maxFileSizeMB={Math.round(uploadLimits.maxFileSize / (1024 * 1024))}
+                maxFileSizeFormatted={uploadLimits.maxFileSizeFormatted}
               />
             </TabsContent>
 
@@ -712,7 +703,7 @@ export default function MediaLibraryPage() {
                     <h3 className="font-semibold truncate" title={item.name}>
                       {item.name}
                     </h3>
-                    <p className="text-sm text-gray-600 mt-1">{formatFileSize(item.file_size)}</p>
+                    <p className="text-sm text-gray-600 mt-1">{formatBytes(item.file_size)}</p>
                     {item.tags && item.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-2">
                         {item.tags.slice(0, 2).map((tag, index) => (
@@ -742,7 +733,7 @@ export default function MediaLibraryPage() {
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold truncate">{item.name}</h3>
                       <p className="text-sm text-gray-600">
-                        {formatFileSize(item.file_size)} • {new Date(item.created_at).toLocaleDateString()}
+                        {formatBytes(item.file_size)} • {new Date(item.created_at).toLocaleDateString()}
                       </p>
                       {item.tags && item.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1">

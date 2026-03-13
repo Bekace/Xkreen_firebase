@@ -1,72 +1,35 @@
-export type StorageUnit = "KB" | "MB" | "GB" | "TB" | "unlimited"
 
-export interface StorageValue {
-  value: number
-  unit: StorageUnit
-}
-
-export const STORAGE_UNITS: { value: StorageUnit; label: string }[] = [
-  { value: "KB", label: "Kilobytes (KB)" },
-  { value: "MB", label: "Megabytes (MB)" },
-  { value: "GB", label: "Gigabytes (GB)" },
-  { value: "TB", label: "Terabytes (TB)" },
-  { value: "unlimited", label: "Unlimited" },
-]
-
-// Convert storage value to bytes
-export function storageToBytes(value: number, unit: StorageUnit): number {
-  if (unit === "unlimited") return -1
-
-  const multipliers = {
-    KB: 1024,
-    MB: 1024 * 1024,
-    GB: 1024 * 1024 * 1024,
-    TB: 1024 * 1024 * 1024 * 1024,
-  }
-
-  return Math.round(value * multipliers[unit])
-}
-
-// Convert bytes to storage value with unit
-export function bytesToStorage(bytes: number): StorageValue {
-  if (bytes === -1) return { value: 0, unit: "unlimited" }
-  if (bytes === 0) return { value: 0, unit: "MB" }
-
-  const units: StorageUnit[] = ["TB", "GB", "MB", "KB"]
-  const multipliers = {
-    TB: 1024 * 1024 * 1024 * 1024,
-    GB: 1024 * 1024 * 1024,
-    MB: 1024 * 1024,
-    KB: 1024,
-  }
-
-  for (const unit of units) {
-    const value = bytes / multipliers[unit]
-    if (value >= 1) {
-      return { value: Math.round(value * 100) / 100, unit }
-    }
-  }
-
-  return { value: bytes, unit: "KB" }
-}
-
-// Format storage for display
-export function formatStorage(bytes: number): string {
+export function convertStorageToDisplayValue(bytes: number, unit: "MB" | "GB" | "TB" = "GB") {
   if (bytes === -1) return "Unlimited"
-
-  const { value, unit } = bytesToStorage(bytes)
-  return `${value} ${unit}`
+  if (unit === "MB") {
+    return (bytes / 1024 / 1024).toFixed(0)
+  }
+  if (unit === "TB") {
+    return (bytes / 1024 / 1024 / 1024 / 1024).toFixed(2)
+  }
+  // Default to GB
+  return (bytes / 1024 / 1024 / 1024).toFixed(2)
 }
 
-// Get the best unit for a given value in bytes
-export function getBestStorageUnit(bytes: number): StorageUnit {
-  if (bytes === -1) return "unlimited"
+export function formatBytes(bytes: number, decimals = 2) {
+  if (bytes === 0) return '0 Bytes';
+  if (isNaN(bytes) || bytes === null) return '0 Bytes';
 
-  const { unit } = bytesToStorage(bytes)
-  return unit
-}
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  
+  // Handle unlimited case represented by a large number or infinity
+  if (!isFinite(bytes) || bytes < 0) {
+      return 'Unlimited';
+  }
 
-export function formatStorageWithUnit(value: number, unit: StorageUnit): string {
-  if (value === -1 || unit === "unlimited") return "Unlimited"
-  return `${value} ${unit}`
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  
+  if (i >= sizes.length) {
+      // If the size is larger than what's in our array, default to TB and calculate appropriately
+      return parseFloat((bytes / Math.pow(k, 4)).toFixed(dm)) + ' TB';
+  }
+
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }

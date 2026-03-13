@@ -247,6 +247,8 @@ export default async function BillingSettingsPage() {
               cancelAtPeriodEnd={subscription?.cancel_at_period_end}
               planName={plan?.name}
               expiresAt={formattedExpiresAt}
+              currentScreenCount={currentScreenCount}
+              maxScreens={plan?.max_screens}
             />
           </div>
         </div>
@@ -303,6 +305,8 @@ export default async function BillingSettingsPage() {
               cancelAtPeriodEnd={subscription?.cancel_at_period_end}
               planName={plan?.name}
               expiresAt={formattedExpiresAt}
+              currentScreenCount={currentScreenCount}
+              maxScreens={plan?.max_screens}
             />
           </div>
         </div>

@@ -47,6 +47,8 @@ interface BillingClientProps {
   cancelAtPeriodEnd?: boolean
   planName?: string
   expiresAt?: string
+  currentScreenCount?: number
+  maxScreens?: number
 }
 
 export default function BillingClient({
@@ -58,6 +60,8 @@ export default function BillingClient({
   cancelAtPeriodEnd,
   planName,
   expiresAt,
+  currentScreenCount,
+  maxScreens,
 }: BillingClientProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
@@ -141,13 +145,11 @@ export default function BillingClient({
     
     setIsChangingCycle(true)
     try {
-      // Find the current plan
       const currentPlan = plans.find(p => p.id === currentPlanId)
       if (!currentPlan) {
         throw new Error("Current plan not found")
       }
 
-      // Find the price for the opposite billing cycle
       const targetCycle = currentBillingCycle === "monthly" ? "yearly" : "monthly"
       const targetPrice = currentPlan.prices.find(p => p.billing_cycle === targetCycle && p.is_active)
       
@@ -155,16 +157,13 @@ export default function BillingClient({
         throw new Error(`${targetCycle} billing not available for this plan`)
       }
 
-      // Call the upgrade checkout with the new price
       const { createUpgradeCheckoutSession } = await import("@/lib/actions/stripe")
       const result = await createUpgradeCheckoutSession(currentPlanId, targetPrice.id)
 
-      if (result.error) {
-        throw new Error(result.error)
-      }
-
       if (result.url) {
         window.location.href = result.url
+      } else if (result.error) {
+        throw new Error(result.error)
       }
     } catch (error) {
       console.error("[v0] Change billing cycle error:", error)
@@ -235,7 +234,6 @@ export default function BillingClient({
       return null
     }
 
-    // Don't show for Free plan or if current plan doesn't support the other billing cycle
     const currentPlan = plans.find(p => p.id === currentPlanId)
     const targetCycle = currentBillingCycle === "monthly" ? "yearly" : "monthly"
     const hasTargetCycle = currentPlan?.prices.some(p => p.billing_cycle === targetCycle && p.is_active)
@@ -294,6 +292,8 @@ export default function BillingClient({
         onOpenChange={setIsDialogOpen}
         plans={plans}
         currentPlanId={currentPlanId}
+        currentScreenCount={currentScreenCount}
+        maxScreens={maxScreens}
       />
       <CancelSubscriptionDialog
         open={isCancelDialogOpen}

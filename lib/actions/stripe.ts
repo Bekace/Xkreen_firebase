@@ -1,4 +1,4 @@
-"use server"
+'use server'
 
 import { stripe } from "@/lib/stripe"
 import { createClient } from "@/lib/supabase/server"
@@ -21,7 +21,7 @@ export async function syncStripeQuantityWithScreens(userId: string): Promise<{
   const supabase = await createClient()
 
   // Get user's active subscription including plan free_screens
-  const { data: subscription, error: subError } = await supabase
+  const { data: subscriptions, error: subError } = await supabase
     .from("user_subscriptions")
     .select(`
       id,
@@ -35,9 +35,14 @@ export async function syncStripeQuantityWithScreens(userId: string): Promise<{
     `)
     .eq("user_id", userId)
     .in("status", ["active", "trialing"])
-    .single()
+    .limit(1)
 
-  if (subError || !subscription) {
+  if (subError) {
+    return { error: "Failed to retrieve subscription." }
+  }
+  const subscription = subscriptions?.[0]
+
+  if (!subscription) {
     // No paid subscription — nothing to sync (Free plan users don't bill via Stripe)
     return { success: true, billableScreens: 0 }
   }
@@ -46,7 +51,9 @@ export async function syncStripeQuantityWithScreens(userId: string): Promise<{
     return { success: true, billableScreens: 0 }
   }
 
-  const plan = subscription.subscription_plans as { id: string; name: string; free_screens: number }
+  const plan = Array.isArray(subscription.subscription_plans)
+    ? subscription.subscription_plans[0]
+    : (subscription.subscription_plans as any)
   const freeScreens = plan?.free_screens ?? 0
 
   // Count current total screens for this user
@@ -111,7 +118,7 @@ export async function purchaseAdditionalScreen(): Promise<{
   }
 
   // Get user's active subscription
-  const { data: subscription, error: subError } = await supabase
+  const { data: subscriptions, error: subError } = await supabase
     .from("user_subscriptions")
     .select(`
       id,
@@ -125,13 +132,20 @@ export async function purchaseAdditionalScreen(): Promise<{
     `)
     .eq("user_id", user.id)
     .in("status", ["active", "trialing"])
-    .single()
+    .limit(1)
 
-  if (subError || !subscription?.stripe_subscription_id) {
+  if (subError) {
+    return { error: "Failed to retrieve subscription." }
+  }
+  const subscription = subscriptions?.[0]
+
+  if (!subscription?.stripe_subscription_id) {
     return { error: "No active subscription found" }
   }
 
-  const plan = subscription.subscription_plans as { id: string; name: string; free_screens: number }
+  const plan = Array.isArray(subscription.subscription_plans)
+    ? subscription.subscription_plans[0]
+    : (subscription.subscription_plans as any)
   const freeScreens = plan?.free_screens ?? 0
 
   // Count current screens
@@ -166,7 +180,6 @@ export async function purchaseAdditionalScreen(): Promise<{
 export async function createCheckoutSession(planId: string, priceId: string) {
   const supabase = await createClient()
 
-  // Get the current user
   const {
     data: { user },
     error: userError,
@@ -176,7 +189,6 @@ export async function createCheckoutSession(planId: string, priceId: string) {
     return { error: "You must be logged in to subscribe" }
   }
 
-  // Get the selected plan with Stripe price ID
   const { data: plan, error: planError } = await supabase
     .from("subscription_plans")
     .select("*")
@@ -197,63 +209,40 @@ export async function createCheckoutSession(planId: string, priceId: string) {
     return { error: "Invalid price selected" }
   }
 
-  // Get or create Stripe customer
   const { data: profile } = await supabase.from("profiles").select("email").eq("id", user.id).single()
 
-  let customerId: string
-
-  // Check if user already has a Stripe customer ID
-  const { data: existingSubscription } = await supabase
+  const { data: subscriptions } = await supabase
     .from("user_subscriptions")
-    .select("stripe_customer_id")
+    .select("id, stripe_customer_id")
     .eq("user_id", user.id)
-    .single()
+    .limit(1)
 
-  if (existingSubscription?.stripe_customer_id) {
-    customerId = existingSubscription.stripe_customer_id
-  } else {
-    // Create new Stripe customer
+  let customerId = subscriptions?.[0]?.stripe_customer_id
+  const subscriptionId = subscriptions?.[0]?.id
+
+  if (!customerId) {
     const customer = await stripe.customers.create({
       email: profile?.email || user.email,
-      metadata: {
-        user_id: user.id,
-      },
+      metadata: { user_id: user.id },
     })
     customerId = customer.id
 
-    // Update user_subscriptions with customer ID
-    await supabase
-      .from("user_subscriptions")
-      .update({ stripe_customer_id: customerId })
-      .eq("user_id", user.id)
-      .eq("plan_id", planId)
+    if (subscriptionId) {
+      await supabase.from("user_subscriptions").update({ stripe_customer_id: customerId }).eq("id", subscriptionId)
+    }
   }
 
-  // Create checkout session with 14-day trial
   const session = await stripe.checkout.sessions.create({
     customer: customerId,
-    line_items: [
-      {
-        price: price.stripe_price_id,
-        quantity: 1,
-      },
-    ],
+    line_items: [{ price: price.stripe_price_id, quantity: 1 }],
     mode: "subscription",
     subscription_data: {
       trial_period_days: 14,
-      metadata: {
-        user_id: user.id,
-        plan_id: planId,
-        price_id: priceId,
-      },
+      metadata: { user_id: user.id, plan_id: planId, price_id: priceId },
     },
-    success_url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://v0-xkreen-ai.vercel.app"}/auth/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://v0-xkreen-ai.vercel.app"}/auth/pricing`,
-    metadata: {
-      user_id: user.id,
-      plan_id: planId,
-      price_id: priceId,
-    },
+    success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/pricing`,
+    metadata: { user_id: user.id, plan_id: planId, price_id: priceId },
   })
 
   return { sessionId: session.id }
@@ -270,12 +259,14 @@ export async function createCustomerPortalSession() {
     return { error: "Not authenticated" }
   }
 
-  // Get Stripe customer ID
-  const { data: subscription } = await supabase
+  const { data: subscriptions } = await supabase
     .from("user_subscriptions")
     .select("stripe_customer_id, stripe_subscription_id")
     .eq("user_id", user.id)
-    .single()
+    .not("stripe_customer_id", "is", null)
+    .limit(1)
+
+  const subscription = subscriptions?.[0]
 
   if (!subscription?.stripe_customer_id) {
     return { error: "No active subscription found" }
@@ -283,14 +274,7 @@ export async function createCustomerPortalSession() {
 
   const session = await stripe.billingPortal.sessions.create({
     customer: subscription.stripe_customer_id,
-    return_url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://v0-xkreen-ai.vercel.app"}/dashboard/settings/billing`,
-    // Configure what features are available in the portal
-    flow_data: {
-      type: "subscription_cancel",
-      subscription_cancel: {
-        subscription: subscription.stripe_subscription_id,
-      },
-    },
+    return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/settings/billing`,
   })
 
   redirect(session.url)
@@ -299,7 +283,6 @@ export async function createCustomerPortalSession() {
 export async function createUpgradeCheckoutSession(planId: string, priceId: string) {
   const supabase = await createClient()
 
-  // Get the current user
   const {
     data: { user },
     error: userError,
@@ -309,7 +292,6 @@ export async function createUpgradeCheckoutSession(planId: string, priceId: stri
     return { error: "You must be logged in to upgrade" }
   }
 
-  // Get the selected plan with Stripe price ID
   const { data: plan, error: planError } = await supabase
     .from("subscription_plans")
     .select("*")
@@ -320,7 +302,6 @@ export async function createUpgradeCheckoutSession(planId: string, priceId: stri
     return { error: "Invalid plan selected" }
   }
 
-  // Get the selected price
   const { data: price, error: priceError } = await supabase
     .from("subscription_prices")
     .select("*")
@@ -331,67 +312,39 @@ export async function createUpgradeCheckoutSession(planId: string, priceId: stri
     return { error: "Invalid price selected" }
   }
 
-  // Get or create Stripe customer
   const { data: profile } = await supabase.from("profiles").select("email").eq("id", user.id).single()
 
-  let customerId: string
-
-  // Check if user already has a Stripe customer ID
-  const { data: existingSubscription } = await supabase
+  const { data: subscriptions } = await supabase
     .from("user_subscriptions")
-    .select("stripe_customer_id")
+    .select("id, stripe_customer_id")
     .eq("user_id", user.id)
-    .single()
+    .limit(1)
 
-  if (existingSubscription?.stripe_customer_id) {
-    customerId = existingSubscription.stripe_customer_id
-  } else {
-    // Create new Stripe customer
+  let customerId = subscriptions?.[0]?.stripe_customer_id
+  const subscriptionId = subscriptions?.[0]?.id
+
+  if (!customerId) {
     const customer = await stripe.customers.create({
       email: profile?.email || user.email,
-      metadata: {
-        user_id: user.id,
-      },
+      metadata: { user_id: user.id },
     })
     customerId = customer.id
-
-    // Update user_subscriptions with customer ID
-    if (existingSubscription) {
-      await supabase.from("user_subscriptions").update({ stripe_customer_id: customerId }).eq("user_id", user.id)
+    if (subscriptionId) {
+      await supabase.from("user_subscriptions").update({ stripe_customer_id: customerId }).eq("id", subscriptionId)
     }
   }
 
-  console.log("[v0] Creating upgrade checkout for:", { user_id: user.id, plan_id: planId, price_id: priceId, billing_cycle: price.billing_cycle })
-
-  // Create checkout session for upgrade (no trial for upgrades)
   const session = await stripe.checkout.sessions.create({
     customer: customerId,
-    line_items: [
-      {
-        price: price.stripe_price_id,
-        quantity: 1,
-      },
-    ],
+    line_items: [{ price: price.stripe_price_id, quantity: 1 }],
     mode: "subscription",
     subscription_data: {
-      metadata: {
-        user_id: user.id,
-        plan_id: planId,
-        price_id: priceId,
-        billing_cycle: price.billing_cycle,
-      },
+      metadata: { user_id: user.id, plan_id: planId, price_id: priceId, billing_cycle: price.billing_cycle },
     },
-    success_url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://v0-xkreen-ai.vercel.app"}/dashboard/settings/billing?upgraded=true`,
-    cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://v0-xkreen-ai.vercel.app"}/dashboard/settings/billing`,
-    metadata: {
-      user_id: user.id,
-      plan_id: planId,
-      price_id: priceId,
-      billing_cycle: price.billing_cycle,
-    },
+    success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/settings/billing?upgraded=true`,
+    cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/settings/billing`,
+    metadata: { user_id: user.id, plan_id: planId, price_id: priceId, billing_cycle: price.billing_cycle },
   })
-
-  console.log("[v0] Checkout session created:", session.id)
 
   if (!session.url) {
     return { error: "Failed to create checkout session" }
@@ -411,36 +364,31 @@ export async function cancelSubscription(reason?: string, feedback?: string) {
     return { error: "Not authenticated" }
   }
 
-  // Get Stripe subscription ID
-  const { data: subscription } = await supabase
+  const { data: subscriptions, error: subError } = await supabase
     .from("user_subscriptions")
     .select("stripe_subscription_id, status")
     .eq("user_id", user.id)
     .in("status", ["active", "trialing"])
-    .single()
+    .limit(1)
+
+  if (subError) {
+    return { error: "Failed to retrieve subscription." }
+  }
+  const subscription = subscriptions?.[0]
 
   if (!subscription?.stripe_subscription_id) {
     return { error: "No active subscription found" }
   }
 
   try {
-    // Cancel at period end (recommended)
     await stripe.subscriptions.update(subscription.stripe_subscription_id, {
       cancel_at_period_end: true,
-      cancellation_details: {
-        comment: feedback || "User requested cancellation",
-        feedback: reason as any,
-      },
+      cancellation_details: { comment: feedback || "User requested cancellation", feedback: reason as any },
     })
 
-    // Update local database
     await supabase
       .from("user_subscriptions")
-      .update({
-        cancel_at_period_end: true,
-        cancellation_reason: reason,
-      })
-      .eq("user_id", user.id)
+      .update({ cancel_at_period_end: true, cancellation_reason: reason })
       .eq("stripe_subscription_id", subscription.stripe_subscription_id)
 
     return { success: true }
@@ -461,12 +409,16 @@ export async function reactivateSubscription() {
     return { error: "Not authenticated" }
   }
 
-  // Get Stripe subscription ID
-  const { data: subscription } = await supabase
+  const { data: subscriptions, error: subError } = await supabase
     .from("user_subscriptions")
     .select("stripe_subscription_id, cancel_at_period_end")
     .eq("user_id", user.id)
-    .single()
+    .limit(1)
+
+  if (subError) {
+    return { error: "Failed to retrieve subscription." }
+  }
+  const subscription = subscriptions?.[0]
 
   if (!subscription?.stripe_subscription_id) {
     return { error: "No subscription found" }
@@ -477,19 +429,11 @@ export async function reactivateSubscription() {
   }
 
   try {
-    // Reactivate the subscription
-    await stripe.subscriptions.update(subscription.stripe_subscription_id, {
-      cancel_at_period_end: false,
-    })
+    await stripe.subscriptions.update(subscription.stripe_subscription_id, { cancel_at_period_end: false })
 
-    // Update local database
     await supabase
       .from("user_subscriptions")
-      .update({
-        cancel_at_period_end: false,
-        cancellation_reason: null,
-      })
-      .eq("user_id", user.id)
+      .update({ cancel_at_period_end: false, cancellation_reason: null })
       .eq("stripe_subscription_id", subscription.stripe_subscription_id)
 
     return { success: true }
@@ -510,25 +454,22 @@ export async function getInvoices() {
     return { error: "Not authenticated" }
   }
 
-  // Get Stripe customer ID
-  const { data: subscription } = await supabase
+  const { data: subscriptions } = await supabase
     .from("user_subscriptions")
     .select("stripe_customer_id")
     .eq("user_id", user.id)
-    .single()
+    .not("stripe_customer_id", "is", null)
+    .limit(1)
 
-  if (!subscription?.stripe_customer_id) {
-    return { error: "No customer found" }
+  const customerId = subscriptions?.[0]?.stripe_customer_id
+
+  if (!customerId) {
+    return { invoices: [] }
   }
 
   try {
-    // 1. Fetch subscription invoices (monthly/annual plan charges)
-    const invoicesResponse = await stripe.invoices.list({
-      customer: subscription.stripe_customer_id,
-      limit: 24,
-    })
-
-    const invoiceItems = invoicesResponse.data.map((invoice) => ({
+    const invoicesResponse = await stripe.invoices.list({ customer: customerId, limit: 24 })
+    const invoiceItems = invoicesResponse.data.map((invoice: any) => ({
       id: invoice.id,
       number: invoice.number,
       status: invoice.status,
@@ -540,20 +481,8 @@ export async function getInvoices() {
       description: invoice.description || "Subscription",
     }))
 
-    // 2. Fetch one-off charges (screen slot purchases via Checkout Sessions in payment mode)
-    // These are PaymentIntents, not invoices, so they don't appear in the invoice list
-    const chargesResponse = await stripe.charges.list({
-      customer: subscription.stripe_customer_id,
-      limit: 24,
-    })
-
-    // Collect invoice charge IDs so we don't double-count
-    const invoiceChargeIds = new Set(
-      invoicesResponse.data
-        .map((inv) => (typeof inv.charge === "string" ? inv.charge : inv.charge?.id))
-        .filter(Boolean)
-    )
-
+    const chargesResponse = await stripe.charges.list({ customer: customerId, limit: 24 })
+    const invoiceChargeIds = new Set(invoicesResponse.data.map((inv: any) => (typeof inv.charge === "string" ? inv.charge : inv.charge?.id)).filter(Boolean))
     const chargeItems = chargesResponse.data
       .filter((charge) => !invoiceChargeIds.has(charge.id) && charge.status === "succeeded")
       .map((charge) => ({
@@ -568,7 +497,6 @@ export async function getInvoices() {
         description: charge.description || "Additional Screen Slot",
       }))
 
-    // Merge and sort newest first
     const allItems = [...invoiceItems, ...chargeItems].sort((a, b) => b.created - a.created)
 
     return { success: true, invoices: allItems }
@@ -589,27 +517,25 @@ export async function getPaymentMethods() {
     return { error: "Not authenticated" }
   }
 
-  // Get Stripe customer ID
-  const { data: subscription } = await supabase
+  const { data: subscriptions } = await supabase
     .from("user_subscriptions")
     .select("stripe_customer_id")
     .eq("user_id", user.id)
-    .single()
+    .not("stripe_customer_id", "is", null)
+    .limit(1)
 
-  if (!subscription?.stripe_customer_id) {
-    return { error: "No customer found" }
+  const customerId = subscriptions?.[0]?.stripe_customer_id
+
+  if (!customerId) {
+    return { success: true, paymentMethods: [] }
   }
 
   try {
-    const paymentMethods = await stripe.paymentMethods.list({
-      customer: subscription.stripe_customer_id,
-      type: "card",
-    })
+    const paymentMethods = await stripe.paymentMethods.list({ customer: customerId, type: "card" })
+    const customer = await stripe.customers.retrieve(customerId)
 
-    // Get default payment method
-    const customer = await stripe.customers.retrieve(subscription.stripe_customer_id)
     const defaultPaymentMethodId =
-      typeof customer !== "deleted" && customer.invoice_settings?.default_payment_method
+      !customer.deleted && customer.invoice_settings?.default_payment_method
         ? customer.invoice_settings.default_payment_method
         : null
 
@@ -641,22 +567,22 @@ export async function setDefaultPaymentMethod(paymentMethodId: string) {
     return { error: "Not authenticated" }
   }
 
-  // Get Stripe customer ID
-  const { data: subscription } = await supabase
+  const { data: subscriptions } = await supabase
     .from("user_subscriptions")
     .select("stripe_customer_id")
     .eq("user_id", user.id)
-    .single()
+    .not("stripe_customer_id", "is", null)
+    .limit(1)
 
-  if (!subscription?.stripe_customer_id) {
+  const customerId = subscriptions?.[0]?.stripe_customer_id
+
+  if (!customerId) {
     return { error: "No customer found" }
   }
 
   try {
-    await stripe.customers.update(subscription.stripe_customer_id, {
-      invoice_settings: {
-        default_payment_method: paymentMethodId,
-      },
+    await stripe.customers.update(customerId, {
+      invoice_settings: { default_payment_method: paymentMethodId },
     })
 
     return { success: true }
@@ -697,20 +623,55 @@ export async function createSetupIntent() {
     return { error: "Not authenticated" }
   }
 
-  // Get Stripe customer ID
-  const { data: subscription } = await supabase
+  const { data: subscriptions } = await supabase
     .from("user_subscriptions")
-    .select("stripe_customer_id")
+    .select("id, stripe_customer_id")
     .eq("user_id", user.id)
-    .single()
+    .limit(1)
 
-  if (!subscription?.stripe_customer_id) {
-    return { error: "No customer found" }
+  let customerId = subscriptions?.[0]?.stripe_customer_id
+  const subscriptionId = subscriptions?.[0]?.id
+
+  if (!customerId) {
+    const { data: profile } = await supabase.from("profiles").select("email").eq("id", user.id).single()
+
+    try {
+      const customer = await stripe.customers.create({
+        email: user.email!,
+        metadata: { user_id: user.id },
+      })
+      customerId = customer.id
+
+      if (subscriptionId) {
+        await supabase.from("user_subscriptions").update({ stripe_customer_id: customerId }).eq("id", subscriptionId)
+      } else {
+        const { data: freePlan } = await supabase.from("subscription_plans").select("id").eq("name", "Free").single()
+
+        if (freePlan) {
+          await supabase.from("user_subscriptions").insert({
+            user_id: user.id,
+            plan_id: freePlan.id,
+            stripe_customer_id: customerId,
+            status: "active",
+          })
+        } else {
+          console.error("[v0] Default 'Free' plan not found.")
+          return { error: "Could not create customer record." }
+        }
+      }
+    } catch (error: any) {
+      console.error("[v0] Error creating Stripe customer:", error)
+      return { error: error.message || "Failed to create customer." }
+    }
+  }
+
+  if (!customerId) {
+    return { error: "Could not retrieve or create customer." }
   }
 
   try {
     const setupIntent = await stripe.setupIntents.create({
-      customer: subscription.stripe_customer_id,
+      customer: customerId,
       payment_method_types: ["card"],
     })
 

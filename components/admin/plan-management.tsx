@@ -20,7 +20,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Plus, Edit, Trash2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { createClient } from "@/lib/supabase/client"
 import type { StorageUnit } from "@/lib/storage-utils"
 
 interface SubscriptionPrice {
@@ -42,20 +41,19 @@ interface SubscriptionPlan {
   max_media_storage: number
   max_file_upload_size?: number
   storage_unit?: StorageUnit
+  file_upload_unit?: StorageUnit
   max_playlists: number
   max_locations?: number
   max_schedules?: number
   max_team_members?: number
   is_active: boolean
+  url_media?: boolean
   display_branding?: boolean
   stripe_product_id: string | null
   subscriber_count?: number
   created_at: string
-  // Prices from subscription_prices table
   prices?: SubscriptionPrice[]
-  // Feature permissions from feature_permissions table
   feature_permissions?: { feature_key: string; is_enabled: boolean }[]
-  // Computed from prices for display
   monthly_price?: number
   yearly_price?: number
 }
@@ -70,13 +68,15 @@ interface PlanFormData {
   free_screens: string
   max_media_storage: string
   max_file_upload_size: string
-  storage_unit: string
+  storage_unit: StorageUnit
+  file_upload_unit: StorageUnit
   max_playlists: string
   max_locations: string
   max_schedules: string
   max_team_members: string
   is_active: boolean
-  // Feature toggles - control navigation visibility
+  enable_url_media: boolean
+  enable_display_branding: boolean
   enable_media_library: boolean
   enable_playlists: boolean
   enable_screens: boolean
@@ -85,8 +85,6 @@ interface PlanFormData {
   enable_analytics: boolean
   enable_ai_analytics: boolean
   enable_team_members: boolean
-  enable_url_media: boolean
-  enable_display_branding: boolean
 }
 
 export function PlanManagement() {
@@ -107,11 +105,14 @@ export function PlanManagement() {
     max_media_storage: "1",
     max_file_upload_size: "10",
     storage_unit: "GB",
+    file_upload_unit: "MB",
     max_playlists: "1",
     max_locations: "1",
     max_schedules: "1",
     max_team_members: "0",
     is_active: true,
+    enable_url_media: false,
+    enable_display_branding: false,
     enable_media_library: true,
     enable_playlists: true,
     enable_screens: true,
@@ -120,12 +121,11 @@ export function PlanManagement() {
     enable_analytics: false,
     enable_ai_analytics: false,
     enable_team_members: false,
-    enable_url_media: true,
-      enable_display_branding: false,
   })
   const { toast } = useToast()
 
-  const convertStorageToDisplayValue = (bytes: number, unit = "GB"): number => {
+  const convertStorageToDisplayValue = (bytes: number, unit: StorageUnit = "GB"): number => {
+    if (bytes === null || bytes === undefined) return 0
     switch (unit.toUpperCase()) {
       case "MB":
         return Math.round(bytes / (1024 * 1024))
@@ -138,7 +138,7 @@ export function PlanManagement() {
     }
   }
 
-  const convertDisplayValueToBytes = (value: number, unit = "GB"): number => {
+  const convertDisplayValueToBytes = (value: number, unit: StorageUnit = "GB"): number => {
     switch (unit.toUpperCase()) {
       case "MB":
         return value * 1024 * 1024
@@ -153,33 +153,21 @@ export function PlanManagement() {
 
   useEffect(() => {
     fetchPlans()
-
-    // Refetch plans when the user returns to this page/tab
     const handleFocus = () => fetchPlans()
     window.addEventListener("focus", handleFocus)
     return () => window.removeEventListener("focus", handleFocus)
   }, [])
 
   const fetchPlans = async () => {
+    setLoading(true)
     try {
       const response = await fetch("/api/admin/plans")
-      if (response.ok) {
-        const data = await response.json()
-        setPlans(data.plans)
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to fetch subscription plans",
-          variant: "destructive",
-        })
-      }
+      if (!response.ok) throw new Error("Failed to fetch plans")
+      const data = await response.json()
+      setPlans(data.plans)
     } catch (error) {
       console.error("[v0] Error fetching plans:", error)
-      toast({
-        title: "Error",
-        description: "Failed to fetch subscription plans",
-        variant: "destructive",
-      })
+      toast({ title: "Error", description: "Failed to fetch subscription plans", variant: "destructive" })
     } finally {
       setLoading(false)
     }
@@ -193,7 +181,7 @@ export function PlanManagement() {
       )
       const fileUploadInBytes = convertDisplayValueToBytes(
         Number.parseInt(formData.max_file_upload_size),
-        formData.storage_unit,
+        formData.file_upload_unit,
       )
 
       const planData = {
@@ -207,13 +195,14 @@ export function PlanManagement() {
         max_media_storage: storageInBytes,
         max_file_upload_size: fileUploadInBytes,
         storage_unit: formData.storage_unit,
+        file_upload_unit: formData.file_upload_unit,
         max_playlists: formData.max_playlists === "-1" ? -1 : Number.parseInt(formData.max_playlists),
         max_locations: formData.max_locations === "-1" ? -1 : Number.parseInt(formData.max_locations),
         max_schedules: formData.max_schedules === "-1" ? -1 : Number.parseInt(formData.max_schedules),
         max_team_members: formData.max_team_members === "-1" ? -1 : Number.parseInt(formData.max_team_members),
         is_active: formData.is_active,
+        url_media: formData.enable_url_media,
         display_branding: formData.enable_display_branding,
-        // Feature toggles
         features: {
           media_library: formData.enable_media_library,
           playlists: formData.enable_playlists,
@@ -223,8 +212,6 @@ export function PlanManagement() {
           analytics: formData.enable_analytics,
           ai_analytics: formData.enable_ai_analytics,
           team_members: formData.enable_team_members,
-          url_media: formData.enable_url_media,
-          display_branding: formData.enable_display_branding,
         },
       }
 
@@ -234,29 +221,18 @@ export function PlanManagement() {
         body: JSON.stringify(planData),
       })
 
-      if (response.ok) {
-        await fetchPlans()
-        setIsPlanDialogOpen(false)
-        resetForm()
-        toast({
-          title: "Success",
-          description: "Subscription plan created successfully",
-        })
-      } else {
+      if (!response.ok) {
         const error = await response.json()
-        toast({
-          title: "Error",
-          description: error.message || "Failed to create plan",
-          variant: "destructive",
-        })
+        throw new Error(error.message || "Failed to create plan")
       }
-    } catch (error) {
+
+      await fetchPlans()
+      setIsPlanDialogOpen(false)
+      resetForm()
+      toast({ title: "Success", description: "Subscription plan created successfully" })
+    } catch (error: any) {
       console.error("[v0] Error creating plan:", error)
-      toast({
-        title: "Error",
-        description: "Failed to create plan",
-        variant: "destructive",
-      })
+      toast({ title: "Error", description: error.message, variant: "destructive" })
     }
   }
 
@@ -271,7 +247,7 @@ export function PlanManagement() {
 
       const fileUploadInBytes = convertDisplayValueToBytes(
         Number.parseInt(formData.max_file_upload_size),
-        formData.storage_unit,
+        formData.file_upload_unit,
       )
 
       const planData = {
@@ -285,13 +261,14 @@ export function PlanManagement() {
         max_media_storage: storageInBytes,
         max_file_upload_size: fileUploadInBytes,
         storage_unit: formData.storage_unit,
+        file_upload_unit: formData.file_upload_unit,
         max_playlists: formData.max_playlists === "-1" ? -1 : Number.parseInt(formData.max_playlists),
         max_locations: formData.max_locations === "-1" ? -1 : Number.parseInt(formData.max_locations),
         max_schedules: formData.max_schedules === "-1" ? -1 : Number.parseInt(formData.max_schedules),
         max_team_members: formData.max_team_members === "-1" ? -1 : Number.parseInt(formData.max_team_members),
         is_active: formData.is_active,
+        url_media: formData.enable_url_media,
         display_branding: formData.enable_display_branding,
-        // Feature toggles
         features: {
           media_library: formData.enable_media_library,
           playlists: formData.enable_playlists,
@@ -301,8 +278,6 @@ export function PlanManagement() {
           analytics: formData.enable_analytics,
           ai_analytics: formData.enable_ai_analytics,
           team_members: formData.enable_team_members,
-          url_media: formData.enable_url_media,
-          display_branding: formData.enable_display_branding,
         },
       }
 
@@ -312,60 +287,35 @@ export function PlanManagement() {
         body: JSON.stringify(planData),
       })
 
-      if (response.ok) {
-        await fetchPlans()
-        setEditingPlan(null)
-        setIsPlanDialogOpen(false)
-        resetForm()
-        toast({
-          title: "Success",
-          description: "Subscription plan updated successfully",
-        })
-      } else {
+      if (!response.ok) {
         const error = await response.json()
-        toast({
-          title: "Error",
-          description: error.message || "Failed to update plan",
-          variant: "destructive",
-        })
+        throw new Error(error.message || "Failed to update plan")
       }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update plan",
-        variant: "destructive",
-      })
+
+      await fetchPlans()
+      setEditingPlan(null)
+      setIsPlanDialogOpen(false)
+      resetForm()
+      toast({ title: "Success", description: "Subscription plan updated successfully" })
+    } catch (error: any) {
+      console.error("[v0] Error updating plan:", error)
+      toast({ title: "Error", description: error.message, variant: "destructive" })
     }
   }
 
   const handleDeletePlan = async (planId: string) => {
     try {
-      const response = await fetch(`/api/admin/plans/${planId}`, {
-        method: "DELETE",
-      })
-
-      if (response.ok) {
-        await fetchPlans()
-        setDeletingPlan(null)
-        setDeleteConfirmation("")
-        toast({
-          title: "Success",
-          description: "Subscription plan deleted successfully",
-        })
-      } else {
+      const response = await fetch(`/api/admin/plans/${planId}`, { method: "DELETE" })
+      if (!response.ok) {
         const error = await response.json()
-        toast({
-          title: "Error",
-          description: error.message || "Failed to delete plan",
-          variant: "destructive",
-        })
+        throw new Error(error.message || "Failed to delete plan")
       }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete plan",
-        variant: "destructive",
-      })
+      await fetchPlans()
+      setDeletingPlan(null)
+      setDeleteConfirmation("")
+      toast({ title: "Success", description: "Subscription plan deleted successfully" })
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" })
     }
   }
 
@@ -381,11 +331,14 @@ export function PlanManagement() {
       max_media_storage: "1",
       max_file_upload_size: "10",
       storage_unit: "GB",
+      file_upload_unit: "MB",
       max_playlists: "1",
       max_locations: "1",
       max_schedules: "1",
       max_team_members: "0",
       is_active: true,
+      enable_url_media: false,
+      enable_display_branding: false,
       enable_media_library: true,
       enable_playlists: true,
       enable_screens: true,
@@ -394,45 +347,46 @@ export function PlanManagement() {
       enable_analytics: false,
       enable_ai_analytics: false,
       enable_team_members: false,
-      enable_url_media: true,
-      enable_display_branding: false,
     })
   }
 
   const openEditDialog = (plan: SubscriptionPlan) => {
-    const displayValue = convertStorageToDisplayValue(plan.max_media_storage, plan.storage_unit)
-    const fileUploadValue = convertStorageToDisplayValue(plan.max_file_upload_size || plan.max_media_storage, plan.storage_unit)
+    const storageDisplayValue = convertStorageToDisplayValue(plan.max_media_storage, plan.storage_unit)
+    const fileUploadDisplayValue = convertStorageToDisplayValue(
+      plan.max_file_upload_size || 0,
+      plan.file_upload_unit || "MB",
+    )
 
-
-    // Extract monthly and yearly prices from the prices array
     const monthlyPrice = plan.prices?.find((p) => p.billing_cycle === "monthly")?.price || plan.monthly_price || 0
     const yearlyPrice = plan.prices?.find((p) => p.billing_cycle === "yearly")?.price || plan.yearly_price || 0
     const trialDays = plan.prices?.[0]?.trial_days || 0
 
-    // Use feature permissions already loaded in the plan object from fetchPlans
-    const features: any = {}
+    const features: { [key: string]: boolean } = {}
     if (plan.feature_permissions) {
-      plan.feature_permissions.forEach((fp: any) => {
+      plan.feature_permissions.forEach((fp) => {
         features[fp.feature_key] = fp.is_enabled
       })
     }
 
     setFormData({
       name: plan.name,
-      description: plan.description,
+      description: plan.description || "",
       monthly_price: monthlyPrice.toString(),
       yearly_price: yearlyPrice.toString(),
       trial_days: trialDays.toString(),
       max_screens: plan.max_screens.toString(),
       free_screens: (plan.free_screens ?? 0).toString(),
-      max_media_storage: displayValue.toString(),
-      max_file_upload_size: fileUploadValue.toString(),
+      max_media_storage: storageDisplayValue.toString(),
+      max_file_upload_size: fileUploadDisplayValue.toString(),
       storage_unit: plan.storage_unit || "GB",
+      file_upload_unit: plan.file_upload_unit || "MB",
       max_playlists: plan.max_playlists.toString(),
       max_locations: (plan.max_locations ?? 1).toString(),
       max_schedules: (plan.max_schedules ?? 1).toString(),
       max_team_members: (plan.max_team_members ?? 0).toString(),
       is_active: plan.is_active,
+      enable_url_media: plan.url_media ?? false,
+      enable_display_branding: plan.display_branding ?? false,
       enable_media_library: features.media_library ?? true,
       enable_playlists: features.playlists ?? true,
       enable_screens: features.screens ?? true,
@@ -441,18 +395,13 @@ export function PlanManagement() {
       enable_analytics: features.analytics ?? false,
       enable_ai_analytics: features.ai_analytics ?? false,
       enable_team_members: features.team_members ?? false,
-      enable_url_media: features.url_media ?? true,
-      enable_display_branding: plan.display_branding ?? false,
     })
     setEditingPlan(plan)
     setIsPlanDialogOpen(true)
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount)
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount)
   }
 
   const getPlanPrice = (plan: SubscriptionPlan, cycle: "monthly" | "yearly") => {
@@ -621,7 +570,13 @@ export function PlanManagement() {
 
       <Dialog
         open={isPlanDialogOpen}
-        onOpenChange={setIsPlanDialogOpen}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setEditingPlan(null)
+            resetForm()
+          }
+          setIsPlanDialogOpen(isOpen)
+        }}
       >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -630,7 +585,7 @@ export function PlanManagement() {
               {editingPlan ? "Update plan details and pricing" : "Add a new subscription plan"}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+          <div className="space-y-4 max-h-[70vh] overflow-y-auto p-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Plan Name</Label>
@@ -685,12 +640,6 @@ export function PlanManagement() {
                     onChange={(e) => setFormData({ ...formData, yearly_price: e.target.value })}
                     placeholder="290.00"
                   />
-                  {formData.monthly_price && formData.yearly_price && Number(formData.yearly_price) > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {Math.round((1 - Number(formData.yearly_price) / (Number(formData.monthly_price) * 12)) * 100)}%
-                      savings vs monthly
-                    </p>
-                  )}
                 </div>
               </div>
             </div>
@@ -723,9 +672,19 @@ export function PlanManagement() {
                         onChange={(e) => setFormData({ ...formData, max_media_storage: e.target.value })}
                         className="flex-1"
                       />
-                      <div className="w-20 flex items-center justify-center bg-muted rounded-md border border-input text-sm">
-                        {formData.storage_unit}
-                      </div>
+                      <Select
+                        value={formData.storage_unit}
+                        onValueChange={(value) => setFormData({ ...formData, storage_unit: value as StorageUnit })}
+                      >
+                        <SelectTrigger className="w-24">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="MB">MB</SelectItem>
+                          <SelectItem value="GB">GB</SelectItem>
+                          <SelectItem value="TB">TB</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                   <div className="flex flex-col justify-end">
@@ -739,29 +698,31 @@ export function PlanManagement() {
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">File Upload Limit</Label>
-                <div className="flex gap-2">
-                  <Input
-                    type="number"
-                    min="1"
-                    value={formData.max_file_upload_size}
-                    onChange={(e) => setFormData({ ...formData, max_file_upload_size: e.target.value })}
-                    className="flex-1"
-                  />
-                  <Select value={formData.storage_unit} onValueChange={(value) => setFormData({ ...formData, storage_unit: value })}>
-                    <SelectTrigger className="w-20">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="MB">MB</SelectItem>
-                      <SelectItem value="GB">GB</SelectItem>
-                      <SelectItem value="TB">TB</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">File Upload Limit</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="number"
+                        min="1"
+                        value={formData.max_file_upload_size}
+                        onChange={(e) => setFormData({ ...formData, max_file_upload_size: e.target.value })}
+                        className="flex-1"
+                      />
+                      <Select
+                        value={formData.file_upload_unit}
+                        onValueChange={(value) => setFormData({ ...formData, file_upload_unit: value as StorageUnit })}
+                      >
+                        <SelectTrigger className="w-24">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="MB">MB</SelectItem>
+                          <SelectItem value="GB">GB</SelectItem>
+                          <SelectItem value="TB">TB</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                   <div className="flex flex-col justify-end">
                     <div className="flex items-center justify-between">
                       <Label className="text-sm">Enable URL Media</Label>
@@ -893,7 +854,7 @@ export function PlanManagement() {
                 <Label className="text-lg font-medium">Analytics</Label>
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-sm text-muted-foreground">Enable On This Plan</Label>
+                    {/* Placeholder for future limits */}
                   </div>
                   <div className="flex flex-col justify-end">
                     <div className="flex items-center justify-between">
@@ -907,11 +868,11 @@ export function PlanManagement() {
                 </div>
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-sm text-muted-foreground">AI Analytics</Label>
+                    {/* Placeholder for future limits */}
                   </div>
                   <div className="flex flex-col justify-end">
                     <div className="flex items-center justify-between">
-                      <Label className="text-sm">Enable On This Plan</Label>
+                      <Label className="text-sm">AI Analytics</Label>
                       <Switch
                         checked={formData.enable_ai_analytics}
                         onCheckedChange={(checked) => setFormData({ ...formData, enable_ai_analytics: checked })}
@@ -971,8 +932,6 @@ export function PlanManagement() {
               variant="outline"
               onClick={() => {
                 setIsPlanDialogOpen(false)
-                setEditingPlan(null)
-                resetForm()
               }}
             >
               Cancel
