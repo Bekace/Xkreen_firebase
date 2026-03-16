@@ -1,5 +1,24 @@
-import { createClient } from "@supabase/supabase-js"
+import { createClient } from "@/lib/supabase/server"
 import { type NextRequest, NextResponse } from "next/server"
+
+// Define interfaces for type safety
+interface Media {
+  id: any;
+  name: any;
+  file_path: any;
+  mime_type: any;
+  file_size: any;
+  duration: any;
+}
+
+interface PlaylistItem {
+  id: string;
+  position: number;
+  duration_override: number | null;
+  transition_type: string | null;
+  transition_duration: number | null;
+  media: Media | null;
+}
 
 // Función para procesar URLs de Google Slides - añade parámetro rm=minimal para ocultar controles
 function processGoogleSlidesUrl(filePath: string): string {
@@ -31,7 +50,7 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
       return NextResponse.json({ error: "Device code is required" }, { status: 400 })
     }
 
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+    const supabase = await createClient()
 
     const { data: device, error: deviceError } = await supabase
       .from("devices")
@@ -87,8 +106,8 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
       }
     }
 
-    let playlistContent = []
-    let activePlaylist = null
+    let playlistContent: PlaylistItem[] = []
+    let activePlaylist: any = null
 
     if (screen.content_type === "asset") {
       console.log("[v0] Checking screen_media for multiple assets for screen:", screen.id)
@@ -112,8 +131,12 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
 
       if (!mediaError && screenMedia && screenMedia.length > 0) {
         playlistContent = screenMedia
-          .filter((sm) => sm.media)
-          .map((sm, index) => ({
+          .map((sm: any) => ({
+            ...sm,
+            media: Array.isArray(sm.media) ? sm.media[0] : sm.media
+          }))
+          .filter((sm: any) => sm.media)
+          .map((sm: any, index) => ({
             id: `asset-${sm.media.id}`,
             position: index + 1,
             duration_override: null,
@@ -182,7 +205,8 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
 
       console.log("[v0] Screen schedule lookup:", { screenSchedule, scheduleError })
 
-      const scheduleData = screenSchedule?.schedules
+      const scheduleDataArr = (screenSchedule as any)?.schedules
+      const scheduleData = Array.isArray(scheduleDataArr) ? scheduleDataArr[0] : scheduleDataArr
 
       if (scheduleData) {
         console.log("[v0] Active schedule found:", {
@@ -263,7 +287,12 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
                   .order("position")
 
                 if (!itemsError && playlistItems) {
-                  playlistContent = playlistItems.filter((item) => item.media)
+                  playlistContent = playlistItems
+                    .map((item: any) => ({
+                      ...item,
+                      media: Array.isArray(item.media) ? item.media[0] : item.media,
+                    }))
+                    .filter((item) => item.media) as PlaylistItem[]
                 }
               }
             } else if (content_type === "media" && content_id) {
@@ -320,7 +349,8 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
 
       console.log("[v0] Screen playlist lookup:", { screenPlaylist, playlistError })
 
-      const playlistData = screenPlaylist?.playlists
+      const playlistDataArr = (screenPlaylist as any)?.playlists
+      const playlistData = Array.isArray(playlistDataArr) ? playlistDataArr[0] : playlistDataArr
 
       if (playlistData) {
         activePlaylist = playlistData
@@ -359,7 +389,12 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
         })
 
         if (!itemsError && playlistItems) {
-          playlistContent = playlistItems.filter((item) => item.media)
+          playlistContent = playlistItems
+            .map((item: any) => ({
+              ...item,
+              media: Array.isArray(item.media) ? item.media[0] : item.media,
+            }))
+            .filter((item) => item.media) as PlaylistItem[]
           console.log("[v0] Filtered playlist content count:", playlistContent.length)
         }
       } else {
@@ -385,9 +420,9 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
 
     // Transform content for Android app - match old API structure exactly
     const transformedContent = playlistContent
-      .filter((item: any) => item.media) // Only include items with valid media
-      .map((item: any) => {
-        const mediaData = item.media
+      .filter((item) => item.media) // Only include items with valid media
+      .map((item) => {
+        const mediaData = item.media!
         
         return {
           id: item.id,

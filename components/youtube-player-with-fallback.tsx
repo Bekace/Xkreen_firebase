@@ -1,30 +1,29 @@
 "use client"
 
 import { useEffect, useRef, useState, forwardRef } from "react"
+import { trackEvent } from "@/lib/analytics";
+import { useParams } from 'next/navigation';
 
 interface YouTubePlayerProps {
-  videoUrl: string
-  mediaId: string
-  mediaName: string
-  isActive: boolean
-  onVideoEnd?: () => void
-  className?: string
+  videoUrl: string;
+  isActive: boolean;
+  onVideoEnd?: () => void;
+  className?: string;
+  media: any; // Contiene toda la información, incluyendo id y name
+  playlist: any;
 }
 
-// Extract video ID from various YouTube URL formats
+// ... (las funciones extractYouTubeId y buildYouTubeUrl no cambian) ...
 function extractYouTubeId(url: string): string | null {
   try {
-    // Handle embed URLs
     if (url.includes('/embed/')) {
       const match = url.match(/\/embed\/([a-zA-Z0-9_-]+)/)
       return match ? match[1] : null
     }
-    // Handle watch URLs
     if (url.includes('youtube.com/watch')) {
       const urlObj = new URL(url)
       return urlObj.searchParams.get('v')
     }
-    // Handle youtu.be URLs
     if (url.includes('youtu.be/')) {
       const match = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/)
       return match ? match[1] : null
@@ -36,142 +35,111 @@ function extractYouTubeId(url: string): string | null {
   }
 }
 
-// Build YouTube embed URL with different parameter sets
 function buildYouTubeUrl(videoId: string, level: 'restrictive' | 'moderate' | 'permissive'): string {
   const base = `https://www.youtube-nocookie.com/embed/${videoId}`
-  
+  const params = `?autoplay=1&mute=1&playsinline=1&enablejsapi=1`;
+
   switch (level) {
     case 'restrictive':
-      // For digital signage - hide all controls (tested and working)
-      return `${base}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&rel=0&modestbranding=1&disablekb=1&playsinline=1`
+      return `${base}${params}&loop=1&playlist=${videoId}&controls=0&rel=0&modestbranding=1&disablekb=1`
     case 'moderate':
-      // Same as restrictive but without controls=0
-      return `${base}?autoplay=1&mute=1&loop=1&playlist=${videoId}&rel=0&modestbranding=1&disablekb=1&playsinline=1`
+      return `${base}${params}&loop=1&playlist=${videoId}&rel=0&modestbranding=1&disablekb=1`
     case 'permissive':
-      // Minimal parameters - shows controls
-      return `${base}?autoplay=1&mute=1&loop=1&playlist=${videoId}&rel=0&playsinline=1`
+      return `${base}${params}&loop=1&playlist=${videoId}&rel=0`
     default:
-      return `${base}?autoplay=1&mute=1&playsinline=1`
+      return `${base}${params}`
   }
 }
 
 const YouTubePlayerWithFallback = forwardRef<HTMLIFrameElement, YouTubePlayerProps>(
-  ({ videoUrl, mediaId, mediaName, isActive, onVideoEnd, className }, ref) => {
-    const [currentUrl, setCurrentUrl] = useState<string>('')
-    const [fallbackLevel, setFallbackLevel] = useState<'restrictive' | 'moderate' | 'permissive'>('restrictive')
-    const [hasError, setHasError] = useState(false)
-    const [updateAttempted, setUpdateAttempted] = useState(false)
-    const timeoutRef = useRef<NodeJS.Timeout | null>(null)
-    const errorCheckTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  ({ videoUrl, isActive, onVideoEnd, className, media, playlist }, ref) => {
+    const params = useParams();
+    const deviceCode = params.deviceCode as string;
+    const [currentUrl, setCurrentUrl] = useState<string>('');
+    const [fallbackLevel, setFallbackLevel] = useState<'restrictive' | 'moderate' | 'permissive'>('restrictive');
+    const [hasError, setHasError] = useState(false);
+    const [updateAttempted, setUpdateAttempted] = useState(false);
+    const hasTrackedStart = useRef(false);
+
+    // Derivamos mediaId y mediaName del objeto media
+    const mediaId = media?.media?.id;
+    const mediaName = media?.media?.name;
 
     useEffect(() => {
-      const videoId = extractYouTubeId(videoUrl)
+      const videoId = extractYouTubeId(videoUrl);
       if (!videoId) {
-        console.error('[v0] Failed to extract video ID from:', videoUrl)
-        setCurrentUrl(videoUrl) // Use original URL as fallback
-        return
+        console.error('[v0] Failed to extract video ID from:', videoUrl);
+        setCurrentUrl(videoUrl);
+        return;
       }
+      const newUrl = buildYouTubeUrl(videoId, fallbackLevel);
+      setCurrentUrl(newUrl);
+      console.log('[v0] Loading YouTube video with level:', fallbackLevel, 'URL:', newUrl);
+    }, [videoUrl, fallbackLevel, hasError]);
 
-      // Start with restrictive URL
-      const restrictiveUrl = buildYouTubeUrl(videoId, fallbackLevel)
-      setCurrentUrl(restrictiveUrl)
-      console.log('[v0] Loading YouTube video with level:', fallbackLevel, 'URL:', restrictiveUrl)
-
-      // Set up error detection timeout (3 seconds)
-      // If iframe doesn't load properly, YouTube will show error message
-      errorCheckTimeoutRef.current = setTimeout(() => {
-        // Check if we should try fallback
-        if (!hasError && fallbackLevel === 'restrictive') {
-          console.log('[v0] Attempting moderate fallback for video:', videoId)
-          setFallbackLevel('moderate')
-        } else if (!hasError && fallbackLevel === 'moderate') {
-          console.log('[v0] Attempting permissive fallback for video:', videoId)
-          setFallbackLevel('permissive')
-        }
-      }, 5000)
-
-      return () => {
-        if (errorCheckTimeoutRef.current) {
-          clearTimeout(errorCheckTimeoutRef.current)
-        }
-      }
-    }, [videoUrl, fallbackLevel, hasError])
-
-    // Update database when fallback is used
     useEffect(() => {
       if (fallbackLevel !== 'restrictive' && !updateAttempted && isActive) {
-        setUpdateAttempted(true)
-        
-        // Update the database with the fallback configuration
+        setUpdateAttempted(true);
         const updateDatabase = async () => {
           try {
-            const videoId = extractYouTubeId(videoUrl)
-            if (!videoId) return
+            const videoId = extractYouTubeId(videoUrl);
+            if (!videoId || !mediaId) return;
 
-            const newUrl = buildYouTubeUrl(videoId, fallbackLevel)
-            const status = fallbackLevel === 'permissive' ? 'fallback_permissive' : 'fallback_moderate'
+            const newUrl = buildYouTubeUrl(videoId, fallbackLevel);
+            const status = fallbackLevel === 'permissive' ? 'fallback_permissive' : 'fallback_moderate';
 
-            console.log('[v0] Updating database with fallback:', fallbackLevel, 'for media:', mediaId)
+            console.log('[v0] Updating database with fallback:', fallbackLevel, 'for media:', mediaId);
 
             await fetch('/api/media/update-embed-status', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                mediaId,
+                mediaId: mediaId, // Usar el mediaId derivado
                 embedUrl: newUrl,
                 embedStatus: status,
               }),
-            })
+            });
           } catch (error) {
-            console.error('[v0] Failed to update embed status:', error)
+            console.error('[v0] Failed to update embed status:', error);
           }
-        }
-
-        updateDatabase()
+        };
+        updateDatabase();
       }
-    }, [fallbackLevel, mediaId, videoUrl, updateAttempted, isActive])
+    }, [fallbackLevel, mediaId, videoUrl, updateAttempted, isActive]);
 
-    // Listen for YouTube Player API messages
     useEffect(() => {
       const handleMessage = (event: MessageEvent) => {
-        // Only accept messages from YouTube
         if (!event.origin.includes('youtube.com') && !event.origin.includes('youtube-nocookie.com')) {
-          return
+          return;
         }
-
         try {
-          const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
-          
-          // YouTube Player API event
-          if (data.event === 'onStateChange') {
-            console.log('[v0] YouTube player state change:', data.info)
-            
-            // Video ended (state 0)
-            if (data.info === 0 && onVideoEnd) {
-              onVideoEnd()
+          const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+          if (data.event === 'onStateChange' && isActive) {
+            if (data.info === 1 && !hasTrackedStart.current) {
+              console.log(`[Analytics] YouTube media_start for ${mediaId}`);
+              trackEvent(deviceCode, 'media_start', media, playlist);
+              hasTrackedStart.current = true;
+            }
+            if (data.info === 0) {
+              console.log(`[Analytics] YouTube media_end for ${mediaId}`);
+              trackEvent(deviceCode, 'media_end', media, playlist);
+              hasTrackedStart.current = false;
+              if (onVideoEnd) onVideoEnd();
             }
           }
-
-          // Error event
           if (data.event === 'onError') {
-            console.error('[v0] YouTube player error:', data.info)
-            setHasError(true)
-            
-            // Try fallback on error
-            if (fallbackLevel === 'restrictive') {
-              setFallbackLevel('moderate')
-            } else if (fallbackLevel === 'moderate') {
-              setFallbackLevel('permissive')
-            }
+            console.error('[v0] YouTube player error:', data.info);
+            trackEvent(deviceCode, 'media_error', media, playlist, { error_code: data.info });
+            setHasError(true);
           }
         } catch (error) {
-          // Ignore parse errors from other sources
+          // Ignorar errores
         }
-      }
+      };
 
-      window.addEventListener('message', handleMessage)
-      return () => window.removeEventListener('message', handleMessage)
-    }, [fallbackLevel, onVideoEnd])
+      window.addEventListener('message', handleMessage);
+      return () => window.removeEventListener('message', handleMessage);
+    }, [isActive, deviceCode, media, playlist, onVideoEnd, mediaId]);
 
     return (
       <iframe
@@ -181,12 +149,12 @@ const YouTubePlayerWithFallback = forwardRef<HTMLIFrameElement, YouTubePlayerPro
         allow="autoplay; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowFullScreen
         referrerPolicy="strict-origin-when-cross-origin"
-        title={mediaName}
+        title={mediaName || 'YouTube Player'}
       />
-    )
+    );
   }
-)
+);
 
-YouTubePlayerWithFallback.displayName = 'YouTubePlayerWithFallback'
+YouTubePlayerWithFallback.displayName = 'YouTubePlayerWithFallback';
 
-export default YouTubePlayerWithFallback
+export default YouTubePlayerWithFallback;

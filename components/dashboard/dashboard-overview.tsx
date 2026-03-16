@@ -1,267 +1,148 @@
-"use client"
+'use client'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Monitor, ImageIcon, PlayCircle, Activity, Plus, TrendingUp, Zap, CheckCircle2, X, Wifi, CheckCircle } from "lucide-react"
-import type { User } from "@supabase/supabase-js"
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Monitor, ImageIcon, PlayCircle, Activity, Plus, TrendingUp, Zap, CheckCircle2, X, Wifi, CheckCircle } from 'lucide-react'
+import type { User } from '@supabase/supabase-js'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
-interface DashboardOverviewProps {
-  user: User
-  showWelcome?: boolean // Add welcome prop
+// Interface definitions
+interface ScreenLimits {
+  current: number
+  limit: number
+  availableSlots: number
+  plan: string
 }
 
-interface DashboardStats {
-  activeScreens: { value: number; change: string }
-  mediaFiles: { value: number; change: string }
-  activePlaylists: { value: number; change: string }
-  totalViews: { value: number; change: string }
+interface ProofOfPlayStats {
+  online_plays: number
+  offline_plays: number
+  total_plays: number
+  success_rate: string
 }
 
-interface ActivityItem {
-  action: string
-  time: string
-  icon: string // Now a string that will be mapped to a component
-  type?: "screen_online" | "screen_offline" | "media_upload" | "playlist_update"
-}
-
-// Map icon strings to lucide-react components
-function getIconComponent(iconName: string) {
-  const iconMap: Record<string, React.ComponentType<any>> = {
-    monitor: Monitor,
-    image: ImageIcon,
-    "play-circle": PlayCircle,
-  }
-  return iconMap[iconName] || Monitor
-}
-
-export function DashboardOverview({ user, showWelcome = false }: DashboardOverviewProps) {
-  const [stats, setStats] = useState<DashboardStats | null>(null)
+// Main component
+export function DashboardOverview({ user, showWelcome = false }: { user: User; showWelcome?: boolean }) {
+  const [screenLimits, setScreenLimits] = useState<ScreenLimits | null>(null)
   const [loading, setLoading] = useState(true)
   const [isWelcomeOpen, setIsWelcomeOpen] = useState(showWelcome)
-  const [subscription, setSubscription] = useState<{ planName: string } | null>(null)
   const [deviceStatus, setDeviceStatus] = useState<{ online: number; offline: number; total: number } | null>(null)
-  const [proofOfPlay, setProofOfPlay] = useState<{ totalPlays: number; successRate: string } | null>(null)
-  const [recentActivities, setRecentActivities] = useState<ActivityItem[]>([])
-  const [availableSlots, setAvailableSlots] = useState<number | null>(null)
+  const [proofOfPlay, setProofOfPlay] = useState<ProofOfPlayStats | null>(null)
+  const [recentActivities, setRecentActivities] = useState<any[]>([])
   const router = useRouter()
 
   useEffect(() => {
-    async function fetchStats() {
+    async function fetchDashboardData() {
+      setLoading(true)
       try {
-        const response = await fetch("/api/dashboard/stats")
-        if (response.ok) {
-          const data = await response.json()
-          setStats(data.stats)
+        const results = await Promise.allSettled([
+          fetch('/api/devices/status'),
+          fetch('/api/proof-of-play/stats?timeRange=24h'),
+          fetch('/api/dashboard/recent-activities'),
+          fetch('/api/screen-limits'),
+        ])
+
+        const [deviceStatusResult, popResult, activitiesResult, screenLimitsResult] = results
+
+        if (deviceStatusResult.status === 'fulfilled' && deviceStatusResult.value.ok) {
+          const data = await deviceStatusResult.value.json()
+          setDeviceStatus(data.summary)
+        } else {
+          console.error('Error fetching device status:', deviceStatusResult.status === 'rejected' ? deviceStatusResult.reason : 'Request failed')
         }
+
+        if (popResult.status === 'fulfilled' && popResult.value.ok) {
+          const data = await popResult.value.json()
+          setProofOfPlay(data.summary)
+        } else {
+          // MODIFICATION: Log the actual error message from the API response
+          let errorDetail = 'Request failed with no specific message.';
+          if (popResult.status === 'fulfilled') {
+            // The server responded with an error status code (4xx or 5xx)
+            try {
+              const errorPayload = await popResult.value.json();
+              errorDetail = errorPayload.error || JSON.stringify(errorPayload);
+            } catch (e) {
+              errorDetail = `Failed to parse error JSON. Status: ${popResult.value.status} ${popResult.value.statusText}`;
+            }
+          } else { // The promise was rejected (e.g., network error)
+            errorDetail = popResult.reason.message;
+          }
+          console.error('Error fetching proof of play stats:', errorDetail);
+        }
+
+        if (activitiesResult.status === 'fulfilled' && activitiesResult.value.ok) {
+          const data = await activitiesResult.value.json()
+          setRecentActivities(data.activities || [])
+        } else {
+          console.error('Error fetching recent activities:', activitiesResult.status === 'rejected' ? activitiesResult.reason : 'Request failed')
+        }
+
+        if (screenLimitsResult.status === 'fulfilled' && screenLimitsResult.value.ok) {
+          const data = await screenLimitsResult.value.json()
+          setScreenLimits(data)
+        } else {
+          console.error('Error fetching screen limits:', screenLimitsResult.status === 'rejected' ? screenLimitsResult.reason : 'Request failed')
+        }
+
       } catch (error) {
-        console.error("[v0] Error fetching dashboard stats:", error)
+        console.error('An unexpected error occurred in fetchDashboardData:', error)
       } finally {
         setLoading(false)
       }
     }
 
-    async function fetchDeviceStatus() {
-      try {
-        const response = await fetch("/api/devices/status")
-        if (response.ok) {
-          const data = await response.json()
-          setDeviceStatus(data.summary)
-        }
-      } catch (error) {
-        console.error("[v0] Error fetching device status:", error)
-      }
-    }
-
-    async function fetchProofOfPlay() {
-      try {
-        const response = await fetch("/api/proof-of-play/stats?timeRange=24h")
-        if (response.ok) {
-          const data = await response.json()
-          setProofOfPlay({
-            totalPlays: data.summary.total_plays,
-            successRate: data.summary.success_rate,
-          })
-        }
-      } catch (error) {
-        console.error("[v0] Error fetching proof of play:", error)
-      }
-    }
-
-    async function fetchRecentActivities() {
-      try {
-        const response = await fetch("/api/dashboard/recent-activities")
-        if (response.ok) {
-          const data = await response.json()
-          setRecentActivities(data.activities || [])
-        }
-      } catch (error) {
-        console.error("[v0] Error fetching recent activities:", error)
-        // Fallback to default activities if API fails
-        setRecentActivities([
-          {
-            action: "Screen 'Lobby Display' went online",
-            time: "2 minutes ago",
-            icon: "monitor",
-            type: "screen_online",
-          },
-          {
-            action: "New media file 'summer-promo.mp4' uploaded",
-            time: "15 minutes ago",
-            icon: "image",
-            type: "media_upload",
-          },
-          {
-            action: "Playlist 'Morning Announcements' updated",
-            time: "1 hour ago",
-            icon: "play-circle",
-            type: "playlist_update",
-          },
-          {
-            action: "Screen 'Cafeteria Display' went offline",
-            time: "2 hours ago",
-            icon: "monitor",
-            type: "screen_offline",
-          },
-        ])
-      }
-    }
-
-    async function fetchScreenLimits() {
-      try {
-        const response = await fetch("/api/screen-limits")
-        if (response.ok) {
-          const data = await response.json()
-          // For paid plans availableSlots is returned; for free plans use limit - current
-          const slots = data.availableSlots !== undefined
-            ? data.availableSlots
-            : Math.max(0, (data.limit ?? 0) - (data.current ?? 0))
-          setAvailableSlots(slots)
-        }
-      } catch (error) {
-        console.error("[v0] Error fetching screen limits:", error)
-      }
-    }
-
-    fetchStats()
-    fetchDeviceStatus()
-    fetchProofOfPlay()
-    fetchRecentActivities()
-    fetchScreenLimits()
+    fetchDashboardData()
   }, [])
-
-  useEffect(() => {
-    if (showWelcome) {
-      async function fetchSubscription() {
-        try {
-          const response = await fetch("/api/user/subscription")
-          if (response.ok) {
-            const data = await response.json()
-            setSubscription({ planName: data.subscription?.plan?.name || "Pro" })
-          }
-        } catch (error) {
-          console.error("[v0] Error fetching subscription:", error)
-        }
-      }
-      fetchSubscription()
-    }
-  }, [showWelcome])
 
   const closeWelcome = () => {
     setIsWelcomeOpen(false)
-    router.replace("/dashboard", { scroll: false })
+    router.replace('/dashboard', { scroll: false })
   }
 
+  // Data for stats cards
   const statsData = [
     {
-      title: "Online Devices",
-      value: loading ? "..." : deviceStatus?.online.toString() || "0",
-      change: deviceStatus ? `${deviceStatus.offline} offline` : "Loading...",
+      title: 'Online Devices',
+      value: loading ? '...' : deviceStatus?.online.toString() || '0',
+      description: deviceStatus ? `${deviceStatus.offline} offline` : 'Loading...',
       icon: Wifi,
-      color: "text-green-500",
+      color: 'text-green-500',
     },
     {
-      title: "Available Screens",
-      value: availableSlots !== null ? availableSlots.toString() : "...",
-      change: availableSlots === 0 ? "No slots available" : `${availableSlots} slot${availableSlots !== 1 ? "s" : ""} available`,
+      title: 'Available Screens',
+      value: loading || screenLimits === null ? '...' : screenLimits.availableSlots.toString(),
+      description: screenLimits
+        ? `You have ${screenLimits.current} of ${screenLimits.limit === -1 ? 'unlimited' : screenLimits.limit} screens used`
+        : 'Loading...',
       icon: Monitor,
-      color: "text-primary",
+      color: 'text-primary',
     },
     {
-      title: "Media Plays Today",
-      value: loading ? "..." : proofOfPlay?.totalPlays.toString() || "0",
-      change: proofOfPlay ? `${proofOfPlay.successRate}% success rate` : "Loading...",
+      title: 'Media Plays Today',
+      value: loading ? '...' : proofOfPlay?.total_plays.toString() || '0',
+      description: proofOfPlay
+        ? `${proofOfPlay.online_plays} online, ${proofOfPlay.offline_plays} offline | ${proofOfPlay.success_rate}% success`
+        : 'Loading...',
       icon: CheckCircle,
-      color: "text-cyan-500",
+      color: 'text-cyan-500',
     },
     {
-      title: "Active Playlists",
-      value: loading ? "..." : stats?.activePlaylists.value.toString() || "0",
-      change: loading ? "Loading..." : stats?.activePlaylists.change || "No change",
+      title: 'Active Playlists',
+      value: loading || !deviceStatus ? '...' : `${deviceStatus.total}`,
+      description: !deviceStatus ? 'Loading...' : `${deviceStatus.total} total playlists`,
       icon: PlayCircle,
-      color: "text-accent",
-    },
-  ]
-
-  const quickActions = [
-    {
-      title: "Add New Screen",
-      description: "Connect a new display to your network",
-      icon: Monitor,
-      href: "/dashboard/screens/",
-    },
-    {
-      title: "Upload Media",
-      description: "Add images and videos to your library",
-      icon: ImageIcon,
-      href: "/dashboard/media/",
-    },
-    {
-      title: "Create Playlist",
-      description: "Build a new content playlist",
-      icon: PlayCircle,
-      href: "/dashboard/playlists/",
+      color: 'text-accent',
     },
   ]
 
   return (
     <div className="space-y-6">
-      {isWelcomeOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md relative">
-            <button
-              onClick={closeWelcome}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <CardHeader className="text-center pt-8">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                <CheckCircle2 className="h-8 w-8 text-primary" />
-              </div>
-              <CardTitle className="text-2xl">Welcome to XKREEN!</CardTitle>
-              <CardDescription className="text-base">
-                Your {subscription?.planName || "Free"} subscription is now active.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 text-center pb-8">
-              <p className="text-muted-foreground">
-                Thank you for {subscription?.planName === "Free" ? "signing up" : "subscribing"}! You now have {subscription?.planName === "Free" ? "access to" : "full access to all"} {subscription?.planName || "Free"} features.
-              </p>
-              <Button onClick={closeWelcome} className="w-full">
-                Get Started
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Welcome Section */}
-      <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold text-foreground">Welcome back, {user.email?.split("@")[0]}!</h2>
+          <h2 className="text-3xl font-bold text-foreground">Welcome back, {user.email?.split('@')[0]}!</h2>
           <p className="text-muted-foreground mt-1">Here's what's happening with your digital signage network today.</p>
         </div>
         <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
@@ -269,31 +150,24 @@ export function DashboardOverview({ user, showWelcome = false }: DashboardOvervi
           Quick Setup
         </Button>
       </div>
-
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statsData.map((stat) => {
-          const Icon = stat.icon
-          return (
-            <Card key={stat.title}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
-                <Icon className={`w-4 h-4 ${stat.color}`} />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-foreground">{stat.value}</div>
-                <p className="text-xs text-muted-foreground flex items-center mt-1">
-                  <TrendingUp className="w-3 h-3 mr-1" />
-                  {stat.change}
-                </p>
-              </CardContent>
-            </Card>
-          )
-        })}
+        {statsData.map((stat) => (
+          <Card key={stat.title}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
+              <stat.icon className={`w-4 h-4 ${stat.color}`} />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">{stat.value}</div>
+              <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
+      {/* Quick Actions and Recent Activity sections */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Quick Actions */}
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -303,29 +177,23 @@ export function DashboardOverview({ user, showWelcome = false }: DashboardOvervi
             <CardDescription>Get started with common tasks</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {quickActions.map((action) => {
-              const Icon = action.icon
-              return (
-                <Link key={action.title} href={action.href} className="block">
-                  <div className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                        <Icon className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-foreground">{action.title}</h4>
-                        <p className="text-sm text-muted-foreground">{action.description}</p>
-                      </div>
-                    </div>
-                    <Plus className="w-4 h-4 text-muted-foreground" />
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <Monitor className="w-5 h-5 text-primary" />
                   </div>
-                </Link>
-              )
-            })}
+                  <div>
+                    <h4 className="font-medium text-foreground">Add New Screen</h4>
+                    <p className="text-sm text-muted-foreground">Connect a new display to your network</p>
+                  </div>
+                </div>
+                <Plus className="w-4 h-4 text-muted-foreground" />
+              </div>
+            ))}
           </CardContent>
         </Card>
 
-        {/* Recent Activity */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -336,20 +204,17 @@ export function DashboardOverview({ user, showWelcome = false }: DashboardOvervi
           </CardHeader>
           <CardContent className="space-y-4">
             {recentActivities.length > 0 ? (
-              recentActivities.map((activity, index) => {
-                const Icon = getIconComponent(activity.icon)
-                return (
-                  <div key={index} className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center flex-shrink-0">
-                      <Icon className="w-4 h-4 text-muted-foreground" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-foreground">{activity.action}</p>
-                      <p className="text-xs text-muted-foreground">{activity.time}</p>
-                    </div>
+              recentActivities.map((activity, index) => (
+                <div key={index} className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center flex-shrink-0">
+                    <Monitor className="w-4 h-4 text-muted-foreground" />
                   </div>
-                )
-              })
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-foreground">{activity.action}</p>
+                    <p className="text-xs text-muted-foreground">{activity.time}</p>
+                  </div>
+                </div>
+              ))
             ) : (
               <div className="text-center py-8">
                 <p className="text-sm text-muted-foreground">No recent activity</p>

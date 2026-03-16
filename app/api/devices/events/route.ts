@@ -42,8 +42,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate event_type
-    const validEventTypes = ["media_start", "media_end", "media_error"]
+    // Validate event_type based on the documentation
+    const validEventTypes = ["media_start", "media_end", "media_skip", "screen_online", "screen_offline", "media_error"]
     if (!validEventTypes.includes(event_type)) {
       return NextResponse.json(
         { error: `event_type must be one of: ${validEventTypes.join(", ")}` },

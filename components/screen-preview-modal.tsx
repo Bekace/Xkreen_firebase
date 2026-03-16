@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, X } from "lucide-react"
 
@@ -296,6 +296,10 @@ export function ScreenPreviewModal({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-none w-full h-full p-0 bg-black border-none" style={{ backgroundColor }}>
+        <DialogTitle className="sr-only">{`Preview of ${screen.name}`}</DialogTitle>
+        <DialogDescription className="sr-only">
+          This is a preview of the content assigned to the screen. You can control the playback using the controls at the top of the screen.
+        </DialogDescription>
         <div ref={containerRef} className="relative w-full h-full">
           {/* Header */}
           <div className="absolute top-0 left-0 right-0 z-50 bg-black/50 backdrop-blur-sm">

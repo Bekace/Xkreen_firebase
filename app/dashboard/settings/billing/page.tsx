@@ -27,11 +27,22 @@ export default async function BillingSettingsPage() {
   let plan = null
   let allPlans = []
   let currentPrice = null
+  let currentScreenCount = 0
 
   try {
+    // Fetch screen count first, as it's always needed
+    const { count, error: screenCountError } = await supabase
+      .from("screens")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+
+    if (screenCountError) throw screenCountError
+    currentScreenCount = count || 0
+
     const { data: subData, error: subError } = await supabase
       .from("user_subscriptions")
-      .select(`
+      .select(
+        `
         *,
         subscription_plans (
           *
@@ -39,7 +50,8 @@ export default async function BillingSettingsPage() {
         subscription_prices (
           *
         )
-      `)
+      `,
+      )
       .eq("user_id", user.id)
       .in("status", ["active", "trialing"])
       .single()
@@ -51,10 +63,12 @@ export default async function BillingSettingsPage() {
     if (!subscription || !plan) {
       const { data: freePlan } = await supabase
         .from("subscription_plans")
-        .select(`
+        .select(
+          `
           *,
           subscription_prices (*)
-        `)
+        `,
+        )
         .eq("name", "Free")
         .eq("is_active", true)
         .single()
@@ -66,7 +80,8 @@ export default async function BillingSettingsPage() {
 
     const { data: plans } = await supabase
       .from("subscription_plans")
-      .select(`
+      .select(
+        `
         *,
         subscription_prices (
           id,
@@ -77,18 +92,19 @@ export default async function BillingSettingsPage() {
           trial_days,
           is_active
         )
-      `)
+      `,
+      )
       .eq("is_active", true)
       .order("name", { ascending: true })
 
-    // Map the subscription_prices array to prices array expected by the component
     allPlans =
-      plans?.map((plan) => ({
-        ...plan,
-        prices: plan.subscription_prices || [],
+      plans?.map((p) => ({
+        ...p,
+        prices: p.subscription_prices || [],
       })) || []
   } catch (err) {
-    console.error("[v0] Billing page error:", err)
+    console.error("Billing page data fetching error:", err)
+    // Allow rendering with partial data if possible
   }
 
   const hasActiveSubscription = !!(
@@ -99,18 +115,6 @@ export default async function BillingSettingsPage() {
   const userBillingCycle = currentPrice?.billing_cycle || "monthly"
   const pricePerScreen = currentPrice?.price ? Number(currentPrice.price) : 0
   const billingCycle = userBillingCycle === "yearly" ? "year" : "month"
-
-  // Fetch current screen count for per-screen billing breakdown
-  let currentScreenCount = 0
-  if (hasActiveSubscription && plan?.name !== "Free") {
-    try {
-      const { count } = await supabase
-        .from("screens")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id)
-      currentScreenCount = count || 0
-    } catch (_) {}
-  }
 
   const freeScreens = (plan as any)?.free_screens ?? 0
   const billableScreens = Math.max(0, currentScreenCount - freeScreens)
@@ -147,7 +151,6 @@ export default async function BillingSettingsPage() {
       })
     : undefined
 
-  // Calculate next payment date (30 days from started_at or last renewal)
   const nextPaymentDate = subscription?.started_at
     ? new Date(new Date(subscription.started_at).getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString("en-US", {
         month: "short",
@@ -158,7 +161,6 @@ export default async function BillingSettingsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Current Plan */}
       <div className="rounded-lg border border-border/50 p-6">
         <div className="flex items-start gap-4">
           <div className="p-2 bg-muted/50 rounded-lg">
@@ -176,9 +178,7 @@ export default async function BillingSettingsPage() {
                       ${pricePerScreen.toFixed(2)}/screen/{billingCycle}
                     </div>
                   ) : (
-                    <div className="text-sm text-muted-foreground mt-1">
-                      Free
-                    </div>
+                    <div className="text-sm text-muted-foreground mt-1">Free</div>
                   )}
                   {hasActiveSubscription && (
                     <div className="text-xs text-muted-foreground mt-1">(VAT or sales tax may apply)</div>

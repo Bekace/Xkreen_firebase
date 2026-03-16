@@ -106,7 +106,25 @@ export default function UpgradePlanDialog({
 
   const availableSlots = maxScreens - currentScreenCount
   const hasAvailableSlots = availableSlots > 0
+  const isFreePlan = currentPlan?.name.toLowerCase() === 'free';
 
+  let welcomeMessage = null;
+  if (isFreePlan && currentScreenCount >= 1) {
+    welcomeMessage = (
+        <p>Your Free plan includes one screen, which is currently in use. Upgrading will allow you to add more screens.</p>
+    );
+  } else if (isFreePlan && currentScreenCount === 0) {
+      welcomeMessage = (
+          <p>Your Free plan includes one free screen. You can upgrade to add more screens and unlock additional features.</p>
+      );
+  } else if (hasAvailableSlots) {
+      welcomeMessage = (
+          <>
+              <p className="font-semibold">You have {availableSlots} available screen slots.</p>
+              <p>Upgrading will use one of your available slots, and you won\'t be charged for it immediately.</p>
+          </>
+      );
+  }
   const getPrice = (plan: Plan, cycle: "monthly" | "yearly"): Price | undefined => {
     return plan.prices.find((p) => p.billing_cycle === cycle && p.is_active)
   }
@@ -184,12 +202,11 @@ export default function UpgradePlanDialog({
         <div className="space-y-6 py-4">
           {/* Plan Limits Info */}
           <div className="border border-border/50 rounded-lg p-4 space-y-2">
-            {hasAvailableSlots && (
+            {welcomeMessage && (
               <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-lg p-3 text-sm flex items-start gap-3">
                 <Info className="h-5 w-5 mt-0.5 shrink-0" />
                 <div>
-                  <p className="font-semibold">You have {availableSlots} available screen slots.</p>
-                  <p>Upgrading will use one of your available slots, and you won't be charged for it immediately.</p>
+                  {welcomeMessage}
                 </div>
               </div>
             )}

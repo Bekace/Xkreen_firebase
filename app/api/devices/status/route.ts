@@ -5,10 +5,24 @@ export async function GET(request: Request) {
   try {
     const supabase = await createClient()
     
-    // Get all devices with their last heartbeat
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    // Corrected Query:
+    // 1. Select from the 'devices' table.
+    // 2. Use '!inner' to create an inner join with 'screens'. This ensures that only devices
+    //    that are actually paired with a screen are returned.
+    // 3. Filter the results where the 'user_id' on the joined 'screens' table matches the
+    //    currently authenticated user's ID.
     const { data: devices, error } = await supabase
       .from("devices")
-      .select("id, device_code, last_heartbeat, screen_id, screens(name)")
+      .select("id, device_code, last_heartbeat, screen_id, screens!inner(name, user_id)")
+      .eq("screens.user_id", user.id)
       .order("last_heartbeat", { ascending: false })
 
     if (error) {
@@ -16,8 +30,6 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Failed to fetch devices" }, { status: 500 })
     }
 
-    // Calculate online status (online if heartbeat within last 90 seconds)
-    // Since devices send heartbeats every 30 seconds, 90 seconds allows for 2 missed heartbeats
     const now = new Date()
     const ninetySecondsAgo = new Date(now.getTime() - 90 * 1000)
 

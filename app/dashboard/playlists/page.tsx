@@ -492,6 +492,7 @@ const getGoogleSlidesEmbedUrl = (url: string) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-none w-full h-full p-0 bg-black border-none">
+        <DialogTitle className="sr-only">{`Preview of playlist: ${playlist?.name}`}</DialogTitle>
         <div className="absolute top-0 left-0 right-0 z-50 bg-black/50 backdrop-blur-sm">
           <div className="flex items-center justify-between p-4">
             <div className="flex items-center gap-4">
