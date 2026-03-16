@@ -15,7 +15,7 @@ Xkreen (formerly Pointer) is a cloud-based digital signage CMS that lets busines
 | Database | Supabase (PostgreSQL + Auth + RLS) |
 | File Storage | Google Cloud Storage (GCS) via REST API |
 | Payments | Stripe (Checkout, Webhooks, Subscriptions) |
-| Hosting | Vercel |
+| Hosting | Firebase App Hosting |
 | Auth | Supabase Auth (email/password, magic link) |
 
 ---
