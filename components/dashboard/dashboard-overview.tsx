@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Monitor, ImageIcon, PlayCircle, Activity, Plus, TrendingUp, Zap, CheckCircle2, X, Wifi, CheckCircle } from 'lucide-react'
+import { Monitor, ImageIcon, PlayCircle, Activity, Plus, TrendingUp, Zap, CheckCircle2, X, Wifi, CheckCircle, WifiOff } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -38,10 +38,10 @@ export function DashboardOverview({ user, showWelcome = false }: { user: User; s
       setLoading(true)
       try {
         const results = await Promise.allSettled([
-          fetch('/api/devices/status'),
-          fetch('/api/proof-of-play/stats?timeRange=24h'),
-          fetch('/api/dashboard/recent-activities'),
-          fetch('/api/screen-limits'),
+          fetch(`/api/devices/status?_=${new Date().getTime()}`),
+          fetch(`/api/proof-of-play/stats?timeRange=today&_=${new Date().getTime()}`),
+          fetch(`/api/dashboard/recent-activities?_=${new Date().getTime()}`),
+          fetch(`/api/screen-limits?_=${new Date().getTime()}`),
         ])
 
         const [deviceStatusResult, popResult, activitiesResult, screenLimitsResult] = results
@@ -57,17 +57,15 @@ export function DashboardOverview({ user, showWelcome = false }: { user: User; s
           const data = await popResult.value.json()
           setProofOfPlay(data.summary)
         } else {
-          // MODIFICATION: Log the actual error message from the API response
           let errorDetail = 'Request failed with no specific message.';
           if (popResult.status === 'fulfilled') {
-            // The server responded with an error status code (4xx or 5xx)
             try {
               const errorPayload = await popResult.value.json();
               errorDetail = errorPayload.error || JSON.stringify(errorPayload);
             } catch (e) {
               errorDetail = `Failed to parse error JSON. Status: ${popResult.value.status} ${popResult.value.statusText}`;
             }
-          } else { // The promise was rejected (e.g., network error)
+          } else { 
             errorDetail = popResult.reason.message;
           }
           console.error('Error fetching proof of play stats:', errorDetail);
@@ -95,6 +93,8 @@ export function DashboardOverview({ user, showWelcome = false }: { user: User; s
     }
 
     fetchDashboardData()
+    const interval = setInterval(fetchDashboardData, 30000); // Refresh data every 30 seconds
+    return () => clearInterval(interval);
   }, [])
 
   const closeWelcome = () => {
@@ -102,7 +102,6 @@ export function DashboardOverview({ user, showWelcome = false }: { user: User; s
     router.replace('/dashboard', { scroll: false })
   }
 
-  // Data for stats cards
   const statsData = [
     {
       title: 'Online Devices',
@@ -121,20 +120,27 @@ export function DashboardOverview({ user, showWelcome = false }: { user: User; s
       color: 'text-primary',
     },
     {
-      title: 'Media Plays Today',
-      value: loading ? '...' : proofOfPlay?.total_plays.toString() || '0',
+      title: 'Online Plays Today',
+      value: loading ? '...' : proofOfPlay?.online_plays.toString() || '0',
       description: proofOfPlay
-        ? `${proofOfPlay.online_plays} online, ${proofOfPlay.offline_plays} offline | ${proofOfPlay.success_rate}% success`
+        ? `Success rate: ${proofOfPlay.success_rate}%`
         : 'Loading...',
       icon: CheckCircle,
       color: 'text-cyan-500',
     },
     {
-      title: 'Active Playlists',
-      value: loading || !deviceStatus ? '...' : `${deviceStatus.total}`,
-      description: !deviceStatus ? 'Loading...' : `${deviceStatus.total} total playlists`,
-      icon: PlayCircle,
-      color: 'text-accent',
+        title: deviceStatus?.offline && deviceStatus.offline > 0 ? 'Offline Devices' : 'Offline Plays Synced',
+        value: loading ? '...' : deviceStatus?.offline && deviceStatus.offline > 0 ? deviceStatus.offline.toString() : proofOfPlay?.offline_plays.toString() || '0',
+        description: deviceStatus?.offline && deviceStatus.offline > 0 ? 'Plays will sync upon reconnection.' : 'Plays recorded while offline today',
+        icon: deviceStatus?.offline && deviceStatus.offline > 0 ? WifiOff : CheckCircle,
+        color: deviceStatus?.offline && deviceStatus.offline > 0 ? 'text-amber-500' : 'text-blue-500',
+    },
+    {
+        title: 'Active Playlists',
+        value: loading || !deviceStatus ? '...' : `${deviceStatus.total}`,
+        description: !deviceStatus ? 'Loading...' : `${deviceStatus.total} total playlists`,
+        icon: PlayCircle,
+        color: 'text-accent',
     },
   ]
 
@@ -151,7 +157,7 @@ export function DashboardOverview({ user, showWelcome = false }: { user: User; s
         </Button>
       </div>
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         {statsData.map((stat) => (
           <Card key={stat.title}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

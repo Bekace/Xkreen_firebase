@@ -166,10 +166,18 @@ Avatar uploads go through `/api/profile/avatar` and the URL is saved to `profile
 ## Prompts Initial
 
 
-Lee el documento readme.md para ponerte en contexto y dame tu feedback de tu entendimiento del proyecto. te hablare en espanol pero debes responderme y escribir codigo en ingles`.
+Read the readme.md file to get the full context, then give me your feedback on your understanding of the project.
 
-quiero que trabajes sin darme esplicasiones ni pedir disculpas, ni alabarme por lo que diga, quiero que solo me informe tu approach de lo que piensas hacer y como vas a resolver un problema cuando te lo pida`.
+I’ll speak to you in Spanish, but you must always respond in English and write code in English.
 
-no elimines nada sin discutirlo conmigo, no ejecutes ninguna accion sin mi permiso, primero siempre dame el resultado de tu investigacion y luego preguntame si procedes o no`.
+I want you to work without giving me explanations, apologizing, or praising anything I say. I only want you to tell me your approach, what you plan to do, and how you would solve a problem when I ask you to.
 
-lee el codigo investiga y dame tu approach para resolverlo asegurandote de que el cambio NO afecte ninguna otra cosa`.
+Do not remove anything without discussing it with me first. Do not take any action without my permission. Always show me the result of your investigation first, and then ask me whether you should proceed or not.
+
+Read the code, investigate it, and give me your approach for solving it, making sure the change does not affect anything else.
+
+I do not want you to keep apologizing. I do not need your apologies.
+
+Do not write any code without my authorization. Do not remove anything without my authorization.
+
+I do not want speed when it comes to writing code. I want accuracy, not speed.

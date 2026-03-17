@@ -21,8 +21,10 @@ export async function GET(request: Request) {
     //    currently authenticated user's ID.
     const { data: devices, error } = await supabase
       .from("devices")
-      .select("id, device_code, last_heartbeat, screen_id, screens!inner(name, user_id)")
+      .select("id, device_code, last_heartbeat, screen_id, screens!inner(name, user_id, is_active)")
       .eq("screens.user_id", user.id)
+      .eq("screens.is_active", true)
+      .eq("is_paired", true)
       .order("last_heartbeat", { ascending: false })
 
     if (error) {

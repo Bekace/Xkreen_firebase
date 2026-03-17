@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const timeRange = searchParams.get("timeRange") || "24h";
+    const timeRange = searchParams.get("timeRange") || "today"; // Default to today
 
     const supabase = await createClient();
 
@@ -18,7 +18,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Corrected Query to get user's device IDs by joining with screens
+    // Get user's device IDs
     const { data: devices, error: deviceError } = await supabase
       .from("devices")
       .select("id, screens!inner(user_id)")
@@ -30,15 +30,8 @@ export async function GET(request: Request) {
     }
 
     if (!devices || devices.length === 0) {
-      // Return all zeros if user has no devices
       return NextResponse.json({
-        summary: {
-          online_plays: 0,
-          offline_plays: 0,
-          total_plays: 0,
-          completed_plays: 0,
-          success_rate: "0",
-        },
+        summary: { online_plays: 0, offline_plays: 0, total_plays: 0, completed_plays: 0, success_rate: "0" },
         time_range: timeRange,
       });
     }
@@ -46,11 +39,18 @@ export async function GET(request: Request) {
     const deviceIds = devices.map((d) => d.id);
 
     const now = new Date();
-    let startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 24h
-    if (timeRange === "7d") {
+    let startDate: Date;
+
+    if (timeRange === 'today') {
+      startDate = new Date();
+      startDate.setUTCHours(0, 0, 0, 0); // Set to midnight UTC
+    } else if (timeRange === '7d') {
       startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    } else if (timeRange === "30d") {
+    } else if (timeRange === '30d') {
       startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    } else {
+      // Fallback for any other value, though UI will be fixed
+      startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     }
 
     // Fetch all relevant events for the user's devices in the time range
@@ -65,27 +65,25 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Failed to fetch events" }, { status: 500 });
     }
 
-    // Initialize counters
-    let totalStarts = 0;
-    let totalEnds = 0;
     let onlinePlays = 0;
     let offlinePlays = 0;
+    let totalEnds = 0;
 
     // Process events
     for (const event of events) {
-      if (event.event_type === "media_start") {
-        totalStarts++;
-        // Check metadata for play type, default to online if not specified
-        if (event.metadata?.play_type === 'offline') {
-          offlinePlays++;
-        } else {
-          onlinePlays++;
+        if (event.event_type === "media_start") {
+            if (event.metadata?.play_type === 'offline') {
+                offlinePlays++;
+            } else {
+                onlinePlays++;
+            }
         }
-      }
-      if (event.event_type === "media_end") {
-        totalEnds++;
-      }
+        if (event.event_type === "media_end") {
+            totalEnds++;
+        }
     }
+    
+    const totalStarts = onlinePlays + offlinePlays;
 
     // Calculate success rate
     const successRate = totalStarts > 0 ? ((totalEnds / totalStarts) * 100).toFixed(0) : "0";
@@ -94,7 +92,7 @@ export async function GET(request: Request) {
       summary: {
         online_plays: onlinePlays,
         offline_plays: offlinePlays,
-        total_plays: totalStarts, // Total plays are now based on media_start events
+        total_plays: totalStarts,
         completed_plays: totalEnds,
         success_rate: successRate,
       },

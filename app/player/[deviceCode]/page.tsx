@@ -1,16 +1,14 @@
-"use client"
+'use client'
 
-import { useState, useEffect, useCallback, useRef } from "react"
-import { useRouter, useParams } from "next/navigation"
-import Image from "next/image"
-import { useMediaSwitcher } from "@/hooks/use-media-switcher"
-import { useMediaPreloader } from "@/hooks/use-media-preloader"
-import { usePlaylistTimer } from "@/hooks/use-playlist-timer"
-import YouTubePlayerWithFallback from "@/components/youtube-player-with-fallback"
-import { trackEvent } from "@/lib/analytics";
-import "@/components/ui/spinner.css"
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useRouter, useParams } from 'next/navigation'
+import Image from 'next/image'
+import { useMediaSwitcher } from '@/hooks/use-media-switcher'
+import { useMediaPreloader } from '@/hooks/use-media-preloader'
+import YouTubePlayerWithFallback from '@/components/youtube-player-with-fallback'
+import { trackEvent } from '@/lib/analytics';
+import '@/components/ui/spinner.css'
 
-// ... (Las interfaces y funciones de ayuda iniciales no cambian) ...
 interface MediaItem {
   id: string
   position: number
@@ -56,47 +54,48 @@ interface ScreenConfig {
 }
 
 const getMediaUrl = (filePath: string) => {
-  if (!filePath) return "/placeholder.svg"
-  if (filePath.startsWith("http")) return filePath
+  if (!filePath) return '/placeholder.svg'
+  if (filePath.startsWith('http')) return filePath
   return filePath
 }
 
-const isGoogleSlides = (media: MediaItem["media"]) => {
+const isGoogleSlides = (media: MediaItem['media']) => {
   return (
-    media.mime_type === "application/vnd.google-apps.presentation" ||
-    media.name.toLowerCase().includes("google slides") ||
-    media.file_path.includes("docs.google.com/presentation")
+    media.mime_type === 'application/vnd.google-apps.presentation' ||
+    media.name.toLowerCase().includes('google slides') ||
+    media.file_path.includes('docs.google.com/presentation')
   )
 }
 
-const isYouTubeVideo = (media: MediaItem["media"]) => {
+const isYouTubeVideo = (media: MediaItem['media']) => {
   return (
-    media.mime_type === "video/youtube" ||
-    media.file_path.includes("youtube.com") ||
-    media.file_path.includes("youtu.be") ||
-    media.file_path.includes("youtube-nocookie.com")
+    media.mime_type === 'video/youtube' ||
+    media.file_path.includes('youtube.com') ||
+    media.file_path.includes('youtu.be') ||
+    media.file_path.includes('youtube-nocookie.com')
   )
 }
 
-const isRegularVideo = (media: MediaItem["media"]) => {
-  return media.mime_type.startsWith("video/") && !isYouTubeVideo(media)
+const isRegularVideo = (media: MediaItem['media']) => {
+  return media.mime_type.startsWith('video/') && !isYouTubeVideo(media)
 }
 
-const getMediaObjectFit = (mediaType: "image" | "video" | "document", playlist: any) => {
-  if (!playlist) return "object-contain"
-  let scaleValue = "fit"
+const getMediaObjectFit = (mediaType: 'image' | 'video' | 'document', playlist: any) => {
+  if (!playlist) return 'object-contain'
+  let scaleValue = 'fit'
   switch (mediaType) {
-    case "image": scaleValue = playlist.scale_image || "fit"; break;
-    case "video": scaleValue = playlist.scale_video || "fit"; break;
-    case "document": scaleValue = playlist.scale_document || "fit"; break;
+    case 'image': scaleValue = playlist.scale_image || 'fit'; break;
+    case 'video': scaleValue = playlist.scale_video || 'fit'; break;
+    case 'document': scaleValue = playlist.scale_document || 'fit'; break;
   }
   switch (scaleValue) {
-    case "fill": return "object-cover";
-    case "stretch": return "object-fill";
-    case "center": return "object-none";
-    case "fit": default: return "object-contain";
+    case 'fill': return 'object-cover';
+    case 'stretch': return 'object-fill';
+    case 'center': return 'object-none';
+    case 'fit': default: return 'object-contain';
   }
 }
+
 
 export default function PlayerPage() {
   const params = useParams()
@@ -122,18 +121,17 @@ export default function PlayerPage() {
   const contentToDisplay = shuffledContent.length > 0 ? shuffledContent : config?.screen?.content || []
   const currentMedia = contentToDisplay?.[currentIndex]
   const currentPlaylist = config?.screen?.playlist
+  const deviceId = config?.device.id
 
   const advanceToNext = useCallback(() => {
-    if (!contentToDisplay || contentToDisplay.length === 0 || !currentMedia) return
+    if (!contentToDisplay || contentToDisplay.length === 0 || !currentMedia || !deviceId) return
     
-    // Track the end of the current media item *before* advancing
-    console.log(`[Analytics] Universal media_end for ${currentMedia.media.id}`);
-    trackEvent(deviceCode, 'media_end', currentMedia, currentPlaylist);
+    trackEvent(deviceId, 'media_end', currentMedia, currentPlaylist);
 
     const nextIndex = (currentIndex + 1) % contentToDisplay.length;
     setCurrentIndex(nextIndex)
     switchToNext()
-  }, [currentIndex, contentToDisplay, switchToNext, currentMedia, deviceCode, currentPlaylist])
+  }, [currentIndex, contentToDisplay, switchToNext, currentMedia, deviceId, currentPlaylist])
 
   const { preloadStatus } = useMediaPreloader(
     contentToDisplay,
@@ -142,26 +140,45 @@ export default function PlayerPage() {
     getInactiveIframeRef(),
   )
 
-  usePlaylistTimer(contentToDisplay, currentIndex, advanceToNext)
+  // Explicit timer to handle all media types and respect duration overrides.
+  useEffect(() => {
+    const item = currentMedia;
+    if (!item) return;
+
+    const isVideo = isRegularVideo(item.media) || isYouTubeVideo(item.media);
+    
+    // For videos WITHOUT a duration override, we rely on the `onEnded` event, so we don't set a timer.
+    if (isVideo && !item.duration_override) {
+      return;
+    }
+
+    // For all other media (images, documents, videos with overrides), we use a timer.
+    const durationInSeconds = item.duration_override || item.media.duration || 10;
+    
+    const timerId = setTimeout(() => {
+      advanceToNext();
+    }, durationInSeconds * 1000);
+
+    return () => clearTimeout(timerId);
+  }, [currentMedia, advanceToNext]);
+
 
   // Universal media_start tracking
   useEffect(() => {
-    if (currentMedia && deviceCode) {
-      console.log(`[Analytics] Universal media_start for ${currentMedia.media.id}`);
-      trackEvent(deviceCode, 'media_start', currentMedia, currentPlaylist);
+    if (currentMedia && deviceId) {
+      trackEvent(deviceId, 'media_start', currentMedia, currentPlaylist);
     }
-  }, [currentMedia, deviceCode, currentPlaylist]);
+  }, [currentMedia, deviceId, currentPlaylist]);
 
   useEffect(() => {
     const fetchConfigAndSendHeartbeat = async () => {
       if (!deviceCode) return;
       try {
         setLoading(true)
-        // Fetch config
         const response = await fetch(`/api/devices/config/${deviceCode}`)
         if (!response.ok) {
           if (response.status === 404) router.push(`/player?error=device-not-found`);
-          throw new Error("Failed to fetch configuration")
+          throw new Error('Failed to fetch configuration')
         }
         const data = await response.json()
         setConfig(data)
@@ -170,18 +187,19 @@ export default function PlayerPage() {
           data.screen?.playlist?.shuffle_content ? [...content].sort(() => Math.random() - 0.5) : content
         );
         
-        // Send heartbeat
         await fetch('/api/devices/heartbeat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ device_code: deviceCode }),
         });
 
-        trackEvent(deviceCode, 'screen_online', {}, {});
+        if (data?.device?.id) {
+          trackEvent(data.device.id, 'screen_online', {}, {});
+        }
         setError(null)
       } catch (err) {
-        console.error("[v0] Error fetching config or sending heartbeat:", err)
-        setError("Failed to load screen configuration")
+        console.error('[v0] Error fetching config or sending heartbeat:', err)
+        setError('Failed to load screen configuration')
       } finally {
         setLoading(false)
       }
@@ -193,21 +211,30 @@ export default function PlayerPage() {
 
   const safeContent = currentMedia && currentMedia.media;
 
+  // This function decides whether to use the onEnded/onVideoEnd handler.
+  // We use it ONLY for videos that DO NOT have a duration override.
+  const handleVideoEnd = () => {
+    if (currentMedia && (isRegularVideo(currentMedia.media) || isYouTubeVideo(currentMedia.media)) && !currentMedia.duration_override) {
+      advanceToNext();
+    }
+  };
+
+
   return (
     <div
-      className="relative w-screen h-screen overflow-hidden"
-      style={{ backgroundColor: currentPlaylist?.background_color || "#000000" }}
+      className='relative w-screen h-screen overflow-hidden'
+      style={{ backgroundColor: currentPlaylist?.background_color || '#000000' }}
     >
       {safeContent ? (
-        <div className="w-full h-full flex items-center justify-center">
+        <div className='w-full h-full flex items-center justify-center'>
           {isRegularVideo(currentMedia.media) && (
             <video
               key={currentMedia.media.id}
-              className={`absolute inset-0 w-full h-full ${getMediaObjectFit("video", currentPlaylist)}`}
+              className={`absolute inset-0 w-full h-full ${getMediaObjectFit('video', currentPlaylist)}`}
               src={currentMedia.media.file_path}
               autoPlay muted playsInline
-              onEnded={advanceToNext}
-              onError={() => trackEvent(deviceCode, 'media_error', currentMedia, currentPlaylist, { error_source: 'html5_video' })}
+              onEnded={handleVideoEnd}
+              onError={() => trackEvent(deviceId, 'media_error', currentMedia, currentPlaylist, { error_source: 'html5_video' })}
             />
           )}
 
@@ -216,20 +243,20 @@ export default function PlayerPage() {
               <YouTubePlayerWithFallback
                 ref={iframeARef}
                 videoUrl={currentMedia.media.file_path}
-                isActive={activeElement === "A"}
-                onVideoEnd={advanceToNext}
+                isActive={activeElement === 'A'}
+                onVideoEnd={handleVideoEnd}
                 media={currentMedia}
                 playlist={currentPlaylist}
-                className={`absolute inset-0 w-full h-full border-0 transition-opacity duration-300 ${activeElement === "A" ? "opacity-100 z-10" : "opacity-0 z-0"}`}
+                className={`absolute inset-0 w-full h-full border-0 transition-opacity duration-300 ${activeElement === 'A' ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
               />
               <YouTubePlayerWithFallback
                 ref={iframeBRef}
                 videoUrl={contentToDisplay[(currentIndex + 1) % contentToDisplay.length]?.media.file_path}
-                isActive={activeElement === "B"}
-                onVideoEnd={advanceToNext}
+                isActive={activeElement === 'B'}
+                onVideoEnd={handleVideoEnd} 
                 media={contentToDisplay[(currentIndex + 1) % contentToDisplay.length]}
                 playlist={currentPlaylist}
-                className={`absolute inset-0 w-full h-full border-0 transition-opacity duration-300 ${activeElement === "B" ? "opacity-100 z-10" : "opacity-0 z-0"}`}
+                className={`absolute inset-0 w-full h-full border-0 transition-opacity duration-300 ${activeElement === 'B' ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
               />
             </>
           )}
@@ -238,49 +265,49 @@ export default function PlayerPage() {
             <>
               <iframe
                 ref={iframeARef}
-                className={`absolute inset-0 w-full h-full border-0 transition-opacity duration-300 ${activeElement === "A" ? "opacity-100 z-10" : "opacity-0 z-0"}`}
-                allow="autoplay; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                className={`absolute inset-0 w-full h-full border-0 transition-opacity duration-300 ${activeElement === 'A' ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+                allow='autoplay; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
                 allowFullScreen
-                referrerPolicy="strict-origin-when-cross-origin"
+                referrerPolicy='strict-origin-when-cross-origin'
                 title={currentMedia.media.name}
                 src={currentMedia.media.file_path}
               />
               <iframe
                 ref={iframeBRef}
-                className={`absolute inset-0 w-full h-full border-0 transition-opacity duration-300 ${activeElement === "B" ? "opacity-100 z-10" : "opacity-0 z-0"}`}
-                allow="autoplay; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                className={`absolute inset--0 w-full h-full border-0 transition-opacity duration-300 ${activeElement === 'B' ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+                allow='autoplay; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
                 allowFullScreen
-                referrerPolicy="strict-origin-when-cross-origin"
+                referrerPolicy='strict-origin-when-cross-origin'
                 title={currentMedia.media.name}
                 src={currentMedia.media.file_path}
               />
             </>
           )}
-          {currentMedia.media.mime_type.startsWith("image/") && (
+          {currentMedia.media.mime_type.startsWith('image/') && (
             <Image
                 key={currentMedia.id}
-                src={getMediaUrl(currentMedia.media.file_path) || "/placeholder.svg"}
+                src={getMediaUrl(currentMedia.media.file_path) || '/placeholder.svg'}
                 alt={currentMedia.media.name}
                 fill
-                className={getMediaObjectFit("image", config?.screen?.playlist)}
+                className={getMediaObjectFit('image', config?.screen?.playlist)}
                 priority
                 unoptimized
               />
           )}
         </div>
       ) : (
-        <div className="fixed inset-0 flex items-center justify-center bg-[#0a2a3a] text-white">
-          <div className="text-center space-y-4">
+        <div className='fixed inset-0 flex items-center justify-center bg-[#0a2a3a] text-white'>
+          <div className='text-center space-y-4'>
             {loading ? (
               <>
-                <div className="spinner"></div>
-                <h2 className="text-3xl font-light">Loading Screen...</h2>
+                <div className='spinner'></div>
+                <h2 className='text-3xl font-light'>Loading Screen...</h2>
               </>
             ) : (
               <>
-                <div className="text-6xl">📺</div>
-                <h2 className="text-3xl font-light">No content assigned</h2>
-                <p className="text-xl text-gray-400">Assign content to this screen in your dashboard</p>
+                <div className='text-6xl'>📺</div>
+                <h2 className='text-3xl font-light'>No content assigned</h2>
+                <p className='text-xl text-gray-400'>Assign content to this screen in your dashboard</p>
               </>
             )}
           </div>
