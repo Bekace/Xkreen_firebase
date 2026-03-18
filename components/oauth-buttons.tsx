@@ -1,94 +1,51 @@
+
 "use client"
 
-import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
-import { useState } from "react"
-import { Loader2 } from "lucide-react"
+import { createClient } from "@/utils/supabase-client"
+import { startTransition } from "react"
 
-interface OAuthButtonsProps {
-  redirectTo?: string
-  mode: "login" | "signup"
-}
+// Define a Google Icon component
+const GoogleIcon = () => (
+<svg viewBox="0 0 48 48" className="mr-2 h-4 w-4">
+  <title>Google Logo</title>
+  <clipPath id="g">
+    <path d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/>
+  </clipPath>
+  <g className="colors" clipPath="url(#g)">
+    <path fill="#FBBC05" d="M0 37V11l17 13z"/>
+    <path fill="#EA4335" d="M0 11l17 13 7-6.1L48 14V0H0z"/>
+    <path fill="#34A853" d="M0 37l30-23 7.9 1L48 0v48H0z"/>
+    <path fill="#4285F4" d="M48 48L17 24l-4-3 35-10z"/>
+  </g>
+</svg>
+);
 
-export function OAuthButtons({ redirectTo, mode }: OAuthButtonsProps) {
-  const [isLoadingGoogle, setIsLoadingGoogle] = useState(false)
-  const [isLoadingApple, setIsLoadingApple] = useState(false)
 
-  const handleOAuthLogin = async (provider: "google" | "apple") => {
-    const setLoading = provider === "google" ? setIsLoadingGoogle : setIsLoadingApple
-    setLoading(true)
+export default function OAuthButtons() {
+  const supabase = createClient()
 
-    try {
-      const supabase = createClient()
-      const redirectUrl = process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/auth/callback`
-
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: `${redirectUrl}?mode=${mode}&next=${encodeURIComponent(redirectTo || "/dashboard")}`,
-        },
-      })
-
-      if (error) {
-        console.error(`[v0] OAuth error:`, error)
-        setLoading(false)
-      }
-    } catch (error) {
-      console.error(`[v0] OAuth error:`, error)
-      setLoading(false)
-    }
+  const loginWith = (provider: "google") => {
+    supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${location.origin}/auth/callback`,
+      },
+    })
   }
 
   return (
-    <div className="space-y-3">
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full h-12 gap-3 bg-transparent"
-        onClick={() => handleOAuthLogin("google")}
-        disabled={isLoadingGoogle || isLoadingApple}
-      >
-        {isLoadingGoogle ? (
-          <Loader2 className="h-5 w-5 animate-spin" />
-        ) : (
-          <svg className="h-5 w-5" viewBox="0 0 24 24">
-            <path
-              fill="currentColor"
-              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-            />
-            <path
-              fill="currentColor"
-              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-            />
-            <path
-              fill="currentColor"
-              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-            />
-            <path
-              fill="currentColor"
-              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-            />
-          </svg>
-        )}
-        Continue with Google
-      </Button>
-
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full h-12 gap-3 bg-transparent"
-        onClick={() => handleOAuthLogin("apple")}
-        disabled={isLoadingGoogle || isLoadingApple}
-      >
-        {isLoadingApple ? (
-          <Loader2 className="h-5 w-5 animate-spin" />
-        ) : (
-          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-          </svg>
-        )}
-        Continue with Apple
-      </Button>
-    </div>
+    <Button
+      variant="outline"
+      className="w-full py-[20px]"
+      onClick={() => {
+        startTransition(() => {
+          loginWith("google")
+        })
+      }}
+    >
+      <GoogleIcon />
+      Continue with Google
+    </Button>
   )
 }
