@@ -7,14 +7,20 @@ export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get("code")
   const next = requestUrl.searchParams.get("next") || "/dashboard"
-  const mode = requestUrl.searchParams.get("mode") || "signup"
+  const mode = requestUrl.search_params.get("mode") || "signup"
+
+  // For production, we MUST use the canonical site URL from the environment variables.
+  // The request origin can be incorrect in server environments.
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
   
-  // Use the production site URL from environment variables, or fall back to the request's origin
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || requestUrl.origin
+  // If the siteUrl is not defined, there is a configuration error.
+  if (!siteUrl) {
+    const errorUrl = new URL("/auth/login?error=configuration_error", requestUrl.origin)
+    return NextResponse.redirect(errorUrl)
+  }
 
   if (code) {
     const cookieStore = await cookies()
-
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -36,7 +42,6 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
-    // Password recovery codes should go straight to reset-password
     if (!error && data.session?.user?.aud === "authenticated" && next === "/auth/reset-password") {
       return NextResponse.redirect(new URL("/auth/reset-password", siteUrl))
     }
@@ -96,7 +101,7 @@ export async function GET(request: NextRequest) {
           .update({ status: "active", joined_at: new Date().toISOString() })
           .eq("id", teamMemberId)
       }
-      
+
       const isGoingToCheckout = next.includes("/auth/oauth-checkout")
 
       if (!isGoingToCheckout) {
@@ -141,7 +146,6 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // If there's an error or no code, redirect to login
   const siteUrlForLogin = process.env.NEXT_PUBLIC_SITE_URL || requestUrl.origin
   return NextResponse.redirect(new URL("/auth/login", siteUrlForLogin))
 }
