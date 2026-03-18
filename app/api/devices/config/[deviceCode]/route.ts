@@ -56,7 +56,7 @@ export async function GET(request: NextRequest, { params }: { params: { deviceCo
       .from("devices")
       .select("*")
       .eq("device_code", deviceCode)
-      .maybeSingle()
+      .single()
 
     console.log("[v0] Device lookup result:", { device, deviceError })
 
