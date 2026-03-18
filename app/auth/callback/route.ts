@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get("code")
   const next = requestUrl.searchParams.get("next") || "/dashboard"
-  const mode = requestUrl.search_params.get("mode") || "signup"
+  const mode = requestUrl.searchParams.get("mode") || "signup"
 
   // For production, we MUST use the canonical site URL from the environment variables.
   // The request origin can be incorrect in server environments.
