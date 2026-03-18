@@ -1,5 +1,6 @@
-import { createClient } from "@/lib/supabase/server"
+import { createServerClient } from "@supabase/ssr"
 import { type NextRequest, NextResponse } from "next/server"
+import { cookies } from "next/headers"
 
 // Define interfaces for type safety
 interface Media {
@@ -43,20 +44,44 @@ function processGoogleSlidesUrl(filePath: string): string {
 export async function GET(request: NextRequest, { params }: { params: { deviceCode: string } }) {
   try {
     const { deviceCode } = params
+    const cookieStore = cookies()
 
     console.log("[v0] Device config API called for:", deviceCode)
 
     if (!deviceCode) {
       return NextResponse.json({ error: "Device code is required" }, { status: 400 })
     }
+    
+    // Create a Supabase client with the service role key to bypass RLS
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) => {
+                cookieStore.set(name, value, options)
+              })
+            } catch {
+              // The `setAll` method was called from a Server Component.
+              // This can be ignored if you have middleware refreshing
+              // user sessions.
+            }
+          },
+        },
+      }
+    );
 
-    const supabase = await createClient()
 
     const { data: device, error: deviceError } = await supabase
       .from("devices")
       .select("*")
       .eq("device_code", deviceCode)
-      .single()
+      .maybeSingle()
 
     console.log("[v0] Device lookup result:", { device, deviceError })
 
