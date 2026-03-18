@@ -26,10 +26,11 @@ export default function OAuthButtons() {
   const supabase = createClient()
 
   const loginWith = (provider: "google") => {
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || location.origin;
     supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${location.origin}/auth/callback`,
+        redirectTo: `${siteUrl}/auth/callback`,
       },
     })
   }
@@ -37,7 +38,7 @@ export default function OAuthButtons() {
   return (
     <Button
       variant="outline"
-      className="w-full py-[20px]"
+      className="w-full py-[10px]"
       onClick={() => {
         startTransition(() => {
           loginWith("google")
