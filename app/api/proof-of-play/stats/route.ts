@@ -65,35 +65,44 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Failed to fetch events" }, { status: 500 });
     }
 
-    let onlinePlays = 0;
-    let offlinePlays = 0;
-    let totalEnds = 0;
+    let onlineStarts = 0;
+    let offlineStarts = 0;
+    let onlineEnds = 0;
+    let offlineEnds = 0;
 
-    // Process events
+    // Process events with corrected logic
     for (const event of events) {
-        if (event.event_type === "media_start") {
-            if (event.metadata?.play_type === 'offline') {
-                offlinePlays++;
-            } else {
-                onlinePlays++;
-            }
+      const isOfflinePlay = event.metadata?.play_type === 'offline';
+
+      if (event.event_type === "media_start") {
+        if (isOfflinePlay) {
+          offlineStarts++;
+        } else {
+          onlineStarts++;
         }
-        if (event.event_type === "media_end") {
-            totalEnds++;
+      }
+      
+      if (event.event_type === "media_end") {
+        if (isOfflinePlay) {
+          offlineEnds++;
+        } else {
+          onlineEnds++;
         }
+      }
     }
     
-    const totalStarts = onlinePlays + offlinePlays;
+    const totalPlays = onlineStarts + offlineStarts;
+    const completedPlays = onlineEnds + offlineEnds;
 
-    // Calculate success rate
-    const successRate = totalStarts > 0 ? ((totalEnds / totalStarts) * 100).toFixed(0) : "0";
+    // Calculate success rate based ONLY on online plays
+    const successRate = onlineStarts > 0 ? ((onlineEnds / onlineStarts) * 100).toFixed(0) : "0";
 
     return NextResponse.json({
       summary: {
-        online_plays: onlinePlays,
-        offline_plays: offlinePlays,
-        total_plays: totalStarts,
-        completed_plays: totalEnds,
+        online_plays: onlineStarts,
+        offline_plays: offlineStarts,
+        total_plays: totalPlays,
+        completed_plays: completedPlays,
         success_rate: successRate,
       },
       time_range: timeRange,

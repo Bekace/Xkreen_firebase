@@ -234,7 +234,11 @@ export default function PlayerPage() {
               src={currentMedia.media.file_path}
               autoPlay muted playsInline
               onEnded={handleVideoEnd}
-              onError={() => trackEvent(deviceId, 'media_error', currentMedia, currentPlaylist, { error_source: 'html5_video' })}
+              onError={() => {
+                if (deviceId) {
+                  trackEvent(deviceId, 'media_error', currentMedia, currentPlaylist, { error_source: 'html5_video' });
+                }
+              }}
             />
           )}
 

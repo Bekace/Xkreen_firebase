@@ -1,35 +1,69 @@
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
 
 export async function POST(request: Request) {
   try {
     const singleEvent = await request.json();
 
-    if (!singleEvent || typeof singleEvent !== 'object') {
+    if (!singleEvent || typeof singleEvent !== 'object' || !singleEvent.device_id) {
       return NextResponse.json({ error: "Invalid event payload" }, { status: 400 });
     }
 
-    // Sanitize the single event before insertion
-    let metadata = singleEvent.metadata;
-    if (typeof metadata === 'string') {
-      try {
-        metadata = JSON.parse(metadata);
-      } catch (e) {
-        console.error("Failed to parse metadata string:", metadata);
-        // Handle error appropriately
+    const cookieStore = await cookies();
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            cookieStore.set({ name, value, ...options });
+          },
+          remove(name: string, options: CookieOptions) {
+            cookieStore.set({ name, value: "", ...options });
+          },
+        },
       }
+    );
+
+    // 1. Fetch the device's last heartbeat to determine true online status
+    const { data: device, error: deviceError } = await supabase
+      .from("devices")
+      .select("last_heartbeat")
+      .eq("id", singleEvent.device_id)
+      .single();
+
+    if (deviceError) {
+      console.error("[Events-Single] Error fetching device heartbeat:", deviceError);
+      return NextResponse.json({ error: "Device not found" }, { status: 404 });
     }
-    
-    const sanitizedEvent = {
+
+    // 2. Calculate if the device is considered online (heartbeat within last 2 minutes)
+    let isOnline = false;
+    if (device && device.last_heartbeat) {
+      const lastHeartbeat = new Date(device.last_heartbeat).getTime();
+      const now = new Date().getTime();
+      const twoMinutesInMs = 2 * 60 * 1000;
+      isOnline = (now - lastHeartbeat) <= twoMinutesInMs;
+    }
+
+    // 3. Force the server's truth onto the event metadata
+    const processedEvent = {
       ...singleEvent,
-      metadata,
+      metadata: {
+        ...(singleEvent.metadata || {}),
+        play_type: isOnline ? "online" : "offline"
+      }
     };
 
-    const supabase = await createClient();
-
-    const { data, error } = await supabase
+    // 4. Insert the verified event
+    const { error } = await supabase
       .from("device_events")
-      .insert([sanitizedEvent]); // Insert as an array with one element
+      .insert([processedEvent]);
 
     if (error) {
       console.error("[Events-Single] Error inserting event:", error);
